@@ -54,6 +54,7 @@ export default function HeatmapPage() {
                   aspectRatio={4 / 3}
                   stroke="#1e293b"
                   fill="#334155"
+                  isAnimationActive={false}
                   content={(props) => {
                     const { x, y, width, height, index } = props as any;
                     const coin = treemapData[index];
