@@ -4,6 +4,7 @@ import "./globals.css";
 import { Header } from "@/components/header";
 import { TabNavigation } from "@/components/tab-navigation";
 import { ThemeProvider } from "@/components/theme-provider";
+import { FarcasterProvider } from "@/components/farcaster-provider";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -30,22 +31,24 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="dark"
-          enableSystem={false}
-          disableTransitionOnChange
-        >
-          <div className="min-h-screen bg-background">
-            <Header />
-            <main className="pb-20 lg:pb-6 lg:ml-64">
-              <div className="max-w-none mx-auto px-6 lg:px-8 xl:px-12">
-                {children}
-              </div>
-            </main>
-            <TabNavigation />
-          </div>
-        </ThemeProvider>
+        <FarcasterProvider>
+          <ThemeProvider
+            attribute="class"
+            defaultTheme="dark"
+            enableSystem={false}
+            disableTransitionOnChange
+          >
+            <div className="min-h-screen bg-background">
+              <Header />
+              <main className="pb-20 lg:pb-6 lg:ml-64">
+                <div className="max-w-none mx-auto px-6 lg:px-8 xl:px-12">
+                  {children}
+                </div>
+              </main>
+              <TabNavigation />
+            </div>
+          </ThemeProvider>
+        </FarcasterProvider>
       </body>
     </html>
   );
