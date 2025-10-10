@@ -20,6 +20,8 @@ export function OnboardingGuard({ children }: OnboardingGuardProps) {
         // Skip onboarding check for onboarding page itself
         if (pathname === "/onboarding") {
           setIsChecking(false);
+          // Hide splash screen for onboarding page
+          sdk.actions.ready();
           return;
         }
 
@@ -36,23 +38,25 @@ export function OnboardingGuard({ children }: OnboardingGuardProps) {
           
           if (!hasCompleted) {
             // Redirect to onboarding
-            router.push("/onboarding");
+            await router.push("/onboarding");
             setShouldShowOnboarding(true);
           } else {
             // Redirect to app if onboarding completed
             if (pathname === "/") {
-              router.push("/app");
+              await router.push("/app");
             }
           }
-          
-          // Hide splash screen after routing decision
-          sdk.actions.ready();
-        } else {
-          // Not in mini app, hide splash screen anyway
-          sdk.actions.ready();
         }
+        
+        // Hide splash screen after all routing decisions
+        setTimeout(() => {
+          sdk.actions.ready();
+        }, 100);
+        
       } catch (error) {
         console.error("Error checking onboarding status:", error);
+        // Hide splash screen even on error
+        sdk.actions.ready();
       } finally {
         setIsChecking(false);
       }
