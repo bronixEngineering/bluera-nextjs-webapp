@@ -1,12 +1,12 @@
 export async function GET() {
   const manifest_json_object = {
-    accountAssociation: {
-      header:
-        "eyJmaWQiOjEzNzAzMDUsInR5cGUiOiJhdXRoIiwia2V5IjoiMHhFRkM3NDcxOEI3NjlBZjkyRjZhMjIzMURmMzZlRDQxNzI0NDk5NmEwIn0",
-      payload: "eyJkb21haW4iOiJibHVlcmEudmVyY2VsLmFwcCJ9",
-      signature:
-        "uSEVguvxpx8Y0B5ZlgmV56/MrldCPfvcAiU3XgUw7to125wYPdrfgykhJbawwOqYYSan6KG1c3AAqBKgdsSrTRw=",
-    },
+    // accountAssociation: {
+    //   header:
+    //     "eyJmaWQiOjEzNzAzMDUsInR5cGUiOiJhdXRoIiwia2V5IjoiMHhFRkM3NDcxOEI3NjlBZjkyRjZhMjIzMURmMzZlRDQxNzI0NDk5NmEwIn0",
+    //   payload: "eyJkb21haW4iOiJibHVlcmEudmVyY2VsLmFwcCJ9",
+    //   signature:
+    //     "uSEVguvxpx8Y0B5ZlgmV56/MrldCPfvcAiU3XgUw7to125wYPdrfgykhJbawwOqYYSan6KG1c3AAqBKgdsSrTRw=",
+    // },
 
     baseBuilder: {
       allowedAddresses: ["0xEFC74718B769Af92F6a2231Df36eD417244996a0"],
