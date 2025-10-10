@@ -94,15 +94,7 @@ export default function RootLayout({
               enableSystem={false}
               disableTransitionOnChange
             >
-              <div className="min-h-screen bg-background">
-                <Header />
-                <main className="pb-20 lg:pb-6 lg:ml-64">
-                  <div className="max-w-none mx-auto px-6 lg:px-8 xl:px-12">
-                    {children}
-                  </div>
-                </main>
-                <TabNavigation />
-              </div>
+              {children}
             </ThemeProvider>
           </OnboardingGuard>
         </FarcasterProvider>

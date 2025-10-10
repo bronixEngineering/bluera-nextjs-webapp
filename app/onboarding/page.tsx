@@ -7,8 +7,8 @@ export default function OnboardingPage() {
   const router = useRouter();
 
   const handleComplete = () => {
-    // Redirect to home page after onboarding
-    router.push("/");
+    // Redirect to app page after onboarding
+    router.push("/app");
   };
 
   return (

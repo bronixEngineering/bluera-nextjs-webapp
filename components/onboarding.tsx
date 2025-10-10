@@ -85,13 +85,13 @@ export function Onboarding({ userFid, onComplete }: OnboardingProps) {
       
       // Mark onboarding as completed
       const fid = user?.fid || userFid;
-      localStorage.setItem(`onboarding_completed_${fid}`, "true");
+      localStorage.setItem(`onboarding_completed_v2_${fid}`, "true");
       onComplete();
     } catch (error) {
       console.error("Failed to add mini app:", error);
       // Still mark as completed even if add fails
       const fid = user?.fid || userFid;
-      localStorage.setItem(`onboarding_completed_${fid}`, "true");
+      localStorage.setItem(`onboarding_completed_v2_${fid}`, "true");
       onComplete();
     } finally {
       setIsAdding(false);
@@ -169,7 +169,7 @@ export function Onboarding({ userFid, onComplete }: OnboardingProps) {
               <button
                 onClick={() => {
                   const fid = user?.fid || userFid;
-                  localStorage.setItem(`onboarding_completed_${fid}`, "true");
+                  localStorage.setItem(`onboarding_completed_v2_${fid}`, "true");
                   onComplete();
                 }}
                 className="text-sm text-muted-foreground hover:text-foreground transition-colors"

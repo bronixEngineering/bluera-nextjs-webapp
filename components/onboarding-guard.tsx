@@ -38,7 +38,18 @@ export function OnboardingGuard({ children }: OnboardingGuardProps) {
             // Redirect to onboarding
             router.push("/onboarding");
             setShouldShowOnboarding(true);
+          } else {
+            // Redirect to app if onboarding completed
+            if (pathname === "/") {
+              router.push("/app");
+            }
           }
+          
+          // Hide splash screen after routing decision
+          sdk.actions.ready();
+        } else {
+          // Not in mini app, hide splash screen anyway
+          sdk.actions.ready();
         }
       } catch (error) {
         console.error("Error checking onboarding status:", error);
