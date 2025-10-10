@@ -34,7 +34,7 @@ export default function HeatmapPage() {
   );
 
   return (
-    <div className="space-y-4 p-4">
+    <div className="py-6 space-y-6">
       <Card>
         <CardHeader>
           <CardTitle>Cryptocurrency Volume Heatmap</CardTitle>
@@ -46,12 +46,11 @@ export default function HeatmapPage() {
         <CardContent>
           <div className="space-y-4">
             {/* Recharts Treemap */}
-            <div className="h-[500px] w-full">
+            <div className="h-[600px] w-full">
               <ResponsiveContainer width="100%" height="100%">
                 <Treemap
                   data={treemapData}
                   dataKey="size"
-                  aspectRatio={4 / 3}
                   stroke="#1e293b"
                   fill="#334155"
                   isAnimationActive={false}
