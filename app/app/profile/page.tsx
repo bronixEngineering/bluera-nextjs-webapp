@@ -25,6 +25,7 @@ import {
   Award,
   LogIn,
   LogOut,
+  Plus,
 } from "lucide-react";
 import { AuraCard } from "@/components/aura-card";
 
@@ -37,6 +38,7 @@ export default function ProfilePage() {
   } | null>(null);
   const [isInMiniApp, setIsInMiniApp] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [isAdding, setIsAdding] = useState(false);
 
   const favoriteToken = mockTokens.find(
     (token) => token.symbol === mockUserStats.favoriteCoin
@@ -65,6 +67,17 @@ export default function ProfilePage() {
 
     loadUserData();
   }, []);
+
+  const handleAddMiniApp = async () => {
+    try {
+      setIsAdding(true);
+      await sdk.actions.addMiniApp();
+    } catch (error) {
+      console.error("Failed to add mini app:", error);
+    } finally {
+      setIsAdding(false);
+    }
+  };
 
   // Show message if not in Mini App
   if (!isInMiniApp && !isLoading) {
@@ -140,6 +153,30 @@ export default function ProfilePage() {
                     Trading Aura: {mockUserStats.tradingAura}
                   </span>
                 </div>
+              </div>
+            </div>
+            <div className="flex flex-col gap-2">
+              {isInMiniApp && (
+                <Button
+                  onClick={handleAddMiniApp}
+                  disabled={isAdding}
+                  variant="outline"
+                  size="sm"
+                  className="flex items-center gap-2"
+                >
+                  {isAdding ? (
+                    <>
+                      <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-current" />
+                      Adding...
+                    </>
+                  ) : (
+                    <>
+                      <Plus className="h-3 w-3" />
+                      Add to Apps
+                    </>
+                  )}
+                </Button>
+              )}
               </div>
             </div>
           </div>
