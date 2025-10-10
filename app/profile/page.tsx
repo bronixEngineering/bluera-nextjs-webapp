@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { sdk } from "@farcaster/miniapp-sdk";
 import {
   Card,
@@ -29,83 +29,75 @@ import {
 import { AuraCard } from "@/components/aura-card";
 
 export default function ProfilePage() {
-  const [token, setToken] = useState<string | null>(null);
-  const [userData, setUserData] = useState<{ fid: number } | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
+  const [user, setUser] = useState<{
+    fid: number;
+    username?: string;
+    displayName?: string;
+    pfpUrl?: string;
+  } | null>(null);
+  const [isInMiniApp, setIsInMiniApp] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   const favoriteToken = mockTokens.find(
     (token) => token.symbol === mockUserStats.favoriteCoin
   );
 
-  async function signIn() {
-    try {
-      setIsLoading(true);
-      
-      // Try direct authentication without backend first
-      console.log("🚀 Starting authentication...");
-      
-      // Use quickAuth.fetch directly - no need for separate token step
-      const response = await sdk.quickAuth.fetch(
-        `${window.location.origin}/api/auth`
-      );
+  useEffect(() => {
+    const loadUserData = async () => {
+      try {
+        // Check if we're in a Mini App
+        const miniAppStatus = await sdk.isInMiniApp();
+        setIsInMiniApp(miniAppStatus);
+        console.log("🔍 Is in Mini App:", miniAppStatus);
 
-      console.log("Response status:", response.status);
-      console.log("Response ok:", response.ok);
-      console.log("Response headers:", Object.fromEntries(response.headers.entries()));
-      
-      if (response.ok) {
-        const data = await response.json();
-        console.log("User data:", data);
-        setUserData(data);
-        setToken("authenticated"); // Set a flag that we're authenticated
-        sdk.actions.ready();
-      } else {
-        const errorText = await response.text();
-        console.error("Auth failed:", response.status, errorText);
-        
-        // Fallback: Mock authentication for testing
-        console.log("🔄 Using fallback mock authentication");
-        setUserData({ fid: 12345 }); // Mock FID
-        setToken("authenticated");
-        sdk.actions.ready();
+        if (miniAppStatus) {
+          // Get context and extract user info
+          const context = await sdk.context;
+          console.log("📱 Mini App Context:", context);
+          setUser(context.user);
+        }
+      } catch (error) {
+        console.error("Error loading user data:", error);
+      } finally {
+        setIsLoading(false);
       }
-    } catch (error) {
-      console.error("Authentication failed:", error);
-      
-      // Fallback: Mock authentication for testing
-      console.log("🔄 Using fallback mock authentication due to error");
-      setUserData({ fid: 12345 }); // Mock FID
-      setToken("authenticated");
-      sdk.actions.ready();
-    } finally {
-      setIsLoading(false);
-    }
-  }
+    };
 
-  function signOut() {
-    setToken(null);
-    setUserData(null);
-  }
+    loadUserData();
+  }, []);
 
-  // Show authentication UI if not logged in
-  if (!token) {
+  // Show message if not in Mini App
+  if (!isInMiniApp && !isLoading) {
     return (
       <div className="py-6">
         <Card className="max-w-md mx-auto">
           <CardHeader className="text-center">
             <CardTitle className="flex items-center justify-center gap-2">
               <LogIn className="h-5 w-5" />
-              Sign In to View Profile
+              Open in Base App
             </CardTitle>
             <CardDescription>
-              Connect with Farcaster to access your trading profile and
-              analytics
+              Please open this app in Base or Farcaster client to see your profile.
             </CardDescription>
           </CardHeader>
           <CardContent className="text-center">
-            <Button onClick={signIn} disabled={isLoading} className="w-full">
-              {isLoading ? "Signing In..." : "Sign In with Farcaster"}
-            </Button>
+            <p className="text-sm text-muted-foreground">
+              This mini app needs to be opened from within Base or Farcaster to access your profile data.
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // Show loading state
+  if (isLoading) {
+    return (
+      <div className="py-6">
+        <Card className="max-w-md mx-auto">
+          <CardContent className="p-6 text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+            <p>Loading your profile...</p>
           </CardContent>
         </Card>
       </div>
@@ -120,21 +112,28 @@ export default function ProfilePage() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <Avatar className="h-20 w-20">
-                <AvatarImage src={mockUser.avatar} alt={mockUser.username} />
+                <AvatarImage 
+                  src={user?.pfpUrl || mockUser.avatar} 
+                  alt={user?.displayName || user?.username || mockUser.username} 
+                />
                 <AvatarFallback className="text-2xl">
-                  {mockUser.username.charAt(0).toUpperCase()}
+                  {(user?.displayName || user?.username || mockUser.username).charAt(0).toUpperCase()}
                 </AvatarFallback>
               </Avatar>
               <div className="flex-1">
                 <div className="flex items-center gap-2 mb-1">
-                  <h1 className="text-2xl font-bold">{mockUser.username}</h1>
+                  <h1 className="text-2xl font-bold">
+                    {user?.displayName || user?.username || mockUser.username}
+                  </h1>
                   <Badge variant="secondary">
-                    FID #{userData?.fid || mockUser.fid}
+                    FID #{user?.fid || mockUser.fid}
                   </Badge>
                 </div>
-                <p className="text-muted-foreground mb-2">
-                  {mockUser.basename}
-                </p>
+                {user?.username && (
+                  <p className="text-muted-foreground mb-2">
+                    @{user.username}
+                  </p>
+                )}
                 <div className="flex items-center gap-2">
                   <Sparkles className="h-4 w-4 text-purple-500" />
                   <span className="text-sm font-medium">
@@ -143,15 +142,6 @@ export default function ProfilePage() {
                 </div>
               </div>
             </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={signOut}
-              className="flex items-center gap-2"
-            >
-              <LogOut className="h-4 w-4" />
-              Sign Out
-            </Button>
           </div>
         </CardContent>
       </Card>
