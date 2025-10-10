@@ -25,33 +25,12 @@ export function OnboardingGuard({ children }: OnboardingGuardProps) {
           return;
         }
 
-        // Check if we're in a mini app
-        const miniAppStatus = await sdk.isInMiniApp();
+        // Always redirect to onboarding first, let onboarding page handle the logic
+        await router.push("/onboarding");
+        setShouldShowOnboarding(true);
         
-        if (miniAppStatus) {
-          // Get user context
-          const context = await sdk.context;
-          const userFid = context.user.fid;
-          
-          // Check if user has completed onboarding
-          const hasCompleted = localStorage.getItem(`onboarding_completed_v2_${userFid}`);
-          
-          if (!hasCompleted) {
-            // Redirect to onboarding
-            await router.push("/onboarding");
-            setShouldShowOnboarding(true);
-          } else {
-            // Redirect to app if onboarding completed
-            if (pathname === "/") {
-              await router.push("/app");
-            }
-          }
-        }
-        
-        // Hide splash screen after all routing decisions
-        setTimeout(() => {
-          sdk.actions.ready();
-        }, 100);
+        // Hide splash screen
+        sdk.actions.ready();
         
       } catch (error) {
         console.error("Error checking onboarding status:", error);
