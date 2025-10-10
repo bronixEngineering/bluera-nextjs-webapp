@@ -21,7 +21,7 @@ export async function GET() {
         "https://sbhcvcgwvbodsrsnufhk.supabase.co/storage/v1/object/public/public-assets/blueara-app-logo.png",
       splashBackgroundColor: "#0f172a",
       webhookUrl: "https://bluera.vercel.app/api/webhook",
-      subtitle: "Advanced crypto trading insights",
+      subtitle: "Base Analytics",
       description:
         "Track your trading performance, analyze market trends, and compete with other traders in real-time.",
       screenshotUrls: [
