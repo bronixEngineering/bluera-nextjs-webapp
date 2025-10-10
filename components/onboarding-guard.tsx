@@ -32,7 +32,10 @@ export function OnboardingGuard({ children }: OnboardingGuardProps) {
         router.push("/onboarding");
         setShouldShowOnboarding(true);
         
-        // Don't hide splash screen here, let onboarding page handle it
+        // Hide splash screen after redirect
+        setTimeout(() => {
+          sdk.actions.ready();
+        }, 100);
         
       } catch (error) {
         console.error("❌ OnboardingGuard: Error:", error);

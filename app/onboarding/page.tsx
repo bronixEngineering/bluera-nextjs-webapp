@@ -41,14 +41,12 @@ export default function OnboardingPage() {
         console.log("🎯 OnboardingPage: Showing onboarding");
         setShouldShowOnboarding(true);
         
-        // Hide splash screen now that we're showing content
-        sdk.actions.ready();
+        // Don't hide splash screen here, OnboardingGuard will handle it
         
       } catch (error) {
         console.error("❌ OnboardingPage: Error:", error);
         // Show onboarding anyway
         setShouldShowOnboarding(true);
-        sdk.actions.ready();
       } finally {
         setIsChecking(false);
       }
