@@ -1,27 +1,64 @@
 'use client';
 
+import { useState, useEffect } from 'react';
+import { sdk } from '@farcaster/miniapp-sdk';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { mockUser } from '@/lib/mock-data';
 
 export function Header() {
+  const [user, setUser] = useState<{
+    fid: number;
+    username?: string;
+    displayName?: string;
+    pfpUrl?: string;
+  } | null>(null);
+  const [isInMiniApp, setIsInMiniApp] = useState(false);
+
+  useEffect(() => {
+    const loadUserData = async () => {
+      try {
+        const miniAppStatus = await sdk.isInMiniApp();
+        setIsInMiniApp(miniAppStatus);
+
+        if (miniAppStatus) {
+          const context = await sdk.context;
+          setUser(context.user);
+        }
+      } catch (error) {
+        console.error("Error loading user data in header:", error);
+      }
+    };
+
+    loadUserData();
+  }, []);
+
+  const displayUser = user || mockUser;
+  const displayName = user?.displayName || user?.username || mockUser.username;
+  const displayUsername = user?.username || mockUser.username;
+
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container max-w-7xl mx-auto flex h-16 items-center justify-between px-4 lg:px-6">
         <div className="flex items-center space-x-3">
           <Avatar className="h-10 w-10">
-            <AvatarImage src={mockUser.avatar} alt={mockUser.username} />
-            <AvatarFallback>{mockUser.username.charAt(0).toUpperCase()}</AvatarFallback>
+            <AvatarImage 
+              src={user?.pfpUrl || mockUser.avatar} 
+              alt={displayName} 
+            />
+            <AvatarFallback>{displayName.charAt(0).toUpperCase()}</AvatarFallback>
           </Avatar>
           <div className="flex flex-col">
             <div className="flex items-center space-x-2">
-              <span className="text-sm font-medium">FID #{mockUser.fid}</span>
-              <Badge variant="secondary" className="text-xs">
-                {mockUser.basename}
-              </Badge>
+              <span className="text-sm font-medium">FID #{displayUser.fid}</span>
+              {isInMiniApp && user && (
+                <Badge variant="secondary" className="text-xs">
+                  Live
+                </Badge>
+              )}
             </div>
             <span className="text-xs text-muted-foreground hidden sm:block">
-              {mockUser.username}
+              {user?.username ? `@${displayUsername}` : displayUsername}
             </span>
           </div>
         </div>

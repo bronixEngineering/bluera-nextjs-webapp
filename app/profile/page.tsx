@@ -27,6 +27,7 @@ import {
   LogOut,
 } from "lucide-react";
 import { AuraCard } from "@/components/aura-card";
+import { Onboarding, useOnboardingStatus } from "@/components/onboarding";
 
 export default function ProfilePage() {
   const [user, setUser] = useState<{
@@ -37,6 +38,9 @@ export default function ProfilePage() {
   } | null>(null);
   const [isInMiniApp, setIsInMiniApp] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [showOnboarding, setShowOnboarding] = useState(false);
+  
+  const hasCompletedOnboarding = useOnboardingStatus(user?.fid || null);
 
   const favoriteToken = mockTokens.find(
     (token) => token.symbol === mockUserStats.favoriteCoin
@@ -66,6 +70,13 @@ export default function ProfilePage() {
     loadUserData();
   }, []);
 
+  // Check if we should show onboarding
+  useEffect(() => {
+    if (user && hasCompletedOnboarding === false) {
+      setShowOnboarding(true);
+    }
+  }, [user, hasCompletedOnboarding]);
+
   // Show message if not in Mini App
   if (!isInMiniApp && !isLoading) {
     return (
@@ -87,6 +98,16 @@ export default function ProfilePage() {
           </CardContent>
         </Card>
       </div>
+    );
+  }
+
+  // Show onboarding if needed
+  if (showOnboarding && user) {
+    return (
+      <Onboarding 
+        userFid={user.fid} 
+        onComplete={() => setShowOnboarding(false)} 
+      />
     );
   }
 
