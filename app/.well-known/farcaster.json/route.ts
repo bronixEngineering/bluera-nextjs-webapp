@@ -9,7 +9,7 @@ export async function GET() {
     },
 
     baseBuilder: {
-      allowedAddresses: ["0x0Bfd0BDC728bED3223b14076895fc3A3505E86dF"],
+      allowedAddresses: ["0xccFA4a7BE08eC57eD5F9A5689c1DafcEB541fD5f"],
     },
     miniapp: {
       version: "1",
