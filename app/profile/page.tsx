@@ -1,46 +1,134 @@
-'use client';
+"use client";
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { mockUser, mockUserStats, mockTokens } from '@/lib/mock-data';
-import { TokenLogo } from '@/components/ui/token-logo';
-import { 
-  Sparkles, 
-  TrendingUp, 
-  TrendingDown, 
-  Coins, 
-  DollarSign, 
+import { useState } from "react";
+import { sdk } from "@farcaster/miniapp-sdk";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
+import { mockUser, mockUserStats, mockTokens } from "@/lib/mock-data";
+import { TokenLogo } from "@/components/ui/token-logo";
+import {
+  Sparkles,
+  TrendingUp,
+  TrendingDown,
+  Coins,
+  DollarSign,
   Target,
   Activity,
-  Award
-} from 'lucide-react';
-import { AuraCard } from '@/components/aura-card';
+  Award,
+  LogIn,
+  LogOut,
+} from "lucide-react";
+import { AuraCard } from "@/components/aura-card";
 
 export default function ProfilePage() {
-  const favoriteToken = mockTokens.find(token => token.symbol === mockUserStats.favoriteCoin);
+  const [token, setToken] = useState<string | null>(null);
+  const [userData, setUserData] = useState<{ fid: number } | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+
+  const favoriteToken = mockTokens.find(
+    (token) => token.symbol === mockUserStats.favoriteCoin
+  );
+
+  async function signIn() {
+    try {
+      setIsLoading(true);
+      
+      // Use quickAuth.fetch directly - no need for separate token step
+      const response = await sdk.quickAuth.fetch(
+        `${window.location.origin}/api/auth`
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        setUserData(data);
+        setToken("authenticated"); // Set a flag that we're authenticated
+        sdk.actions.ready();
+      }
+    } catch (error) {
+      console.error("Authentication failed:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  function signOut() {
+    setToken(null);
+    setUserData(null);
+  }
+
+  // Show authentication UI if not logged in
+  if (!token) {
+    return (
+      <div className="py-6">
+        <Card className="max-w-md mx-auto">
+          <CardHeader className="text-center">
+            <CardTitle className="flex items-center justify-center gap-2">
+              <LogIn className="h-5 w-5" />
+              Sign In to View Profile
+            </CardTitle>
+            <CardDescription>
+              Connect with Farcaster to access your trading profile and
+              analytics
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="text-center">
+            <Button onClick={signIn} disabled={isLoading} className="w-full">
+              {isLoading ? "Signing In..." : "Sign In with Farcaster"}
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="py-6 space-y-8">
       {/* Profile Header */}
       <Card>
         <CardContent className="p-6">
-          <div className="flex items-center gap-4">
-            <Avatar className="h-20 w-20">
-              <AvatarImage src={mockUser.avatar} alt={mockUser.username} />
-              <AvatarFallback className="text-2xl">{mockUser.username.charAt(0).toUpperCase()}</AvatarFallback>
-            </Avatar>
-            <div className="flex-1">
-              <div className="flex items-center gap-2 mb-1">
-                <h1 className="text-2xl font-bold">{mockUser.username}</h1>
-                <Badge variant="secondary">FID #{mockUser.fid}</Badge>
-              </div>
-              <p className="text-muted-foreground mb-2">{mockUser.basename}</p>
-              <div className="flex items-center gap-2">
-                <Sparkles className="h-4 w-4 text-purple-500" />
-                <span className="text-sm font-medium">Trading Aura: {mockUserStats.tradingAura}</span>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <Avatar className="h-20 w-20">
+                <AvatarImage src={mockUser.avatar} alt={mockUser.username} />
+                <AvatarFallback className="text-2xl">
+                  {mockUser.username.charAt(0).toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
+              <div className="flex-1">
+                <div className="flex items-center gap-2 mb-1">
+                  <h1 className="text-2xl font-bold">{mockUser.username}</h1>
+                  <Badge variant="secondary">
+                    FID #{userData?.fid || mockUser.fid}
+                  </Badge>
+                </div>
+                <p className="text-muted-foreground mb-2">
+                  {mockUser.basename}
+                </p>
+                <div className="flex items-center gap-2">
+                  <Sparkles className="h-4 w-4 text-purple-500" />
+                  <span className="text-sm font-medium">
+                    Trading Aura: {mockUserStats.tradingAura}
+                  </span>
+                </div>
               </div>
             </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={signOut}
+              className="flex items-center gap-2"
+            >
+              <LogOut className="h-4 w-4" />
+              Sign Out
+            </Button>
           </div>
         </CardContent>
       </Card>
@@ -67,9 +155,13 @@ export default function ProfilePage() {
           <CardContent className="p-4">
             <div className="flex items-center gap-2 mb-2">
               <Coins className="h-4 w-4 text-blue-500" />
-              <span className="text-sm text-muted-foreground">Tokens This Month</span>
+              <span className="text-sm text-muted-foreground">
+                Tokens This Month
+              </span>
             </div>
-            <div className="text-2xl font-bold">{mockUserStats.tokensTradedThisMonth}</div>
+            <div className="text-2xl font-bold">
+              {mockUserStats.tokensTradedThisMonth}
+            </div>
           </CardContent>
         </Card>
 
@@ -77,9 +169,13 @@ export default function ProfilePage() {
           <CardContent className="p-4">
             <div className="flex items-center gap-2 mb-2">
               <DollarSign className="h-4 w-4 text-green-500" />
-              <span className="text-sm text-muted-foreground">Total Volume</span>
+              <span className="text-sm text-muted-foreground">
+                Total Volume
+              </span>
             </div>
-            <div className="text-2xl font-bold">${(mockUserStats.totalVolume / 1000).toFixed(0)}K</div>
+            <div className="text-2xl font-bold">
+              ${(mockUserStats.totalVolume / 1000).toFixed(0)}K
+            </div>
           </CardContent>
         </Card>
 
@@ -87,9 +183,13 @@ export default function ProfilePage() {
           <CardContent className="p-4">
             <div className="flex items-center gap-2 mb-2">
               <Activity className="h-4 w-4 text-purple-500" />
-              <span className="text-sm text-muted-foreground">Total Transactions</span>
+              <span className="text-sm text-muted-foreground">
+                Total Transactions
+              </span>
             </div>
-            <div className="text-2xl font-bold">{mockUserStats.totalTxCount}</div>
+            <div className="text-2xl font-bold">
+              {mockUserStats.totalTxCount}
+            </div>
           </CardContent>
         </Card>
 
@@ -103,8 +203,13 @@ export default function ProfilePage() {
               )}
               <span className="text-sm text-muted-foreground">P&L</span>
             </div>
-            <div className={`text-2xl font-bold ${mockUserStats.pnl >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-              {mockUserStats.pnl > 0 ? '+' : ''}{mockUserStats.pnl}%
+            <div
+              className={`text-2xl font-bold ${
+                mockUserStats.pnl >= 0 ? "text-green-600" : "text-red-600"
+              }`}
+            >
+              {mockUserStats.pnl > 0 ? "+" : ""}
+              {mockUserStats.pnl}%
             </div>
           </CardContent>
         </Card>
@@ -127,21 +232,30 @@ export default function ProfilePage() {
               <div className="flex items-center gap-3">
                 <TokenLogo symbol={favoriteToken.symbol} size="lg" />
                 <div>
-                  <div className="font-semibold text-lg">{favoriteToken.symbol}</div>
-                  <div className="text-sm text-muted-foreground">{favoriteToken.name}</div>
+                  <div className="font-semibold text-lg">
+                    {favoriteToken.symbol}
+                  </div>
+                  <div className="text-sm text-muted-foreground">
+                    {favoriteToken.name}
+                  </div>
                 </div>
               </div>
               <div className="text-right">
                 <div className="text-lg font-bold">
                   {favoriteToken.balance.toFixed(2)} {favoriteToken.symbol}
                 </div>
-                <Badge variant={favoriteToken.change24h >= 0 ? "default" : "destructive"}>
+                <Badge
+                  variant={
+                    favoriteToken.change24h >= 0 ? "default" : "destructive"
+                  }
+                >
                   {favoriteToken.change24h >= 0 ? (
                     <TrendingUp className="h-3 w-3 mr-1" />
                   ) : (
                     <TrendingDown className="h-3 w-3 mr-1" />
                   )}
-                  {favoriteToken.change24h > 0 ? '+' : ''}{favoriteToken.change24h}%
+                  {favoriteToken.change24h > 0 ? "+" : ""}
+                  {favoriteToken.change24h}%
                 </Badge>
               </div>
             </div>
@@ -162,7 +276,9 @@ export default function ProfilePage() {
             <div className="text-center text-muted-foreground">
               <Activity className="h-12 w-12 mx-auto mb-2 opacity-50" />
               <p>Trading activity chart would be displayed here</p>
-              <p className="text-sm">Integration with charting library pending</p>
+              <p className="text-sm">
+                Integration with charting library pending
+              </p>
             </div>
           </div>
         </CardContent>
@@ -187,7 +303,9 @@ export default function ProfilePage() {
                 </div>
                 <div>
                   <div className="font-semibold">Volume Trader</div>
-                  <div className="text-xs text-muted-foreground">Traded over $100K this month</div>
+                  <div className="text-xs text-muted-foreground">
+                    Traded over $100K this month
+                  </div>
                 </div>
               </div>
             </div>
@@ -201,7 +319,9 @@ export default function ProfilePage() {
                 </div>
                 <div>
                   <div className="font-semibold">Consistent Trader</div>
-                  <div className="text-xs text-muted-foreground">Active for 30+ consecutive days</div>
+                  <div className="text-xs text-muted-foreground">
+                    Active for 30+ consecutive days
+                  </div>
                 </div>
               </div>
             </div>
@@ -215,7 +335,9 @@ export default function ProfilePage() {
                 </div>
                 <div>
                   <div className="font-semibold">High Aura</div>
-                  <div className="text-xs text-muted-foreground">Aura score above 80</div>
+                  <div className="text-xs text-muted-foreground">
+                    Aura score above 80
+                  </div>
                 </div>
               </div>
             </div>

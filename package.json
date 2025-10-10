@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@farcaster/miniapp-sdk": "^0.2.0",
+    "@farcaster/quick-auth": "^0.0.8",
     "@radix-ui/react-avatar": "^1.1.10",
     "@radix-ui/react-scroll-area": "^1.2.10",
     "@radix-ui/react-slot": "^1.2.3",
