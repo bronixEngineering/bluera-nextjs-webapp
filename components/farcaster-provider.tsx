@@ -1,13 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
-import { sdk } from "@farcaster/miniapp-sdk";
-
 export function FarcasterProvider({ children }: { children: React.ReactNode }) {
-  useEffect(() => {
-    // Hide splash screen immediately
-    sdk.actions.ready();
-  }, []);
-
+  // Ready() is now called in specific pages after checks
   return <>{children}</>;
 }
