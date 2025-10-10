@@ -41,6 +41,33 @@ const onboardingSteps = [
 export function Onboarding({ userFid, onComplete }: OnboardingProps) {
   const [currentStep, setCurrentStep] = useState(0);
   const [isAdding, setIsAdding] = useState(false);
+  const [user, setUser] = useState<{
+    fid: number;
+    username?: string;
+    displayName?: string;
+    pfpUrl?: string;
+  } | null>(null);
+
+  // Get user data if not provided
+  useEffect(() => {
+    const loadUserData = async () => {
+      try {
+        const miniAppStatus = await sdk.isInMiniApp();
+        if (miniAppStatus) {
+          const context = await sdk.context;
+          setUser(context.user);
+        }
+      } catch (error) {
+        console.error("Error loading user data:", error);
+      }
+    };
+
+    if (userFid === 0) {
+      loadUserData();
+    } else {
+      setUser({ fid: userFid });
+    }
+  }, [userFid]);
 
   const handleNext = async () => {
     if (currentStep < onboardingSteps.length - 1) {
@@ -57,12 +84,14 @@ export function Onboarding({ userFid, onComplete }: OnboardingProps) {
       await sdk.actions.addMiniApp();
       
       // Mark onboarding as completed
-      localStorage.setItem(`onboarding_completed_${userFid}`, "true");
+      const fid = user?.fid || userFid;
+      localStorage.setItem(`onboarding_completed_${fid}`, "true");
       onComplete();
     } catch (error) {
       console.error("Failed to add mini app:", error);
       // Still mark as completed even if add fails
-      localStorage.setItem(`onboarding_completed_${userFid}`, "true");
+      const fid = user?.fid || userFid;
+      localStorage.setItem(`onboarding_completed_${fid}`, "true");
       onComplete();
     } finally {
       setIsAdding(false);
@@ -139,7 +168,8 @@ export function Onboarding({ userFid, onComplete }: OnboardingProps) {
             {!isLastStep && (
               <button
                 onClick={() => {
-                  localStorage.setItem(`onboarding_completed_${userFid}`, "true");
+                  const fid = user?.fid || userFid;
+                  localStorage.setItem(`onboarding_completed_${fid}`, "true");
                   onComplete();
                 }}
                 className="text-sm text-muted-foreground hover:text-foreground transition-colors"
