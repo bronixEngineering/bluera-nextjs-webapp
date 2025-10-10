@@ -34,9 +34,9 @@ export async function GET() {
       heroImageUrl:
         "https://sbhcvcgwvbodsrsnufhk.supabase.co/storage/v1/object/public/public-assets/blueara-app-logo.png",
       tagline: "Master Your Trading Journey",
-      ogTitle: "Bluera - Advanced Crypto Trading Analytics",
+      ogTitle: "Bluera",
       ogDescription:
-        "Comprehensive trading insights, performance tracking, and competitive leaderboards for crypto traders.",
+        "Base Analytics",
       ogImageUrl:
         "https://sbhcvcgwvbodsrsnufhk.supabase.co/storage/v1/object/public/public-assets/blueara-app-logo.png",
       noindex: false,
