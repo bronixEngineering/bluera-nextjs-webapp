@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 
 export default function HomePage() {
-  // Redirect to onboarding page first
-  redirect("/onboarding");
+  // Redirect to app page
+  redirect("/app");
 }

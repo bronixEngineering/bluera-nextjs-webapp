@@ -5,7 +5,6 @@ import { Header } from "@/components/header";
 import { TabNavigation } from "@/components/tab-navigation";
 import { ThemeProvider } from "@/components/theme-provider";
 import { FarcasterProvider } from "@/components/farcaster-provider";
-import { OnboardingGuard } from "@/components/onboarding-guard";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -87,16 +86,22 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <FarcasterProvider>
-          <OnboardingGuard>
-            <ThemeProvider
-              attribute="class"
-              defaultTheme="dark"
-              enableSystem={false}
-              disableTransitionOnChange
-            >
-              {children}
-            </ThemeProvider>
-          </OnboardingGuard>
+          <ThemeProvider
+            attribute="class"
+            defaultTheme="dark"
+            enableSystem={false}
+            disableTransitionOnChange
+          >
+            <div className="min-h-screen bg-background">
+              <Header />
+              <main className="pb-20 lg:pb-6 lg:ml-64">
+                <div className="max-w-none mx-auto px-6 lg:px-8 xl:px-12">
+                  {children}
+                </div>
+              </main>
+              <TabNavigation />
+            </div>
+          </ThemeProvider>
         </FarcasterProvider>
       </body>
     </html>
