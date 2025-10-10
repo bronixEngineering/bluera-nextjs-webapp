@@ -94,13 +94,13 @@ export default function Home() {
       {/* Shortcut Buttons */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Button variant="outline" className="h-20 flex flex-col gap-2" asChild>
-          <a href="/heatmap">
+          <a href="/app/heatmap">
             <Map className="h-6 w-6" />
             <span>Ecosystem Map</span>
           </a>
         </Button>
         <Button variant="outline" className="h-20 flex flex-col gap-2" asChild>
-          <a href="/leaderboard">
+          <a href="/app/leaderboard">
             <Trophy className="h-6 w-6" />
             <span>Leaderboard</span>
           </a>

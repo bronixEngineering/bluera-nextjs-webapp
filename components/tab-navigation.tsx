@@ -8,22 +8,22 @@ import { cn } from '@/lib/utils';
 const tabs = [
   {
     name: 'Home',
-    href: '/',
+    href: '/app',
     icon: Home
   },
   {
     name: 'Heatmap',
-    href: '/heatmap',
+    href: '/app/heatmap',
     icon: BarChart3
   },
   {
     name: 'Leaderboard',
-    href: '/leaderboard',
+    href: '/app/leaderboard',
     icon: Trophy
   },
   {
     name: 'Profile',
-    href: '/profile',
+    href: '/app/profile',
     icon: User
   }
 ];
