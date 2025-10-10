@@ -13,31 +13,42 @@ export default function OnboardingPage() {
   useEffect(() => {
     const checkOnboardingStatus = async () => {
       try {
+        console.log("🔍 OnboardingPage: Starting check");
+        
         // Check if we're in a mini app
         const miniAppStatus = await sdk.isInMiniApp();
+        console.log("📱 OnboardingPage: Is in mini app:", miniAppStatus);
         
         if (miniAppStatus) {
           // Get user context
           const context = await sdk.context;
           const userFid = context.user.fid;
+          console.log("👤 OnboardingPage: User FID:", userFid);
           
           // Check if user has completed onboarding
           const hasCompleted = localStorage.getItem(`onboarding_completed_v2_${userFid}`);
+          console.log("✅ OnboardingPage: Has completed onboarding:", hasCompleted);
           
           if (hasCompleted) {
             // User already completed onboarding, redirect to app
+            console.log("🚀 OnboardingPage: Redirecting to /app");
             router.push("/app");
             return;
           }
         }
         
         // Show onboarding
+        console.log("🎯 OnboardingPage: Showing onboarding");
         setShouldShowOnboarding(true);
         
+        // Hide splash screen now that we're showing content
+        sdk.actions.ready();
+        
       } catch (error) {
-        console.error("Error checking onboarding status:", error);
+        console.error("❌ OnboardingPage: Error:", error);
         // Show onboarding anyway
         setShouldShowOnboarding(true);
+        sdk.actions.ready();
       } finally {
         setIsChecking(false);
       }
@@ -54,13 +65,25 @@ export default function OnboardingPage() {
   if (isChecking) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        <div className="text-center space-y-4">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+          <p className="text-sm text-muted-foreground">OnboardingPage: Checking status...</p>
+          <p className="text-xs text-muted-foreground">Loading user data and localStorage...</p>
+        </div>
       </div>
     );
   }
 
   if (!shouldShowOnboarding) {
-    return null; // Will redirect to /app
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+          <p className="text-sm text-muted-foreground">OnboardingPage: Redirecting to app...</p>
+          <p className="text-xs text-muted-foreground">User already completed onboarding</p>
+        </div>
+      </div>
+    );
   }
 
   return (

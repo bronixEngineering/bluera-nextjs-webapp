@@ -17,23 +17,25 @@ export function OnboardingGuard({ children }: OnboardingGuardProps) {
   useEffect(() => {
     const checkOnboardingStatus = async () => {
       try {
+        console.log("🔍 OnboardingGuard: Starting check, pathname:", pathname);
+        
         // Skip onboarding check for onboarding page itself
         if (pathname === "/onboarding") {
+          console.log("✅ OnboardingGuard: Already on onboarding page, hiding splash");
           setIsChecking(false);
-          // Hide splash screen for onboarding page
           sdk.actions.ready();
           return;
         }
 
+        console.log("🚀 OnboardingGuard: Redirecting to /onboarding");
         // Always redirect to onboarding first, let onboarding page handle the logic
-        await router.push("/onboarding");
+        router.push("/onboarding");
         setShouldShowOnboarding(true);
         
-        // Hide splash screen
-        sdk.actions.ready();
+        // Don't hide splash screen here, let onboarding page handle it
         
       } catch (error) {
-        console.error("Error checking onboarding status:", error);
+        console.error("❌ OnboardingGuard: Error:", error);
         // Hide splash screen even on error
         sdk.actions.ready();
       } finally {
@@ -48,14 +50,26 @@ export function OnboardingGuard({ children }: OnboardingGuardProps) {
   if (isChecking) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        <div className="text-center space-y-4">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+          <p className="text-sm text-muted-foreground">OnboardingGuard: Checking...</p>
+          <p className="text-xs text-muted-foreground">Pathname: {pathname}</p>
+        </div>
       </div>
     );
   }
 
   // Don't render children if redirecting to onboarding
   if (shouldShowOnboarding) {
-    return null;
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+          <p className="text-sm text-muted-foreground">OnboardingGuard: Redirecting to onboarding...</p>
+          <p className="text-xs text-muted-foreground">Pathname: {pathname}</p>
+        </div>
+      </div>
+    );
   }
 
   return <>{children}</>;
