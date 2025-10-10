@@ -26,7 +26,7 @@ export default function OnboardingPage() {
           console.log("👤 OnboardingPage: User FID:", userFid);
           
           // Check if user has completed onboarding
-          const hasCompleted = localStorage.getItem(`onboarding_completed_v2_${userFid}`);
+          const hasCompleted = localStorage.getItem(`onboarding_completed_v3_${userFid}`);
           console.log("✅ OnboardingPage: Has completed onboarding:", hasCompleted);
           
           if (hasCompleted) {

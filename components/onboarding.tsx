@@ -85,13 +85,13 @@ export function Onboarding({ userFid, onComplete }: OnboardingProps) {
       
       // Mark onboarding as completed
       const fid = user?.fid || userFid;
-      localStorage.setItem(`onboarding_completed_v2_${fid}`, "true");
+      localStorage.setItem(`onboarding_completed_v3_${fid}`, "true");
       onComplete();
     } catch (error) {
       console.error("Failed to add mini app:", error);
       // Still mark as completed even if add fails
       const fid = user?.fid || userFid;
-      localStorage.setItem(`onboarding_completed_v2_${fid}`, "true");
+      localStorage.setItem(`onboarding_completed_v3_${fid}`, "true");
       onComplete();
     } finally {
       setIsAdding(false);
@@ -166,12 +166,12 @@ export function Onboarding({ userFid, onComplete }: OnboardingProps) {
 
         {/* Skip Option (not on last step) */}
         {!isLastStep && (
-          <button
-            onClick={() => {
-              const fid = user?.fid || userFid;
-              localStorage.setItem(`onboarding_completed_v2_${fid}`, "true");
-              onComplete();
-            }}
+            <button
+              onClick={() => {
+                const fid = user?.fid || userFid;
+                localStorage.setItem(`onboarding_completed_v3_${fid}`, "true");
+                onComplete();
+              }}
             className="text-sm text-muted-foreground hover:text-foreground transition-colors"
           >
             Skip
