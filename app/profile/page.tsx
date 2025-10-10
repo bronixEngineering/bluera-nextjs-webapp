@@ -46,11 +46,18 @@ export default function ProfilePage() {
         `${window.location.origin}/api/auth`
       );
 
+      console.log("Response status:", response.status);
+      console.log("Response ok:", response.ok);
+      
       if (response.ok) {
         const data = await response.json();
+        console.log("User data:", data);
         setUserData(data);
         setToken("authenticated"); // Set a flag that we're authenticated
         sdk.actions.ready();
+      } else {
+        const errorText = await response.text();
+        console.error("Auth failed:", response.status, errorText);
       }
     } catch (error) {
       console.error("Authentication failed:", error);
