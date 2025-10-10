@@ -73,7 +73,7 @@ export default function LeaderboardPage() {
   );
 
   return (
-    <div className="py-6 space-y-6">
+    <div className="py-6 space-y-8">
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">

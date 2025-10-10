@@ -21,7 +21,7 @@ export default function ProfilePage() {
   const favoriteToken = mockTokens.find(token => token.symbol === mockUserStats.favoriteCoin);
 
   return (
-    <div className="py-6 space-y-6">
+    <div className="py-6 space-y-8">
       {/* Profile Header */}
       <Card>
         <CardContent className="p-6">

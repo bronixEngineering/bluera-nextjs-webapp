@@ -21,7 +21,7 @@ export default function Home() {
   };
 
   return (
-    <div className="py-6 space-y-6">
+    <div className="py-6 space-y-8">
       {/* Generate Aura Section */}
       <Card className="overflow-hidden">
         <CardHeader>

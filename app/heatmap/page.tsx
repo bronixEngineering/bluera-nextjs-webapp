@@ -34,7 +34,7 @@ export default function HeatmapPage() {
   );
 
   return (
-    <div className="py-6 space-y-6">
+    <div className="py-6 space-y-8">
       <Card>
         <CardHeader>
           <CardTitle>Cryptocurrency Volume Heatmap</CardTitle>
