@@ -19,6 +19,11 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Bluera - Crypto Analysis",
   description: "Mobile-first crypto analysis app with trading insights and leaderboards",
+  manifest: "/manifest.json",
+  icons: {
+    icon: "https://sbhcvcgwvbodsrsnufhk.supabase.co/storage/v1/object/public/public-assets/blueara-app-logo.png",
+    apple: "https://sbhcvcgwvbodsrsnufhk.supabase.co/storage/v1/object/public/public-assets/blueara-app-logo.png",
+  },
 };
 
 export default function RootLayout({

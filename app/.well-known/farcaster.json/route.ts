@@ -1,0 +1,46 @@
+function withValidProperties(properties: Record<string, undefined | string | string[]>) {
+  return Object.fromEntries(
+    Object.entries(properties).filter(([_, value]) => (Array.isArray(value) ? value.length > 0 : !!value))
+  );
+}
+
+export async function GET() {
+  const URL = process.env.NEXT_PUBLIC_URL as string;
+
+  const manifest_json_object = {
+    "accountAssociation": {
+      "header": "",
+      "payload": "",
+      "signature": ""
+    },
+    "baseBuilder": {
+      "allowedAddresses": ["0x0000000000000000000000000000000000000000"]
+    },
+    "miniapp": {
+      "version": "1",
+      "name": "Bluera - Base Analytics",
+      "homeUrl": "https://bluera.vercel.app",
+      "iconUrl": "https://sbhcvcgwvbodsrsnufhk.supabase.co/storage/v1/object/public/public-assets/blueara-app-logo.png",
+      "splashImageUrl": "https://bluera.vercel.app/splash.png",
+      "splashBackgroundColor": "#0f172a",
+      "webhookUrl": "https://bluera.vercel.app/api/webhook",
+      "subtitle": "Advanced crypto trading insights",
+      "description": "Track your trading performance, analyze market trends, and compete with other traders in real-time.",
+      "screenshotUrls": [
+        "https://sbhcvcgwvbodsrsnufhk.supabase.co/storage/v1/object/public/public-assets/App%20Screenshots/IMG_3871.PNG",
+        "https://sbhcvcgwvbodsrsnufhk.supabase.co/storage/v1/object/public/public-assets/App%20Screenshots/IMG_3872.PNG",
+        "https://sbhcvcgwvbodsrsnufhk.supabase.co/storage/v1/object/public/public-assets/App%20Screenshots/IMG_3873.PNG"
+      ],
+      "primaryCategory": "finance",
+      "tags": ["crypto", "trading", "analytics", "defi", "leaderboard"],
+      "heroImageUrl": "",
+      "tagline": "Master Your Trading Journey",
+      "ogTitle": "Bluera - Advanced Crypto Trading Analytics",
+      "ogDescription": "Comprehensive trading insights, performance tracking, and competitive leaderboards for crypto traders.",
+      "ogImageUrl": "https://sbhcvcgwvbodsrsnufhk.supabase.co/storage/v1/object/public/public-assets/blueara-app-logo.png",
+      "noindex": false
+    }
+  };
+
+  return Response.json(manifest_json_object);
+}
