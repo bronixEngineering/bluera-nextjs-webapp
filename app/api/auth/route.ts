@@ -2,7 +2,9 @@
 import { createClient, Errors } from '@farcaster/quick-auth';
 import { NextRequest, NextResponse } from 'next/server';
 
-const domain = 'bluera.vercel.app'; // Must match your mini app's deployment domain
+const domain = process.env.NODE_ENV === 'production' 
+  ? 'bluera.vercel.app' 
+  : 'localhost:3000'; // Must match your mini app's deployment domain
 const client = createClient();
 
 // This endpoint returns the authenticated user's FID 

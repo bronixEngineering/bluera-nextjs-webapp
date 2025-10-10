@@ -19,11 +19,6 @@ const geistMono = Geist_Mono({
 export async function generateMetadata(): Promise<Metadata> {
   // Farcaster.json'dan bilgileri al
   const manifest_json_object = {
-    accountAssociation: {
-      header: "",
-      payload: "",
-      signature: "",
-    },
     baseBuilder: {
       allowedAddresses: ["0x0000000000000000000000000000000000000000"],
     },
@@ -65,13 +60,13 @@ export async function generateMetadata(): Promise<Metadata> {
     title: miniapp.name,
     description: miniapp.description,
     other: {
-      'fc:miniapp': JSON.stringify({
+      "fc:miniapp": JSON.stringify({
         version: miniapp.version,
         imageUrl: miniapp.iconUrl, // iconUrl kullanıyorum çünkü heroImageUrl boş
         button: {
           title: `Launch ${miniapp.name}`,
           action: {
-            type: 'launch_miniapp',
+            type: "launch_miniapp",
             name: miniapp.name,
             url: miniapp.homeUrl,
             splashImageUrl: miniapp.splashImageUrl,
