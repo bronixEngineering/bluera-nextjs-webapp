@@ -6,6 +6,16 @@ import { TabNavigation } from "@/components/tab-navigation";
 import { ThemeProvider } from "@/components/theme-provider";
 import { FarcasterProvider } from "@/components/farcaster-provider";
 
+// Miniapp configuration
+const miniapp = {
+  version: "1",
+  name: "Bluera - Base Analytics",
+  homeUrl: "https://bluera.vercel.app",
+  description: "Track your trading performance, analyze market trends, and compete with other traders in real-time.",
+  heroImageUrl: "",
+  iconUrl: "https://sbhcvcgwvbodsrsnufhk.supabase.co/storage/v1/object/public/public-assets/blueara-app-logo.png"
+};
+
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
@@ -16,15 +26,30 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-export const metadata: Metadata = {
-  title: "Bluera - Crypto Analysis",
-  description: "Mobile-first crypto analysis app with trading insights and leaderboards",
-  manifest: "/manifest.json",
-  icons: {
-    icon: "https://sbhcvcgwvbodsrsnufhk.supabase.co/storage/v1/object/public/public-assets/blueara-app-logo.png",
-    apple: "https://sbhcvcgwvbodsrsnufhk.supabase.co/storage/v1/object/public/public-assets/blueara-app-logo.png",
-  },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  return {
+    title: miniapp.name,
+    description: miniapp.description,
+    manifest: "/manifest.json",
+    icons: {
+      icon: miniapp.iconUrl,
+      apple: miniapp.iconUrl,
+    },
+    other: {
+      "fc:miniapp": JSON.stringify({
+        version: miniapp.version,
+        imageUrl: miniapp.heroImageUrl,
+        button: {
+          title: `Join the ${miniapp.name}`,
+          action: {
+            name: `Launch ${miniapp.name}`,
+            url: `${miniapp.homeUrl}`
+          },
+        },
+      }),
+    },
+  };
+}
 
 export default function RootLayout({
   children,
