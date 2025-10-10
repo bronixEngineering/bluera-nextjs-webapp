@@ -19,9 +19,6 @@ const geistMono = Geist_Mono({
 export async function generateMetadata(): Promise<Metadata> {
   // Farcaster.json'dan bilgileri al
   const manifest_json_object = {
-    baseBuilder: {
-      allowedAddresses: ["0x0000000000000000000000000000000000000000"],
-    },
     miniapp: {
       version: "1",
       name: "Bluera - Base Analytics",
