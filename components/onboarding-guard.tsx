@@ -15,38 +15,20 @@ export function OnboardingGuard({ children }: OnboardingGuardProps) {
   const pathname = usePathname();
 
   useEffect(() => {
-    const checkOnboardingStatus = async () => {
-      try {
-        console.log("🔍 OnboardingGuard: Starting check, pathname:", pathname);
-        
-        // Skip onboarding check for onboarding page itself
-        if (pathname === "/onboarding") {
-          console.log("✅ OnboardingGuard: Already on onboarding page, hiding splash");
-          setIsChecking(false);
-          sdk.actions.ready();
-          return;
-        }
+    console.log("🔍 OnboardingGuard: Starting check, pathname:", pathname);
+    
+    // Skip onboarding check for onboarding page itself
+    if (pathname === "/onboarding") {
+      console.log("✅ OnboardingGuard: Already on onboarding page");
+      setIsChecking(false);
+      return;
+    }
 
-        console.log("🚀 OnboardingGuard: Redirecting to /onboarding");
-        // Always redirect to onboarding first, let onboarding page handle the logic
-        router.push("/onboarding");
-        setShouldShowOnboarding(true);
-        
-        // Hide splash screen after redirect
-        setTimeout(() => {
-          sdk.actions.ready();
-        }, 100);
-        
-      } catch (error) {
-        console.error("❌ OnboardingGuard: Error:", error);
-        // Hide splash screen even on error
-        sdk.actions.ready();
-      } finally {
-        setIsChecking(false);
-      }
-    };
-
-    checkOnboardingStatus();
+    console.log("🚀 OnboardingGuard: Redirecting to /onboarding");
+    // Always redirect to onboarding first, let onboarding page handle the logic
+    router.push("/onboarding");
+    setShouldShowOnboarding(true);
+    setIsChecking(false);
   }, [router, pathname]);
 
   // Show loading while checking

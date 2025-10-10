@@ -1,6 +1,13 @@
 "use client";
 
+import { useEffect } from "react";
+import { sdk } from "@farcaster/miniapp-sdk";
+
 export function FarcasterProvider({ children }: { children: React.ReactNode }) {
-  // SDK ready() is now called in OnboardingGuard after routing decision
+  useEffect(() => {
+    // Hide splash screen immediately
+    sdk.actions.ready();
+  }, []);
+
   return <>{children}</>;
 }
