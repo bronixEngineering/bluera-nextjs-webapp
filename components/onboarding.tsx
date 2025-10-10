@@ -103,83 +103,81 @@ export function Onboarding({ userFid, onComplete }: OnboardingProps) {
   const isLastStep = currentStep === onboardingSteps.length - 1;
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-4">
-      <Card className="w-full max-w-md">
-        <CardContent className="p-8">
-          {/* Progress Indicators */}
-          <div className="flex justify-center space-x-2 mb-8">
-            {onboardingSteps.map((_, index) => (
-              <div
-                key={index}
-                className={`w-2 h-2 rounded-full transition-colors duration-300 ${
-                  index <= currentStep ? "bg-primary" : "bg-muted"
-                }`}
-              />
-            ))}
-          </div>
+    <div className="min-h-screen bg-background flex flex-col justify-center p-6">
+      {/* Logo/Icon */}
+      <div className="w-16 h-16 rounded-full bg-foreground/10 flex items-center justify-center mb-12 self-start">
+        <IconComponent className="w-8 h-8 text-foreground" />
+      </div>
 
-          {/* Step Content */}
-          <div className="text-center space-y-6">
-            {/* Icon */}
-            <div className="flex justify-center">
-              <div className={`p-4 rounded-full bg-muted/20 ${currentStepData.color}`}>
-                <IconComponent className="h-12 w-12" />
-              </div>
-            </div>
+      {/* Step Content - Left Aligned */}
+      <div className="space-y-8 mb-16 w-full max-w-sm">
+        {/* Progress Indicators - iOS Style */}
+        <div className="flex space-x-2">
+          {onboardingSteps.map((_, index) => (
+            <div
+              key={index}
+              className={`h-2 rounded-full transition-all duration-300 ${
+                index === currentStep 
+                  ? "bg-primary w-8" 
+                  : index < currentStep 
+                    ? "bg-primary/60 w-6" 
+                    : "bg-muted w-2"
+              }`}
+            />
+          ))}
+        </div>
 
-            {/* Title */}
-            <h1 className="text-2xl font-bold tracking-tight">
-              {currentStepData.title}
-            </h1>
+        {/* Title */}
+        <h1 className="text-4xl font-bold text-foreground">
+          {currentStepData.title}
+        </h1>
 
-            {/* Description */}
-            <p className="text-muted-foreground leading-relaxed">
-              {currentStepData.description}
-            </p>
+        {/* Description */}
+        <p className="text-lg text-muted-foreground leading-relaxed">
+          {currentStepData.description}
+        </p>
+      </div>
 
-            {/* Action Button */}
-            <div className="pt-4">
-              <Button 
-                onClick={handleNext}
-                disabled={isAdding}
-                className="w-full flex items-center justify-center gap-2"
-                size="lg"
-              >
-                {isAdding ? (
-                  <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
-                    Adding to Apps...
-                  </>
-                ) : isLastStep ? (
-                  <>
-                    <Plus className="h-4 w-4" />
-                    Add Bluera to your Apps
-                  </>
-                ) : (
-                  <>
-                    Next
-                    <ChevronRight className="h-4 w-4" />
-                  </>
-                )}
-              </Button>
-            </div>
+      {/* Action Button */}
+      <div className="w-full space-y-4">
+        <Button 
+          onClick={handleNext}
+          disabled={isAdding}
+          className="w-full flex items-center justify-center gap-2"
+          size="lg"
+        >
+          {isAdding ? (
+            <>
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
+              Adding to Apps...
+            </>
+          ) : isLastStep ? (
+            <>
+              <Plus className="h-4 w-4" />
+              Add Bluera to your Apps
+            </>
+          ) : (
+            <>
+              Next
+              <ChevronRight className="h-4 w-4" />
+            </>
+          )}
+        </Button>
 
-            {/* Skip Option (not on last step) */}
-            {!isLastStep && (
-              <button
-                onClick={() => {
-                  const fid = user?.fid || userFid;
-                  localStorage.setItem(`onboarding_completed_v2_${fid}`, "true");
-                  onComplete();
-                }}
-                className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-              >
-                Skip
-              </button>
-            )}
-          </div>
-        </CardContent>
-      </Card>
+        {/* Skip Option (not on last step) */}
+        {!isLastStep && (
+          <button
+            onClick={() => {
+              const fid = user?.fid || userFid;
+              localStorage.setItem(`onboarding_completed_v2_${fid}`, "true");
+              onComplete();
+            }}
+            className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+          >
+            Skip
+          </button>
+        )}
+      </div>
     </div>
   );
 }
