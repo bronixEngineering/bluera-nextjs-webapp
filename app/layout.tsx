@@ -16,11 +16,72 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-export const metadata: Metadata = {
-  title: "Bluera - Crypto Analysis",
-  description:
-    "Mobile-first crypto analysis app with trading insights and leaderboards",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  // Farcaster.json'dan bilgileri al
+  const manifest_json_object = {
+    accountAssociation: {
+      header: "",
+      payload: "",
+      signature: "",
+    },
+    baseBuilder: {
+      allowedAddresses: ["0x0000000000000000000000000000000000000000"],
+    },
+    miniapp: {
+      version: "1",
+      name: "Bluera - Base Analytics",
+      homeUrl: "https://bluera.vercel.app",
+      iconUrl:
+        "https://sbhcvcgwvbodsrsnufhk.supabase.co/storage/v1/object/public/public-assets/blueara-app-logo.png",
+      splashImageUrl:
+        "https://sbhcvcgwvbodsrsnufhk.supabase.co/storage/v1/object/public/public-assets/blueara-app-logo.png",
+      splashBackgroundColor: "#0f172a",
+      webhookUrl: "https://bluera.vercel.app/api/webhook",
+      subtitle: "Advanced crypto trading insights",
+      description:
+        "Track your trading performance, analyze market trends, and compete with other traders in real-time.",
+      screenshotUrls: [
+        "https://sbhcvcgwvbodsrsnufhk.supabase.co/storage/v1/object/public/public-assets/App%20Screenshots/IMG_3871.PNG",
+        "https://sbhcvcgwvbodsrsnufhk.supabase.co/storage/v1/object/public/public-assets/App%20Screenshots/IMG_3872.PNG",
+        "https://sbhcvcgwvbodsrsnufhk.supabase.co/storage/v1/object/public/public-assets/App%20Screenshots/IMG_3873.PNG",
+      ],
+      primaryCategory: "finance",
+      tags: ["crypto", "trading", "analytics", "defi", "leaderboard"],
+      heroImageUrl:
+        "https://sbhcvcgwvbodsrsnufhk.supabase.co/storage/v1/object/public/public-assets/blueara-app-logo.png",
+      tagline: "Master Your Trading Journey",
+      ogTitle: "Bluera - Advanced Crypto Trading Analytics",
+      ogDescription:
+        "Comprehensive trading insights, performance tracking, and competitive leaderboards for crypto traders.",
+      ogImageUrl:
+        "https://sbhcvcgwvbodsrsnufhk.supabase.co/storage/v1/object/public/public-assets/blueara-app-logo.png",
+      noindex: false,
+    },
+  };
+
+  const miniapp = manifest_json_object.miniapp;
+
+  return {
+    title: miniapp.name,
+    description: miniapp.description,
+    other: {
+      'fc:miniapp': JSON.stringify({
+        version: miniapp.version,
+        imageUrl: miniapp.iconUrl, // iconUrl kullanıyorum çünkü heroImageUrl boş
+        button: {
+          title: `Launch ${miniapp.name}`,
+          action: {
+            type: 'launch_miniapp',
+            name: miniapp.name,
+            url: miniapp.homeUrl,
+            splashImageUrl: miniapp.splashImageUrl,
+            splashBackgroundColor: miniapp.splashBackgroundColor,
+          },
+        },
+      }),
+    },
+  };
+}
 
 export default function RootLayout({
   children,
