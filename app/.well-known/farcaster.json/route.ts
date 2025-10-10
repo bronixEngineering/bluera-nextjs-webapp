@@ -1,12 +1,12 @@
 export async function GET() {
   const manifest_json_object = {
-    // accountAssociation: {
-    //   header:
-    //     "eyJmaWQiOjEzNzAzMDUsInR5cGUiOiJhdXRoIiwia2V5IjoiMHhFRkM3NDcxOEI3NjlBZjkyRjZhMjIzMURmMzZlRDQxNzI0NDk5NmEwIn0",
-    //   payload: "eyJkb21haW4iOiJibHVlcmEudmVyY2VsLmFwcCJ9",
-    //   signature:
-    //     "uSEVguvxpx8Y0B5ZlgmV56/MrldCPfvcAiU3XgUw7to125wYPdrfgykhJbawwOqYYSan6KG1c3AAqBKgdsSrTRw=",
-    // },
+    accountAssociation: {
+      header:
+        "eyJmaWQiOjEzNzAzMDUsInR5cGUiOiJjdXN0b2R5Iiwia2V5IjoiMHhkNjM1ODk2MGU3MjUyNGI3NTlEM0Q5RjI1QjI3NjNBOWI1NEE1NjEwIn0",
+      payload: "eyJkb21haW4iOiJibHVlcmEudmVyY2VsLmFwcCJ9",
+      signature:
+        "MHg4YWMwYTI4NGJhODdiMjYwYmVjMjE1NTBlZDZiOGMyYWMyZTNhMTAxMTU0NmUxNmZmMDE5YWRlN2IwYjgyYWViM2U4NTVjM2QwNDcxYmMwYzJiMDA0ZTc2YTdhOTlkNmMzMjMwNDdiOTVkMWU3MzZiN2NhY2QyNTNmYzhjMDUzMzFi",
+    },
 
     baseBuilder: {
       allowedAddresses: ["0xccFA4a7BE08eC57eD5F9A5689c1DafcEB541fD5f"],
@@ -35,8 +35,7 @@ export async function GET() {
         "https://sbhcvcgwvbodsrsnufhk.supabase.co/storage/v1/object/public/public-assets/blueara-app-logo.png",
       tagline: "Master Your Trading Journey",
       ogTitle: "Bluera",
-      ogDescription:
-        "Base Analytics",
+      ogDescription: "Base Analytics",
       ogImageUrl:
         "https://sbhcvcgwvbodsrsnufhk.supabase.co/storage/v1/object/public/public-assets/blueara-app-logo.png",
       noindex: false,
