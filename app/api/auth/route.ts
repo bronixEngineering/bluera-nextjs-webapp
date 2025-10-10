@@ -29,8 +29,24 @@ export async function GET(request: NextRequest) {
     const payload = await client.verifyJwt({ token, domain });
     console.log("✅ JWT verified successfully:", payload);
     
+    // Optional: Get user's primary Ethereum address
+    let primaryAddress;
+    try {
+      const res = await fetch(
+        `https://api.farcaster.xyz/fc/primary-address?fid=${payload.sub}&protocol=ethereum`
+      );
+      if (res.ok) {
+        const { result } = await res.json();
+        primaryAddress = result.address.address;
+        console.log("📍 Primary address:", primaryAddress);
+      }
+    } catch (addrError) {
+      console.log("⚠️ Could not fetch primary address:", addrError);
+    }
+    
     return NextResponse.json({
       fid: payload.sub,
+      primaryAddress,
     });
   } catch (e) {
     console.log("❌ JWT verification failed:", e);
