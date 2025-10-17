@@ -13,7 +13,7 @@ export const mockTokens: Token[] = [
     id: '1',
     symbol: 'ETH',
     name: 'Ethereum',
-    icon: undefined,
+    icon: '',
     balance: 2.5,
     value: 6500,
     change24h: 3.2
@@ -22,7 +22,7 @@ export const mockTokens: Token[] = [
     id: '2',
     symbol: 'BTC',
     name: 'Bitcoin',
-    icon: undefined,
+    icon: '',
     balance: 0.15,
     value: 10500,
     change24h: -1.8
@@ -31,7 +31,7 @@ export const mockTokens: Token[] = [
     id: '3',
     symbol: 'SOL',
     name: 'Solana',
-    icon: undefined,
+    icon: '',
     balance: 25,
     value: 3750,
     change24h: 5.7
@@ -40,7 +40,7 @@ export const mockTokens: Token[] = [
     id: '4',
     symbol: 'USDC',
     name: 'USD Coin',
-    icon: undefined,
+    icon: '',
     balance: 5000,
     value: 5000,
     change24h: 0.1
@@ -49,7 +49,7 @@ export const mockTokens: Token[] = [
     id: '5',
     symbol: 'BNB',
     name: 'BNB',
-    icon: undefined,
+    icon: '',
     balance: 15,
     value: 9000,
     change24h: 2.1
@@ -58,7 +58,7 @@ export const mockTokens: Token[] = [
     id: '6',
     symbol: 'ADA',
     name: 'Cardano',
-    icon: undefined,
+    icon: '',
     balance: 1000,
     value: 450,
     change24h: -0.8

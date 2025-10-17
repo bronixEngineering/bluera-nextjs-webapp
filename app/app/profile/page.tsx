@@ -13,7 +13,6 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { mockUser, mockUserStats, mockTokens } from "@/lib/mock-data";
-import { TokenLogo } from "@/components/ui/token-logo";
 import {
   Sparkles,
   TrendingUp,
@@ -243,7 +242,6 @@ export default function ProfilePage() {
           {favoriteToken && (
             <div className="flex items-center justify-between p-4 border rounded-lg">
               <div className="flex items-center gap-3">
-                <TokenLogo symbol={favoriteToken.symbol} size="lg" />
                 <div>
                   <div className="font-semibold text-lg">
                     {favoriteToken.symbol}
