@@ -1,5 +1,4 @@
 import { User, Token, Transaction, LeaderboardEntry, HeatmapData, UserStats } from '@/types';
-import { getTokenLogoUrl } from './token-logos';
 
 export const mockUser: User = {
   id: '1',
@@ -14,7 +13,7 @@ export const mockTokens: Token[] = [
     id: '1',
     symbol: 'ETH',
     name: 'Ethereum',
-    icon: getTokenLogoUrl('ETH'),
+    icon: undefined,
     balance: 2.5,
     value: 6500,
     change24h: 3.2
@@ -23,7 +22,7 @@ export const mockTokens: Token[] = [
     id: '2',
     symbol: 'BTC',
     name: 'Bitcoin',
-    icon: getTokenLogoUrl('BTC'),
+    icon: undefined,
     balance: 0.15,
     value: 10500,
     change24h: -1.8
@@ -32,7 +31,7 @@ export const mockTokens: Token[] = [
     id: '3',
     symbol: 'SOL',
     name: 'Solana',
-    icon: getTokenLogoUrl('SOL'),
+    icon: undefined,
     balance: 25,
     value: 3750,
     change24h: 5.7
@@ -41,7 +40,7 @@ export const mockTokens: Token[] = [
     id: '4',
     symbol: 'USDC',
     name: 'USD Coin',
-    icon: getTokenLogoUrl('USDC'),
+    icon: undefined,
     balance: 5000,
     value: 5000,
     change24h: 0.1
@@ -50,7 +49,7 @@ export const mockTokens: Token[] = [
     id: '5',
     symbol: 'BNB',
     name: 'BNB',
-    icon: getTokenLogoUrl('BNB'),
+    icon: undefined,
     balance: 15,
     value: 9000,
     change24h: 2.1
@@ -59,7 +58,7 @@ export const mockTokens: Token[] = [
     id: '6',
     symbol: 'ADA',
     name: 'Cardano',
-    icon: getTokenLogoUrl('ADA'),
+    icon: undefined,
     balance: 1000,
     value: 450,
     change24h: -0.8

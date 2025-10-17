@@ -4,7 +4,6 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { TokenLogo } from '@/components/ui/token-logo';
 import { mockTokens, mockUserStats } from '@/lib/mock-data';
 import { Map, Trophy, TrendingUp, TrendingDown } from 'lucide-react';
 import { AuraCard } from '@/components/aura-card';
@@ -62,7 +61,6 @@ export default function Home() {
               >
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-3">
-                    <TokenLogo symbol={token.symbol} size="lg" />
                     <div>
                       <div className="font-semibold">{token.symbol}</div>
                       <div className="text-sm text-muted-foreground">{token.name}</div>
