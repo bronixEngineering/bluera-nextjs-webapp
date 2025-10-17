@@ -137,6 +137,39 @@ export async function GET(request: NextRequest) {
         console.log("✅ New FID saved to Supabase:", data);
       }
     }
+
+    // Save wallet address to wallets_status table (if we have primary address)
+    if (primaryAddress) {
+      const walletAddress = primaryAddress.toLowerCase();
+      
+      // Check if wallet address already exists
+      const { data: existingWallet, error: walletCheckError } = await supabase
+        .from('wallets_status')
+        .select('wallet_address')
+        .eq('wallet_address', walletAddress)
+        .single();
+
+      if (walletCheckError && walletCheckError.code !== 'PGRST116') {
+        console.log("❌ Wallet check error:", walletCheckError);
+      } else if (existingWallet) {
+        console.log("✅ Wallet address already exists in wallets_status:", walletAddress);
+      } else {
+        // Insert new wallet address with FID reference
+        const { data: walletData, error: walletError } = await supabase
+          .from('wallets_status')
+          .insert({ 
+            wallet_address: walletAddress,
+            fid: fid
+          })
+          .select();
+
+        if (walletError) {
+          console.log("❌ Wallet insert error:", walletError);
+        } else {
+          console.log("✅ New wallet address saved to wallets_status:", walletData);
+        }
+      }
+    }
   } catch (supabaseError) {
     console.log("❌ Supabase connection error:", supabaseError);
   }

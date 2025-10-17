@@ -23,6 +23,10 @@ export default function AppLayout({
         if (miniAppStatus) {
           console.log("🔍 App: User is in Mini App, authenticating...");
           
+          // Debug: Check what's available in SDK context
+          const context = await sdk.context;
+          console.log("🔍 App: Full SDK context:", JSON.stringify(context, null, 2));
+          
           // Authenticate with our backend and save FID to Supabase
           try {
             const response = await sdk.quickAuth.fetch('/api/auth');
