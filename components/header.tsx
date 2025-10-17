@@ -23,6 +23,7 @@ export function Header() {
 
         if (miniAppStatus) {
           const context = await sdk.context;
+          console.log("Header context:", context);
           setUser(context.user);
         }
       } catch (error) {

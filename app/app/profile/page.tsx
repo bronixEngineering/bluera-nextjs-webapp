@@ -24,7 +24,6 @@ import {
   Activity,
   Award,
   LogIn,
-  LogOut,
   Plus,
 } from "lucide-react";
 import { AuraCard } from "@/components/aura-card";
@@ -177,7 +176,6 @@ export default function ProfilePage() {
                   )}
                 </Button>
               )}
-              </div>
             </div>
           </div>
         </CardContent>
