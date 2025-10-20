@@ -34,9 +34,7 @@ export function Header() {
     loadUserData();
   }, []);
 
-  const displayUser = user || mockUser;
   const displayName = user?.displayName || user?.username || mockUser.username;
-  const displayUsername = user?.username || mockUser.username;
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -51,22 +49,23 @@ export function Header() {
           </Avatar>
           <div className="flex flex-col">
             <div className="flex items-center space-x-2">
-              <span className="text-sm font-medium">FID #{displayUser.fid}</span>
+              {user?.fid && (
+                <span className="text-sm font-medium">FID #{user.fid}</span>
+              )}
               {isInMiniApp && user && (
                 <Badge variant="secondary" className="text-xs">
                   Live
                 </Badge>
               )}
             </div>
-            <span className="text-xs text-muted-foreground hidden sm:block">
-              {user?.username ? `@${displayUsername}` : displayUsername}
-            </span>
+            {user?.username && (
+              <span className="text-xs text-muted-foreground hidden sm:block">
+                @{user.username}
+              </span>
+            )}
           </div>
         </div>
         <div className="flex items-center space-x-2">
-          <Badge variant="outline" className="text-xs">
-            Aura: 87
-          </Badge>
           <div className="hidden lg:flex items-center space-x-4 ml-4">
             <span className="text-sm text-muted-foreground">Trading Score: 92</span>
             <span className="text-sm text-muted-foreground">•</span>

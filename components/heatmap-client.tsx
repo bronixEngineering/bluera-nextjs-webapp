@@ -1,7 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
-import { useState } from "react";
 import {
   Card,
   CardContent,
@@ -31,22 +30,34 @@ interface HeatmapClientProps {
   error: string | null;
 }
 
-export function HeatmapClient({ 
-  initialData, 
-  totalVolume, 
-  isLoading, 
-  error 
+export function HeatmapClient({
+  initialData,
+  totalVolume,
+  isLoading,
+  error,
 }: HeatmapClientProps) {
-  
   const handleRefresh = () => {
     window.location.reload();
   };
-  // Transform data for Recharts Treemap
-  const maxVolume = Math.max(...initialData.map(t => t.volume));
-  const normalizedData = initialData.map((token) => ({
+  // Transform data for Recharts Treemap with linear scaling across top 20 tokens
+  const topTokens = [...initialData].sort((a, b) => b.volume - a.volume).slice(0, 20);
+  const volumes = topTokens.map((t) => t.volume);
+  const maxVolume = Math.max(...volumes);
+  const minVolume = Math.min(...volumes);
+
+  // Define min/max weight (tile area) for visual balance
+  const MIN_WEIGHT = 20;
+  const MAX_WEIGHT = 120;
+
+  const toWeight = (v: number) => {
+    if (maxVolume === minVolume) return (MIN_WEIGHT + MAX_WEIGHT) / 2;
+    const ratio = (v - minVolume) / (maxVolume - minVolume);
+    return MIN_WEIGHT + ratio * (MAX_WEIGHT - MIN_WEIGHT);
+  };
+
+  const treemapData = topTokens.map((token) => ({
     name: token.symbol,
-    // Normalize volume to prevent one token from dominating
-    size: Math.min(token.volume, maxVolume * 0.0002), // Max 0.02% of the largest
+    size: toWeight(token.volume),
     fill: token.color,
     change24h: token.change24h,
     volume: token.volume,
@@ -54,12 +65,10 @@ export function HeatmapClient({
     token_address: token.token_address,
     image_url: token.image_url,
   }));
-  
-  const treemapData = normalizedData;
 
-  const topPerformer = initialData.reduce((top, token) =>
-    token.change24h > top.change24h ? token : top, 
-    initialData[0] || { change24h: 0, symbol: 'N/A' }
+  const topPerformer = initialData.reduce(
+    (top, token) => (token.change24h > top.change24h ? token : top),
+    initialData[0] || { change24h: 0, symbol: "N/A" }
   );
 
   // Loading state
@@ -68,9 +77,10 @@ export function HeatmapClient({
       <div className="py-6 space-y-8">
         <Card>
           <CardHeader>
-            <CardTitle>Cryptocurrency Volume Heatmap</CardTitle>
+            <CardTitle>Heatmap</CardTitle>
             <CardDescription>
-              Visual representation of trading volumes across different cryptocurrencies
+              Visual representation of trading volumes across different
+              cryptocurrencies
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -92,9 +102,10 @@ export function HeatmapClient({
       <div className="py-6 space-y-8">
         <Card>
           <CardHeader>
-            <CardTitle>Cryptocurrency Volume Heatmap</CardTitle>
+            <CardTitle>Heatmap</CardTitle>
             <CardDescription>
-              Visual representation of trading volumes across different cryptocurrencies
+              Visual representation of trading volumes across different
+              cryptocurrencies
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -122,10 +133,7 @@ export function HeatmapClient({
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle className="text-lg">Cryptocurrency Volume Heatmap</CardTitle>
-              <CardDescription className="text-sm">
-                Visual representation of trading volumes across different cryptocurrencies
-              </CardDescription>
+              <CardTitle className="text-lg">Heatmap</CardTitle>
             </div>
             <button
               onClick={handleRefresh}
@@ -147,7 +155,7 @@ export function HeatmapClient({
                   stroke="#1e293b"
                   fill="#334155"
                   isAnimationActive={false}
-                  aspectRatio={4/3}
+                  aspectRatio={4 / 3}
                   content={(props) => {
                     const { x, y, width, height, index } = props as any;
                     const coin = treemapData[index];
@@ -187,10 +195,9 @@ export function HeatmapClient({
                               fontWeight="800"
                               opacity="0.9"
                             >
-                              {coin.volume >= 1000000 
+                              {coin.volume >= 1000000
                                 ? `$${(coin.volume / 1000000).toFixed(1)}M`
-                                : `$${(coin.volume / 1000).toFixed(0)}K`
-                              }
+                                : `$${(coin.volume / 1000).toFixed(0)}K`}
                             </text>
                             <text
                               x={x + 6}
@@ -230,10 +237,9 @@ export function HeatmapClient({
                                   Volume:
                                 </span>
                                 <span className="font-semibold">
-                                  {data.volume >= 1000000 
+                                  {data.volume >= 1000000
                                     ? `$${(data.volume / 1000000).toFixed(1)}M`
-                                    : `$${(data.volume / 1000).toFixed(0)}K`
-                                  }
+                                    : `$${(data.volume / 1000).toFixed(0)}K`}
                                 </span>
                               </div>
                               <div className="flex justify-between items-center">
@@ -298,9 +304,7 @@ export function HeatmapClient({
                 <div className="text-sm text-muted-foreground">
                   Active Tokens
                 </div>
-                <div className="text-2xl font-bold">
-                  {initialData.length}
-                </div>
+                <div className="text-2xl font-bold">{initialData.length}</div>
               </div>
             </div>
           </div>
@@ -331,10 +335,9 @@ export function HeatmapClient({
                     </Badge>
                   </div>
                   <div className="text-sm font-semibold">
-                    {token.volume >= 1000000 
+                    {token.volume >= 1000000
                       ? `$${(token.volume / 1000000).toFixed(1)}M`
-                      : `$${(token.volume / 1000).toFixed(0)}K`
-                    }
+                      : `$${(token.volume / 1000).toFixed(0)}K`}
                   </div>
                 </div>
               ))}
@@ -353,7 +356,8 @@ export function HeatmapClient({
                   Bullish Trend
                 </div>
                 <div className="text-xs text-green-600 dark:text-green-400">
-                  {initialData.filter(t => t.change24h > 0).length} out of {initialData.length} tokens showing positive momentum
+                  {initialData.filter((t) => t.change24h > 0).length} out of{" "}
+                  {initialData.length} tokens showing positive momentum
                 </div>
               </div>
               <div className="p-3 bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg">
@@ -361,10 +365,11 @@ export function HeatmapClient({
                   High Activity
                 </div>
                 <div className="text-xs text-blue-600 dark:text-blue-400">
-                  Total volume: {totalVolume >= 1000000 
-                    ? `$${(totalVolume / 1000000).toFixed(1)}M` 
-                    : `$${(totalVolume / 1000).toFixed(0)}K`
-                  } across {initialData.length} tokens
+                  Total volume:{" "}
+                  {totalVolume >= 1000000
+                    ? `$${(totalVolume / 1000000).toFixed(1)}M`
+                    : `$${(totalVolume / 1000).toFixed(0)}K`}{" "}
+                  across {initialData.length} tokens
                 </div>
               </div>
               <div className="p-3 bg-purple-50 dark:bg-purple-950/20 border border-purple-200 dark:border-purple-800 rounded-lg">
@@ -372,7 +377,9 @@ export function HeatmapClient({
                   Top Performer
                 </div>
                 <div className="text-xs text-purple-600 dark:text-purple-400">
-                  {topPerformer.symbol} leading with {topPerformer.change24h > 0 ? "+" : ""}{topPerformer.change24h.toFixed(3)}% change
+                  {topPerformer.symbol} leading with{" "}
+                  {topPerformer.change24h > 0 ? "+" : ""}
+                  {topPerformer.change24h.toFixed(3)}% change
                 </div>
               </div>
               <div className="p-3 bg-orange-50 dark:bg-orange-950/20 border border-orange-200 dark:border-orange-800 rounded-lg">
@@ -380,7 +387,12 @@ export function HeatmapClient({
                   Market Sentiment
                 </div>
                 <div className="text-xs text-orange-600 dark:text-orange-400">
-                  {Math.round((initialData.filter(t => t.change24h > 0).length / initialData.length) * 100)}% of tokens in positive territory
+                  {Math.round(
+                    (initialData.filter((t) => t.change24h > 0).length /
+                      initialData.length) *
+                      100
+                  )}
+                  % of tokens in positive territory
                 </div>
               </div>
             </div>

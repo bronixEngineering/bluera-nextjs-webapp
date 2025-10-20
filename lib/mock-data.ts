@@ -4,7 +4,7 @@ export const mockUser: User = {
   id: '1',
   fid: 12345,
   basename: 'base.john.eth',
-  avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=john',
+  avatar: 'https://api.dicebear.com/7.x/avataaars/svg',
   username: 'john'
 };
 
