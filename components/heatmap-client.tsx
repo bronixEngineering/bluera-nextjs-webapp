@@ -180,23 +180,27 @@ export function HeatmapClient({
                         {/* Token image from backend (if provided) */}
                         {(() => {
                           const imgUrl = coin.image_url;
-                          if (!imgUrl || width < 50) {
-                            return null;
-                          }
+                          if (!imgUrl || width < 50) return null;
                           const iconSize = Math.max(14, Math.min(20, Math.min(width, height) * 0.25));
+                          // If tile width is narrow, place icon bottom-right; else top-right
+                          const narrowThreshold = 80;
+                          const iconX = x + width - iconSize - 8;
+                          const iconY = width < narrowThreshold ? (y + height - iconSize - 8) : (y + 8);
+                          const cx = iconX + iconSize / 2;
+                          const cy = iconY + iconSize / 2;
                           return (
                             <>
-                              {/* White circle background for better visibility */}
+                              {/* Soft background for visibility */}
                               <circle
-                                cx={x + width - iconSize - 8}
-                                cy={y + iconSize / 2 + 8}
+                                cx={cx}
+                                cy={cy}
                                 r={iconSize / 2 + 2}
                                 fill="rgba(255, 255, 255, 0.9)"
                               />
                               <image
                                 href={imgUrl}
-                                x={x + width - iconSize - 8 - iconSize / 2}
-                                y={y + 8}
+                                x={iconX}
+                                y={iconY}
                                 width={iconSize}
                                 height={iconSize}
                                 preserveAspectRatio="xMidYMid meet"
@@ -230,9 +234,22 @@ export function HeatmapClient({
                                 ? `$${(coin.volume / 1000000).toFixed(1)}M`
                                 : `$${(coin.volume / 1000).toFixed(0)}K`}
                             </text>
+                            {height > 55 && (
+                              <text
+                                x={x + 6}
+                                y={y + 44}
+                                fill="#ffffff"
+                                stroke="none"
+                                fontSize={width < 60 ? "8" : "11"}
+                                fontWeight="700"
+                                opacity="0.85"
+                              >
+                                Swaps: {coin.swaps >= 1000 ? `${(coin.swaps / 1000).toFixed(1)}K` : coin.swaps?.toString()}
+                              </text>
+                            )}
                             <text
                               x={x + 6}
-                              y={y + 46}
+                              y={y + (height > 55 ? 58 : 46)}
                               fill="#ffffff"
                               stroke="none"
                               fontSize={width < 60 ? "7" : "12"}
@@ -253,13 +270,26 @@ export function HeatmapClient({
                       if (active && payload && payload.length) {
                         const data = payload[0].payload;
                         return (
-                          <div className="bg-background border rounded-lg p-4 shadow-lg min-w-[200px]">
-                            <div className="mb-3">
-                              <div className="font-semibold text-lg">
-                                {data.name}
-                              </div>
-                              <div className="text-sm text-muted-foreground">
-                                Trading Volume
+                          <div className="bg-background border rounded-lg p-4 shadow-lg min-w-[220px]">
+                            <div className="mb-3 flex items-center gap-3">
+                              {data.image_url ? (
+                                // eslint-disable-next-line @next/next/no-img-element
+                                <img
+                                  src={data.image_url}
+                                  alt={`${data.name} icon`}
+                                  className="w-6 h-6 rounded-full object-cover"
+                                  onError={(e) => {
+                                    (e.target as HTMLImageElement).style.display = 'none'
+                                  }}
+                                />
+                              ) : null}
+                              <div>
+                                <div className="font-semibold text-lg">
+                                  {data.name}
+                                </div>
+                                <div className="text-sm text-muted-foreground">
+                                  Trading Volume
+                                </div>
                               </div>
                             </div>
                             <div className="space-y-2">
