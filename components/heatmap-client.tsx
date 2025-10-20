@@ -36,6 +36,9 @@ export function HeatmapClient({
   isLoading,
   error,
 }: HeatmapClientProps) {
+  // Debug: check if image_url exists
+  console.log("🔍 Heatmap tokens with images:", initialData.map(t => ({ symbol: t.symbol, image_url: t.image_url })));
+  
   const handleRefresh = () => {
     window.location.reload();
   };
@@ -46,8 +49,8 @@ export function HeatmapClient({
   const minVolume = Math.min(...volumes);
 
   // Define min/max weight (tile area) for visual balance
-  const MIN_WEIGHT = 20;
-  const MAX_WEIGHT = 120;
+  const MIN_WEIGHT = 12;
+  const MAX_WEIGHT = 35;
 
   const toWeight = (v: number) => {
     if (maxVolume === minVolume) return (MIN_WEIGHT + MAX_WEIGHT) / 2;
@@ -174,6 +177,34 @@ export function HeatmapClient({
                           strokeWidth={2}
                           rx={4}
                         />
+                        {/* Token image from backend (if provided) */}
+                        {(() => {
+                          const imgUrl = coin.image_url;
+                          if (!imgUrl || width < 50) {
+                            return null;
+                          }
+                          const iconSize = Math.max(14, Math.min(20, Math.min(width, height) * 0.25));
+                          return (
+                            <>
+                              {/* White circle background for better visibility */}
+                              <circle
+                                cx={x + width - iconSize - 8}
+                                cy={y + iconSize / 2 + 8}
+                                r={iconSize / 2 + 2}
+                                fill="rgba(255, 255, 255, 0.9)"
+                              />
+                              <image
+                                href={imgUrl}
+                                x={x + width - iconSize - 8 - iconSize / 2}
+                                y={y + 8}
+                                width={iconSize}
+                                height={iconSize}
+                                preserveAspectRatio="xMidYMid meet"
+                                clipPath={`circle(${iconSize / 2}px at ${iconSize / 2}px ${iconSize / 2}px)`}
+                              />
+                            </>
+                          );
+                        })()}
                         <text
                           x={x + 6}
                           y={y + 16}

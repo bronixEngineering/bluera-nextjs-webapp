@@ -44,7 +44,7 @@ async function getHeatmapData(): Promise<{
         volume: token.total_volume_24h || 0,
         swaps: token.total_swaps_24h || 0,
         change24h: token.total_volume_changing_rate || 0,
-        image_url: undefined, // No logos
+        image_url: token.image_url, // Use image from database
         token_type: token.token_type,
         // Generate color based on volume change
         color:
