@@ -20,7 +20,7 @@ export async function GET() {
       splashImageUrl:
         "https://sbhcvcgwvbodsrsnufhk.supabase.co/storage/v1/object/public/public-assets/blueara-app-logo.png",
       splashBackgroundColor: "#0f172a",
-      webhookUrl: "https://bluera.vercel.app/api/webhook",
+      webhookUrl: "https://sbhcvcgwvbodsrsnufhk.supabase.co/functions/v1/farcaster-notification",
       subtitle: "Base Analytics",
       description:
         "Track your trading performance, analyze market trends, and compete with other traders in real-time.",
