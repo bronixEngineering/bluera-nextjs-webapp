@@ -20,7 +20,7 @@ interface NotificationDetails {
 }
 
 interface DecodedPayload {
-  event: "miniapp_added" | "miniapp_removed" | "notifications_enabled" | "notifications_disabled";
+  event: "frame_added" | "frame_removed" | "notifications_enabled" | "notifications_disabled";
   notificationDetails?: NotificationDetails;
 }
 
@@ -77,7 +77,7 @@ export async function POST(request: NextRequest) {
 
   // Handle different events
   switch (event) {
-    case "miniapp_added":
+    case "frame_added":
     case "notifications_enabled":
       if (payload.notificationDetails) {
         const { url, token } = payload.notificationDetails;
@@ -104,7 +104,7 @@ export async function POST(request: NextRequest) {
       }
       break;
 
-    case "miniapp_removed":
+    case "frame_removed":
     case "notifications_disabled":
       // Delete notification details
       const { error } = await supabase
