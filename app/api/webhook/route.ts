@@ -86,7 +86,7 @@ export async function POST(request: NextRequest) {
         const { error } = await supabase
           .from("farcaster_notifications")
           .upsert({
-            fid,
+            fid: fid.toString(),
             notification_url: url,
             notification_token: token,
             updated_at: new Date().toISOString(),
@@ -110,7 +110,7 @@ export async function POST(request: NextRequest) {
       const { error } = await supabase
         .from("farcaster_notifications")
         .delete()
-        .eq("fid", fid);
+        .eq("fid", fid.toString());
 
       if (error) {
         console.error("Database Error:", error);
