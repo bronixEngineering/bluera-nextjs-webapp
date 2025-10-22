@@ -141,7 +141,7 @@ export default function ProfilePage() {
             Share your unique trading personality with the world
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="border-none bg-transparent">
           <ShareableAuraCard
             username={user?.username || mockUser.username}
             fid={user?.fid || mockUser.fid}
