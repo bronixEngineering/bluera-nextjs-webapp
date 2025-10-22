@@ -33,10 +33,40 @@ export function LeaderboardClient({ initialData, error }: LeaderboardClientProps
   };
 
   const formatValue = (value: number | null) => {
-    if (!value) return '$0.00';
-    if (value >= 1000000) return `$${(value / 1000000).toFixed(2)}M`;
-    if (value >= 1000) return `$${(value / 1000).toFixed(2)}K`;
-    return `$${value.toFixed(2)}`;
+    if (!value || value === 0) return '$0.00';
+    
+    // Handle negative values
+    const isNegative = value < 0;
+    const absValue = Math.abs(value);
+    
+    // Cap extremely large values to prevent overflow
+    const cappedValue = Math.min(absValue, 1e18);
+    
+    // Handle very large numbers
+    if (cappedValue >= 1e15) {
+      // Quadrillions
+      const quadrillions = (cappedValue / 1e15).toFixed(2);
+      return isNegative ? `-$${quadrillions}Q` : `$${quadrillions}Q`;
+    } else if (cappedValue >= 1e12) {
+      // Trillions
+      const trillions = (cappedValue / 1e12).toFixed(2);
+      return isNegative ? `-$${trillions}T` : `$${trillions}T`;
+    } else if (cappedValue >= 1e9) {
+      // Billions
+      const billions = (cappedValue / 1e9).toFixed(2);
+      return isNegative ? `-$${billions}B` : `$${billions}B`;
+    } else if (cappedValue >= 1e6) {
+      // Millions
+      const millions = (cappedValue / 1e6).toFixed(2);
+      return isNegative ? `-$${millions}M` : `$${millions}M`;
+    } else if (cappedValue >= 1e3) {
+      // Thousands
+      const thousands = (cappedValue / 1e3).toFixed(2);
+      return isNegative ? `-$${thousands}K` : `$${thousands}K`;
+    } else {
+      // Regular numbers
+      return isNegative ? `-$${cappedValue.toFixed(2)}` : `$${cappedValue.toFixed(2)}`;
+    }
   };
 
   const sortData = (data: WalletStats[], sortBy: string) => {
@@ -177,8 +207,8 @@ export function LeaderboardClient({ initialData, error }: LeaderboardClientProps
               </button>
             </div>
             
-            <ScrollArea className="h-[500px]">
-              <div className="space-y-2">
+            <ScrollArea className="h-[400px]">
+              <div className="space-y-1">
                 {sortedData.map((wallet, index) => {
                   const currentValue = getValueForTab(wallet);
                   const isPnlTab = activeTab === 'weeklyPnl' || activeTab === 'monthlyPnl';
@@ -187,37 +217,25 @@ export function LeaderboardClient({ initialData, error }: LeaderboardClientProps
                   return (
                     <div
                       key={wallet.wallet_address}
-                      className="flex items-center justify-between p-4 rounded-lg border hover:bg-muted/50 transition-colors"
+                      className="flex items-center justify-between p-2 rounded hover:bg-muted/50 transition-colors min-h-[40px]"
                     >
-                      <div className="flex items-center gap-4">
-                        <div className="flex items-center justify-center w-10">
-                          {getRankIcon(index + 1)}
+                      <div className="flex items-center gap-3 flex-1 min-w-0">
+                        <div className="flex items-center justify-center w-6 flex-shrink-0">
+                          {index < 3 ? getRankIcon(index + 1) : <span className="text-xs font-bold text-muted-foreground">#{index + 1}</span>}
                         </div>
-                        <div>
-                          <div className="font-medium text-sm font-mono">
-                            {wallet.wallet_address.slice(0, 6)}...{wallet.wallet_address.slice(-4)}
-                          </div>
-                          {wallet.fid && (
-                            <div className="text-xs text-muted-foreground">FID #{wallet.fid}</div>
-                          )}
+                        <div className="font-mono text-xs truncate">
+                          {wallet.wallet_address.slice(0, 4)}...{wallet.wallet_address.slice(-4)}
                         </div>
                       </div>
-                      <div className="text-right">
-                        <div className={`font-semibold ${isPnlTab && pnlValue !== null && pnlValue !== 0 ? (pnlValue >= 0 ? 'text-green-500' : 'text-red-500') : ''}`}>
-                          {currentValue}
-                        </div>
-                        {wallet.net_worth !== null && wallet.net_worth > 0 && !isPnlTab && (
-                          <div className="text-xs text-muted-foreground mt-1">
-                            Net: {formatValue(wallet.net_worth)}
-                          </div>
-                        )}
+                      <div className={`text-sm font-semibold whitespace-nowrap ml-2 ${isPnlTab && pnlValue !== null && pnlValue !== 0 ? (pnlValue >= 0 ? 'text-green-500' : 'text-red-500') : ''}`}>
+                        {currentValue}
                       </div>
                     </div>
                   );
                 })}
                 
                 {sortedData.length === 0 && (
-                  <div className="text-center py-12 text-muted-foreground">
+                  <div className="text-center py-8 text-muted-foreground text-sm">
                     No data available
                   </div>
                 )}
@@ -239,7 +257,11 @@ export function LeaderboardClient({ initialData, error }: LeaderboardClientProps
           <CardContent className="p-4">
             <div className="text-sm text-muted-foreground">Top Volume</div>
             <div className="text-2xl font-bold">
-              {formatValue(Math.max(...initialData.map(w => w.all_time_volume || 0)))}
+              {(() => {
+                const volumes = initialData.map(w => w.all_time_volume || 0);
+                const maxVolume = Math.max(...volumes);
+                return formatValue(maxVolume);
+              })()}
             </div>
           </CardContent>
         </Card>
@@ -247,7 +269,14 @@ export function LeaderboardClient({ initialData, error }: LeaderboardClientProps
           <CardContent className="p-4">
             <div className="text-sm text-muted-foreground">Total Volume</div>
             <div className="text-2xl font-bold">
-              {formatValue(initialData.reduce((sum, w) => sum + (w.all_time_volume || 0), 0))}
+              {(() => {
+                const totalVolume = initialData.reduce((sum, w) => {
+                  const volume = w.all_time_volume || 0;
+                  // Prevent overflow by capping at reasonable values
+                  return sum + (volume > 1e15 ? 1e15 : volume);
+                }, 0);
+                return formatValue(totalVolume);
+              })()}
             </div>
           </CardContent>
         </Card>
