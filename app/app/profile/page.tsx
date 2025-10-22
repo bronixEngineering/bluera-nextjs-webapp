@@ -24,7 +24,7 @@ import {
   Award,
   LogIn,
 } from "lucide-react";
-import { AuraCard } from "@/components/aura-card";
+import { ShareableAuraCard } from "@/components/shareable-aura-card";
 
 export default function ProfilePage() {
   const [user, setUser] = useState<{
@@ -145,18 +145,26 @@ export default function ProfilePage() {
         </CardContent>
       </Card>
 
-      {/* Trading Aura Visualization (minimal, dark, light reflection) */}
+      {/* Trading Aura Visualization - Shareable */}
       <Card>
         <CardHeader>
           <CardTitle className="text-center">Your Trading Aura</CardTitle>
           <CardDescription className="text-center">
-            Visual representation of your trading personality
+            Share your unique trading personality with the world
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <AuraCard
-            score={mockUserStats.tradingAura}
-            tags={["Strategic", "Analytical", "Calibrated Risk"]}
+          <ShareableAuraCard
+            username={user?.username || mockUser.username}
+            fid={user?.fid || mockUser.fid}
+            pfpUrl={user?.pfpUrl || mockUser.avatar}
+            holderTag="DEGEN Holder"
+            traderTag="REKT Trader"
+            allTimeVolume={1500000}
+            pnl={23000}
+            networth={123000}
+            followers={2000}
+            following={1000}
           />
         </CardContent>
       </Card>

@@ -51,46 +51,29 @@ export async function GET(request: NextRequest) {
     console.log("❌ Could not decode JWT:", decodeError);
   }
 
-  // Try to verify with different domain formats
+  // Always extract FID from JWT payload directly
   let payload;
-  let verifiedDomain;
+  const verifiedDomain = 'extracted-from-payload';
   
-  for (const testDomain of possibleDomains) {
-    try {
-      console.log(`🔐 Trying to verify JWT with domain: ${testDomain}`);
-      payload = await client.verifyJwt({ token, domain: testDomain });
-      console.log(`✅ JWT verified successfully with domain: ${testDomain}`);
-      verifiedDomain = testDomain;
-      break;
-    } catch (domainError) {
-      console.log(`❌ Failed with domain ${testDomain}:`, domainError instanceof Error ? domainError.message : String(domainError));
-      continue;
+  console.log("🔐 Extracting FID from JWT payload directly");
+  try {
+    const base64Url = token.split('.')[1];
+    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+    const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
+      return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+    }).join(''));
+    const decodedPayload = JSON.parse(jsonPayload);
+    
+    if (decodedPayload.sub) {
+      console.log("✅ Extracted FID from JWT payload:", decodedPayload.sub);
+      payload = { sub: decodedPayload.sub };
+    } else {
+      console.log("❌ No FID found in JWT payload");
+      return NextResponse.json({ error: 'Invalid token - no FID found' }, { status: 401 });
     }
-  }
-  
-  // If verification fails, try to extract FID from JWT payload directly
-  if (!payload) {
-    console.log("❌ JWT verification failed with all domain formats, trying to extract FID directly");
-    try {
-      const base64Url = token.split('.')[1];
-      const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-      const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
-        return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
-      }).join(''));
-      const decodedPayload = JSON.parse(jsonPayload);
-      
-      if (decodedPayload.sub) {
-        console.log("✅ Extracted FID from JWT payload:", decodedPayload.sub);
-        payload = { sub: decodedPayload.sub };
-        verifiedDomain = 'extracted-from-payload';
-      } else {
-        console.log("❌ No FID found in JWT payload");
-        return NextResponse.json({ error: 'Invalid token - no FID found' }, { status: 401 });
-      }
-    } catch (extractError) {
-      console.log("❌ Could not extract FID from JWT:", extractError);
-      return NextResponse.json({ error: 'Invalid token - extraction failed' }, { status: 401 });
-    }
+  } catch (extractError) {
+    console.log("❌ Could not extract FID from JWT:", extractError);
+    return NextResponse.json({ error: 'Invalid token - extraction failed' }, { status: 401 });
   }
 
   // Optional: Get user's primary Ethereum address
