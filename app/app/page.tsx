@@ -1,109 +1,102 @@
-'use client';
+import { createClient as createSupabaseClient } from "@/utils/supabase/server";
+import { HeatmapClient } from "@/components/heatmap-client";
 
-import { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { mockTokens, mockUserStats } from '@/lib/mock-data';
-import { Map, Trophy, TrendingUp, TrendingDown } from 'lucide-react';
-import { AuraCard } from '@/components/aura-card';
+interface HeatmapToken {
+  token_address: string;
+  symbol: string;
+  volume: number;
+  swaps: number;
+  change24h: number;
+  image_url?: string;
+  token_type?: string;
+  color: string;
+}
 
-export default function Home() {
-  const [auraGenerated, setAuraGenerated] = useState(false);
+async function getHeatmapData(): Promise<{
+  data: HeatmapToken[];
+  totalVolume: number;
+  error?: string;
+}> {
+  try {
+    const supabase = await createSupabaseClient();
 
-  const handleGenerateAura = () => {
-    setAuraGenerated(true);
-    // Simulate aura generation animation
-    setTimeout(() => {
-      setAuraGenerated(false);
-    }, 3000);
-  };
+    // Fetch whitelisted tokens data
+    const { data: tokens, error } = await supabase
+      .from("whitelisted_tokens")
+      .select("*")
+      .order("total_volume_24h", { ascending: false })
+      .limit(20); // Limit to top 20 tokens by volume
+
+    if (error) {
+      console.error("❌ Supabase error:", error);
+      return {
+        data: [],
+        totalVolume: 0,
+        error: "Failed to fetch tokens data",
+      };
+    }
+
+    // Transform data for heatmap
+    const heatmapData: HeatmapToken[] =
+      tokens?.map((token) => ({
+        token_address: token.token_address,
+        symbol: token.token_ticker || "UNKNOWN",
+        volume: token.total_volume_24h || 0,
+        swaps: token.total_swaps_24h || 0,
+        change24h: token.total_volume_changing_rate || 0,
+        image_url: token.image_url, // Use image from database
+        token_type: token.token_type,
+        // Generate color based on volume change
+        color:
+          token.total_volume_changing_rate > 0
+            ? `hsl(${120 + token.total_volume_changing_rate * 2}, 50%, 35%)` // Green for positive
+            : token.total_volume_changing_rate < 0
+            ? `hsl(${
+                0 + Math.abs(token.total_volume_changing_rate * 2)
+              }, 50%, 35%)` // Red for negative
+            : `hsl(0, 0%, 50%)`, // Gray for zero/neutral
+      })) || [];
+
+    // If no data from database, return empty
+    if (heatmapData.length === 0) {
+      console.log("No data from database");
+      return {
+        data: [],
+        totalVolume: 0,
+        error: "No data available",
+      };
+    }
+
+    const totalVolume = heatmapData.reduce(
+      (sum, token) => sum + token.volume,
+      0
+    );
+
+    console.log(`✅ Fetched ${heatmapData.length} tokens for heatmap`);
+
+    return {
+      data: heatmapData,
+      totalVolume,
+    };
+  } catch (error) {
+    console.error("❌ Heatmap data fetch error:", error);
+    return {
+      data: [],
+      totalVolume: 0,
+      error: "Internal server error",
+    };
+  }
+}
+
+export default async function Home() {
+  const { data, totalVolume, error } = await getHeatmapData();
 
   return (
-    <div className="py-6 space-y-8">
-      {/* Generate Aura Section */}
-      <Card className="overflow-hidden">
-        <CardHeader>
-          <CardTitle className="text-center">Your Trading Aura</CardTitle>
-          <CardDescription className="text-center">
-            Discover your unique trading personality and patterns
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <AuraCard
-            score={mockUserStats.tradingAura}
-            tags={["Strategic", "Analytical", "Calibrated Risk"]}
-            ctaLabel="Generate Your Aura"
-            loading={auraGenerated}
-            onClick={handleGenerateAura}
-          />
-        </CardContent>
-      </Card>
-
-      {/* Token Holdings Grid */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Your Token Holdings</CardTitle>
-          <CardDescription>
-            Overview of your current portfolio
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {mockTokens.map((token) => (
-              <div
-                key={token.id}
-                className="p-4 border rounded-lg transition-colors hover:bg-white/5"
-                style={{
-                  background:
-                    'radial-gradient(160px 90px at 100% -20%, rgba(255,255,255,0.05), rgba(0,0,0,0) 60%)',
-                }}
-              >
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-3">
-                    <div>
-                      <div className="font-semibold">{token.symbol}</div>
-                      <div className="text-sm text-muted-foreground">{token.name}</div>
-                    </div>
-                  </div>
-                  <Badge variant={token.change24h >= 0 ? "default" : "destructive"}>
-                    {token.change24h >= 0 ? (
-                      <TrendingUp className="h-3 w-3 mr-1" />
-                    ) : (
-                      <TrendingDown className="h-3 w-3 mr-1" />
-                    )}
-                    {token.change24h > 0 ? '+' : ''}{token.change24h}%
-                  </Badge>
-                </div>
-                <div className="space-y-1">
-                  <div className="text-lg font-bold">
-                    {token.balance.toFixed(2)} {token.symbol}
-                  </div>
-                  <div className="text-sm text-muted-foreground">
-                    ${token.value.toLocaleString()}
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Shortcut Buttons */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <Button variant="outline" className="h-20 flex flex-col gap-2" asChild>
-          <a href="/app/heatmap">
-            <Map className="h-6 w-6" />
-            <span>Ecosystem Map</span>
-          </a>
-        </Button>
-        <Button variant="outline" className="h-20 flex flex-col gap-2" asChild>
-          <a href="/app/leaderboard">
-            <Trophy className="h-6 w-6" />
-            <span>Leaderboard</span>
-          </a>
-        </Button>
-      </div>
-    </div>
+    <HeatmapClient
+      initialData={data}
+      totalVolume={totalVolume}
+      isLoading={false}
+      error={error || null}
+    />
   );
 }

@@ -52,11 +52,6 @@ export function Header() {
               {user?.fid && (
                 <span className="text-sm font-medium">FID #{user.fid}</span>
               )}
-              {isInMiniApp && user && (
-                <Badge variant="secondary" className="text-xs">
-                  Live
-                </Badge>
-              )}
             </div>
             {user?.username && (
               <span className="text-xs text-muted-foreground hidden sm:block">
@@ -66,11 +61,6 @@ export function Header() {
           </div>
         </div>
         <div className="flex items-center space-x-2">
-          <div className="hidden lg:flex items-center space-x-4 ml-4">
-            <span className="text-sm text-muted-foreground">Trading Score: 92</span>
-            <span className="text-sm text-muted-foreground">•</span>
-            <span className="text-sm text-muted-foreground">Rank: #1,234</span>
-          </div>
         </div>
       </div>
     </header>

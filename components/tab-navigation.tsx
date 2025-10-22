@@ -2,24 +2,24 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, BarChart3, Trophy, User } from 'lucide-react';
+import { LayoutGrid, Trophy, Gift, User } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const tabs = [
   {
     name: 'Home',
     href: '/app',
-    icon: Home
-  },
-  {
-    name: 'Heatmap',
-    href: '/app/heatmap',
-    icon: BarChart3
+    icon: LayoutGrid
   },
   {
     name: 'Leaderboard',
     href: '/app/leaderboard',
     icon: Trophy
+  },
+  {
+    name: 'Rewards',
+    href: '/app/rewards',
+    icon: Gift
   },
   {
     name: 'Profile',
