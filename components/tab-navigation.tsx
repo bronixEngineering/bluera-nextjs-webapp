@@ -45,7 +45,7 @@ export function TabNavigation() {
                 <Link
                   href={tab.href}
                   className={cn(
-                    'flex flex-col items-center justify-center py-4 transition-colors w-full h-full',
+                    'flex flex-col items-center justify-center py-5 transition-colors w-full h-full',
                     isActive
                       ? 'text-primary bg-primary/10'
                       : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'

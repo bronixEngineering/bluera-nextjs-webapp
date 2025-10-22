@@ -205,11 +205,11 @@ export function ShareableAuraCard({
     setIsGenerating(false);
   };
 
-  const handleDownloadDirectly = async () => {
+  const handleShare = async () => {
     if (!previewUrl) return;
     
     try {
-      // Convert data URL to blob for better download compatibility
+      // Convert data URL to blob
       const base64Data = previewUrl.split(',')[1];
       const byteCharacters = atob(base64Data);
       const byteNumbers = new Array(byteCharacters.length);
@@ -221,31 +221,61 @@ export function ShareableAuraCard({
       const byteArray = new Uint8Array(byteNumbers);
       const blob = new Blob([byteArray], { type: 'image/png' });
       
-      // Create blob URL
+      // Try Web Share API first (mobile native share)
+      if (navigator.share && navigator.canShare) {
+        const file = new File([blob], `bluera-card-${username || fid || Date.now()}.png`, { 
+          type: 'image/png' 
+        });
+        
+        if (navigator.canShare({ files: [file] })) {
+          await navigator.share({
+            files: [file],
+            title: 'My Bluera Aura Card',
+            text: 'Check out my trading aura on Bluera! 🚀',
+          });
+          console.log('✅ Shared successfully via Web Share API');
+          return;
+        }
+      }
+      
+      // Fallback 1: Try Clipboard API
+      if (navigator.clipboard && 'write' in navigator.clipboard) {
+        try {
+          await navigator.clipboard.write([
+            new ClipboardItem({ 'image/png': blob })
+          ]);
+          alert('✅ Image copied to clipboard! You can now paste it anywhere.');
+          console.log('✅ Copied to clipboard');
+          return;
+        } catch (clipboardError) {
+          console.log('Clipboard failed, trying next method...');
+        }
+      }
+      
+      // Fallback 2: Open in new tab for manual save
       const blobUrl = URL.createObjectURL(blob);
+      const newWindow = window.open(blobUrl, '_blank');
       
-      // Trigger download
-      const link = document.createElement('a');
-      link.href = blobUrl;
-      link.download = `bluera-card-${username || fid || Date.now()}.png`;
-      link.style.display = 'none';
-      document.body.appendChild(link);
-      link.click();
-      
-      // Cleanup
-      setTimeout(() => {
-        document.body.removeChild(link);
-        URL.revokeObjectURL(blobUrl);
-      }, 100);
+      if (newWindow) {
+        alert('💡 Tip: Long press on the image and select "Save Image" to download it to your device.');
+        setTimeout(() => URL.revokeObjectURL(blobUrl), 60000); // Cleanup after 1 min
+      } else {
+        // Fallback 3: Try direct download (may crash on mini apps)
+        const link = document.createElement('a');
+        link.href = blobUrl;
+        link.download = `bluera-card-${username || fid || Date.now()}.png`;
+        link.style.display = 'none';
+        document.body.appendChild(link);
+        link.click();
+        
+        setTimeout(() => {
+          document.body.removeChild(link);
+          URL.revokeObjectURL(blobUrl);
+        }, 100);
+      }
     } catch (error) {
-      console.error('Download error:', error);
-      // Fallback: try simple download
-      const link = document.createElement('a');
-      link.href = previewUrl;
-      link.download = `bluera-card-${username || fid || Date.now()}.png`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+      console.error('Share error:', error);
+      alert('❌ Failed to share. Try taking a screenshot instead!');
     }
   };
 
@@ -341,7 +371,7 @@ export function ShareableAuraCard({
           ) : (
             <>
               <Download className="h-5 w-5 mr-2" />
-              Generate Card
+              Share Your Aura
             </>
           )}
         </Button>
@@ -373,17 +403,17 @@ export function ShareableAuraCard({
             
             <div className="flex gap-2 justify-center">
               <Button
-                onClick={handleDownloadDirectly}
+                onClick={handleShare}
                 size="lg"
                 className="bg-gradient-to-r from-purple-500 to-yellow-500 hover:from-purple-600 hover:to-yellow-600 text-white font-semibold"
               >
                 <Download className="h-4 w-4 mr-2" />
-                Download Card
+                Share / Save
               </Button>
             </div>
             
             <p className="text-xs text-center text-muted-foreground">
-              Tip: Right-click the image above to save or share
+              💡 Tip: Long press on the image to save to your device
             </p>
           </div>
         </div>
