@@ -295,7 +295,14 @@ export function ShareableAuraCard({
         <div className="flex items-center gap-4 mb-8">
           <div className="w-16 h-16 rounded-full border-2 border-purple-400 overflow-hidden bg-muted relative">
             {pfpUrl ? (
-              <Image src={pfpUrl} alt="Profile" fill className="object-cover" />
+              <Image 
+                src={pfpUrl} 
+                alt="Profile" 
+                fill 
+                className="object-cover"
+                unoptimized
+                priority
+              />
             ) : (
               <div className="w-full h-full flex items-center justify-center">
                 <div className="w-8 h-8 rounded-full bg-purple-400/20" />

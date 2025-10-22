@@ -129,16 +129,10 @@ export default function ProfilePage() {
                   </Badge>
                 </div>
                 {user?.username && (
-                  <p className="text-muted-foreground mb-2">
+                  <p className="text-muted-foreground">
                     @{user.username}
                   </p>
                 )}
-                <div className="flex items-center gap-2">
-                  <Sparkles className="h-4 w-4 text-purple-500" />
-                  <span className="text-sm font-medium">
-                    Trading Aura: {mockUserStats.tradingAura}
-                  </span>
-                </div>
               </div>
             </div>
           </div>
