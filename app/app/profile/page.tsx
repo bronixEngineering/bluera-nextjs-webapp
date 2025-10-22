@@ -105,39 +105,33 @@ export default function ProfilePage() {
 
   return (
     <div className="py-6 space-y-8">
-      {/* Profile Header */}
-      <Card>
-        <CardContent className="p-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <Avatar className="h-20 w-20">
-                <AvatarImage 
-                  src={user?.pfpUrl || mockUser.avatar} 
-                  alt={user?.displayName || user?.username || mockUser.username} 
-                />
-                <AvatarFallback className="text-2xl">
-                  {(user?.displayName || user?.username || mockUser.username).charAt(0).toUpperCase()}
-                </AvatarFallback>
-              </Avatar>
-              <div className="flex-1">
-                <div className="flex items-center gap-2 mb-1">
-                  <h1 className="text-2xl font-bold">
-                    {user?.displayName || user?.username || mockUser.username}
-                  </h1>
-                  <Badge variant="secondary">
-                    FID #{user?.fid || mockUser.fid}
-                  </Badge>
-                </div>
-                {user?.username && (
-                  <p className="text-muted-foreground">
-                    @{user.username}
-                  </p>
-                )}
-              </div>
-            </div>
+      {/* Profile Header - Minimalist */}
+      <div className="flex items-center justify-between px-2">
+        <div className="flex items-center gap-3">
+          <Avatar className="h-14 w-14 border-2 border-purple-400/20">
+            <AvatarImage 
+              src={user?.pfpUrl || mockUser.avatar} 
+              alt={user?.displayName || user?.username || mockUser.username} 
+            />
+            <AvatarFallback className="text-lg">
+              {(user?.displayName || user?.username || mockUser.username).charAt(0).toUpperCase()}
+            </AvatarFallback>
+          </Avatar>
+          <div>
+            <h1 className="text-xl font-bold">
+              {user?.displayName || user?.username || mockUser.username}
+            </h1>
+            {user?.username && (
+              <p className="text-sm text-muted-foreground">
+                @{user.username}
+              </p>
+            )}
           </div>
-        </CardContent>
-      </Card>
+        </div>
+        <Badge variant="secondary" className="text-xs">
+          FID #{user?.fid || mockUser.fid}
+        </Badge>
+      </div>
 
       {/* Trading Aura Visualization - Shareable */}
       <Card>
@@ -159,6 +153,12 @@ export default function ProfilePage() {
             networth={123000}
             followers={2000}
             following={1000}
+            streak={15}
+            weeklyVolume={85000}
+            monthlyVolume={320000}
+            totalTrades={67}
+            weeklyPnl={8500}
+            rank={1234}
           />
         </CardContent>
       </Card>

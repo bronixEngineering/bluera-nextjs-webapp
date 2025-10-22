@@ -17,6 +17,12 @@ type ShareableAuraCardProps = {
   networth: number;
   followers: number;
   following: number;
+  streak?: number; // Days active
+  weeklyVolume?: number;
+  monthlyVolume?: number;
+  totalTrades?: number;
+  weeklyPnl?: number;
+  rank?: number;
 };
 
 export function ShareableAuraCard({
@@ -30,6 +36,12 @@ export function ShareableAuraCard({
   networth,
   followers,
   following,
+  streak = 7,
+  weeklyVolume = 50000,
+  monthlyVolume = 200000,
+  totalTrades = 45,
+  weeklyPnl = 5000,
+  rank = 1234,
 }: ShareableAuraCardProps) {
   const [isGenerating, setIsGenerating] = React.useState(false);
   const [showPreview, setShowPreview] = React.useState(false);
@@ -38,14 +50,14 @@ export function ShareableAuraCard({
 
   const generateImage = async () => {
     try {
-      // Create canvas - minimalist aura card
+      // Create canvas - enhanced aura card
       const canvas = document.createElement('canvas');
       const ctx = canvas.getContext('2d');
       if (!ctx) return null;
 
-      // Square canvas for better social media sharing
+      // Compact portrait canvas
       const width = 1000;
-      const height = 1200;
+      const height = 1050;
       canvas.width = width;
       canvas.height = height;
 
@@ -57,17 +69,54 @@ export function ShareableAuraCard({
       ctx.fillStyle = bgGradient;
       ctx.fillRect(0, 0, width, height);
 
-      // Card border
+      // Card border (full canvas edge)
       ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
       ctx.lineWidth = 2;
       ctx.beginPath();
-      ctx.roundRect(60, 60, width - 120, height - 120, 40);
+      ctx.roundRect(1, 1, width - 2, height - 2, 0);
       ctx.stroke();
 
-      // Header with Profile
-      const pfpSize = 120;
-      const pfpX = 120;
-      const pfpY = 120;
+      // Bluera Logo Header (centered)
+      const logoSize = 50;
+      const logoX = width / 2 - logoSize / 2 - 70;
+      const logoY = 90;
+      
+      try {
+        const logoImg = document.createElement('img');
+        logoImg.crossOrigin = 'anonymous';
+        await new Promise<void>((resolve, reject) => {
+          logoImg.onload = () => resolve();
+          logoImg.onerror = () => reject();
+          logoImg.src = '/original.webp';
+        });
+        
+        ctx.save();
+        ctx.beginPath();
+        ctx.roundRect(logoX, logoY, logoSize, logoSize, 10);
+        ctx.clip();
+        ctx.drawImage(logoImg, logoX, logoY, logoSize, logoSize);
+        ctx.restore();
+      } catch {
+        console.log('Logo loading failed');
+      }
+
+      // Bluera text
+      const textGradient = ctx.createLinearGradient(logoX + logoSize + 20, 0, logoX + logoSize + 200, 0);
+      textGradient.addColorStop(0, '#c084fc');
+      textGradient.addColorStop(1, '#facc15');
+      ctx.fillStyle = textGradient;
+      ctx.font = 'bold 36px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+      ctx.textAlign = 'left';
+      ctx.fillText('BLUERA', logoX + logoSize + 20, logoY + 28);
+
+      ctx.fillStyle = '#9ca3af';
+      ctx.font = '15px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+      ctx.fillText('Trading Aura Card', logoX + logoSize + 20, logoY + 48);
+
+      // Profile section
+      const pfpSize = 85;
+      const pfpX = 110;
+      const pfpY = 170;
 
       // Profile picture circle
       ctx.strokeStyle = '#a78bfa';
@@ -102,91 +151,195 @@ export function ShareableAuraCard({
         }
       }
 
-      // Username and FID
+      // Username and info
       ctx.fillStyle = '#ffffff';
-      ctx.font = 'bold 40px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+      ctx.font = 'bold 30px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
       ctx.textAlign = 'left';
-      ctx.fillText(username || 'Trader', 280, 170);
+      ctx.fillText(username || 'Trader', pfpX + pfpSize + 22, pfpY + 25);
 
       ctx.fillStyle = '#9ca3af';
-      ctx.font = '28px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
-      ctx.fillText(`FID #${fid || '11222'}`, 280, 210);
+      ctx.font = '17px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+      ctx.fillText(`FID #${fid || '11222'} • Rank #${rank}`, pfpX + pfpSize + 22, pfpY + 50);
+
+      // Streak
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 18px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+      ctx.fillText('🔥', pfpX + pfpSize + 22, pfpY + 77);
+      ctx.fillStyle = '#ffffff';
+      ctx.font = '16px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+      ctx.fillText(`${streak} Day Streak`, pfpX + pfpSize + 50, pfpY + 77);
 
 
-      // Tags - Holder and Trader
-      const tagsY = 400;
-      const tagWidth = 180;
-      const tagSpacing = 20;
-      const tagsStartX = (width - (tagWidth * 2 + tagSpacing)) / 2;
+      // Tags - Holder and Trader (aligned to right, stacked)
+      const tagWidth = 160;
+      const tagHeight = 35;
+      const tagSpacing = 12;
+      const tagsX = width - 240; // Inside border with margin
+      const tagsY = pfpY + 10;
       
-      // Holder tag (purple)
+      // Holder tag (purple) - top
       ctx.fillStyle = 'rgba(168, 85, 247, 0.15)';
       ctx.strokeStyle = 'rgba(168, 85, 247, 0.3)';
       ctx.lineWidth = 2;
       ctx.beginPath();
-      ctx.roundRect(tagsStartX, tagsY, tagWidth, 50, 25);
+      ctx.roundRect(tagsX, tagsY, tagWidth, tagHeight, 18);
       ctx.fill();
       ctx.stroke();
       
       ctx.fillStyle = '#c084fc';
-      ctx.font = 'bold 20px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+      ctx.font = 'bold 14px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
       ctx.textAlign = 'center';
-      ctx.fillText(holderTag, tagsStartX + tagWidth / 2, tagsY + 32);
+      ctx.fillText(holderTag, tagsX + tagWidth / 2, tagsY + 22);
       
-      // Trader tag (yellow)
+      // Trader tag (yellow) - bottom
       ctx.fillStyle = 'rgba(234, 179, 8, 0.15)';
       ctx.strokeStyle = 'rgba(234, 179, 8, 0.3)';
       ctx.beginPath();
-      ctx.roundRect(tagsStartX + tagWidth + tagSpacing, tagsY, tagWidth, 50, 25);
+      ctx.roundRect(tagsX, tagsY + tagHeight + tagSpacing, tagWidth, tagHeight, 18);
       ctx.fill();
       ctx.stroke();
       
       ctx.fillStyle = '#facc15';
-      ctx.fillText(traderTag, tagsStartX + tagWidth + tagSpacing + tagWidth / 2, tagsY + 32);
+      ctx.fillText(traderTag, tagsX + tagWidth / 2, tagsY + tagHeight + tagSpacing + 22);
 
-      // Stats grid (3x2 - 6 stats total)
-      const statsY = 500;
-      const statBoxWidth = 350;
-      const statBoxHeight = 90;
-      const statSpacing = 30;
-      const statsStartX = (width - (statBoxWidth * 2 + statSpacing)) / 2;
+      // Stats grid (3x3 - 9 stats total)
+      const statsY = 370;
+      const statBoxWidth = 250;
+      const statBoxHeight = 68;
+      const statSpacing = 18;
+      const statsStartX = (width - (statBoxWidth * 3 + statSpacing * 2)) / 2;
 
       const drawStatBox = (x: number, y: number, label: string, value: string, color?: string) => {
         ctx.fillStyle = 'rgba(255, 255, 255, 0.05)';
         ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
-        ctx.lineWidth = 2;
+        ctx.lineWidth = 1.5;
         ctx.beginPath();
-        ctx.roundRect(x, y, statBoxWidth, statBoxHeight, 15);
+        ctx.roundRect(x, y, statBoxWidth, statBoxHeight, 12);
         ctx.fill();
         ctx.stroke();
 
         ctx.fillStyle = '#9ca3af';
-        ctx.font = '18px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+        ctx.font = '14px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
         ctx.textAlign = 'center';
-        ctx.fillText(label, x + statBoxWidth / 2, y + 30);
+        ctx.fillText(label, x + statBoxWidth / 2, y + 25);
 
         ctx.fillStyle = color || '#ffffff';
-        ctx.font = 'bold 28px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
-        ctx.fillText(value, x + statBoxWidth / 2, y + 65);
+        ctx.font = 'bold 22px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+        ctx.fillText(value, x + statBoxWidth / 2, y + 52);
       };
 
       // Row 1
-      drawStatBox(statsStartX, statsY, 'All-time Volume', `$${(allTimeVolume / 1000000).toFixed(1)}M`);
-      drawStatBox(statsStartX + statBoxWidth + statSpacing, statsY, 'PnL', `${pnl >= 0 ? '+' : ''}$${(pnl / 1000).toFixed(0)}K`, pnl >= 0 ? '#22c55e' : '#ef4444');
+      drawStatBox(statsStartX, statsY, 'All-Time Vol', `$${(allTimeVolume / 1000000).toFixed(1)}M`);
+      drawStatBox(statsStartX + statBoxWidth + statSpacing, statsY, 'Weekly Vol', `$${(weeklyVolume / 1000).toFixed(0)}K`);
+      drawStatBox(statsStartX + (statBoxWidth + statSpacing) * 2, statsY, 'Monthly Vol', `$${(monthlyVolume / 1000).toFixed(0)}K`);
       
       // Row 2
-      drawStatBox(statsStartX, statsY + statBoxHeight + statSpacing, 'Net Worth', `$${(networth / 1000).toFixed(0)}K`);
-      drawStatBox(statsStartX + statBoxWidth + statSpacing, statsY + statBoxHeight + statSpacing, 'FID', `#${fid || '11222'}`);
+      drawStatBox(statsStartX, statsY + statBoxHeight + statSpacing, 'Total PnL', `${pnl >= 0 ? '+' : ''}$${(pnl / 1000).toFixed(0)}K`, pnl >= 0 ? '#22c55e' : '#ef4444');
+      drawStatBox(statsStartX + statBoxWidth + statSpacing, statsY + statBoxHeight + statSpacing, 'Weekly PnL', `${weeklyPnl >= 0 ? '+' : ''}$${(weeklyPnl / 1000).toFixed(1)}K`, weeklyPnl >= 0 ? '#22c55e' : '#ef4444');
+      drawStatBox(statsStartX + (statBoxWidth + statSpacing) * 2, statsY + statBoxHeight + statSpacing, 'Net Worth', `$${(networth / 1000).toFixed(0)}K`);
       
       // Row 3
-      drawStatBox(statsStartX, statsY + (statBoxHeight + statSpacing) * 2, 'Followers', `${followers?.toLocaleString()}`);
-      drawStatBox(statsStartX + statBoxWidth + statSpacing, statsY + (statBoxHeight + statSpacing) * 2, 'Following', `${following?.toLocaleString()}`);
+      drawStatBox(statsStartX, statsY + (statBoxHeight + statSpacing) * 2, 'Total Trades', `${totalTrades}`);
+      drawStatBox(statsStartX + statBoxWidth + statSpacing, statsY + (statBoxHeight + statSpacing) * 2, 'Followers', `${followers?.toLocaleString()}`);
+      drawStatBox(statsStartX + (statBoxWidth + statSpacing) * 2, statsY + (statBoxHeight + statSpacing) * 2, 'Following', `${following?.toLocaleString()}`);
 
-      // Footer
-      ctx.fillStyle = '#6b7280';
-      ctx.font = '20px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+      // Mini Performance Chart (7-day bar chart)
+      const chartY = statsY + (statBoxHeight + statSpacing) * 3 + 18;
+      const chartWidth = 800;
+      const chartHeight = 80;
+      const chartX = (width - chartWidth) / 2;
+      
+      // Chart container
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.05)';
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.roundRect(chartX, chartY, chartWidth, chartHeight + 50, 15);
+      ctx.fill();
+      ctx.stroke();
+      
+      // Chart title
+      ctx.fillStyle = '#9ca3af';
+      ctx.font = '18px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
       ctx.textAlign = 'center';
-      ctx.fillText('Generated by Bluera', width / 2, height - 50);
+      ctx.fillText('7-Day Performance', width / 2, chartY + 25);
+      
+      // 7-day bar chart
+      const barData = [65, 72, 68, 85, 90, 82, 95];
+      const barWidth = (chartWidth - 100) / barData.length;
+      const barSpacing = 10;
+      const barStartX = chartX + 50;
+      const barStartY = chartY + 45;
+      const barMaxHeight = 70;
+      
+      barData.forEach((value, i) => {
+        const barHeight = (value / 100) * barMaxHeight;
+        const x = barStartX + i * barWidth + (barWidth - barSpacing) / 2;
+        const y = barStartY + barMaxHeight - barHeight;
+        
+        // Bar gradient
+        const barGradient = ctx.createLinearGradient(x, y + barHeight, x, y);
+        barGradient.addColorStop(0, '#a78bfa');
+        barGradient.addColorStop(1, '#facc15');
+        ctx.fillStyle = barGradient;
+        
+        ctx.beginPath();
+        ctx.roundRect(x, y, barWidth - barSpacing, barHeight, 5);
+        ctx.fill();
+      });
+
+      // Footer with QR Code (at bottom)
+      const footerY = height - 130;
+      
+      // Scan to Follow text (left side)
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 20px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+      ctx.textAlign = 'left';
+      ctx.fillText('Scan to Follow', 150, footerY);
+      
+      ctx.fillStyle = '#9ca3af';
+      ctx.font = '16px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+      ctx.fillText(username ? `@${username}` : 'on Farcaster', 150, footerY + 25);
+      
+      // QR Code (right side) with rounded border
+      if (username) {
+        try {
+          const qrSize = 100;
+          const qrX = width - 200;
+          const qrY = footerY - 30;
+          
+          // QR Code background (white rounded)
+          ctx.fillStyle = '#ffffff';
+          ctx.beginPath();
+          ctx.roundRect(qrX, qrY, qrSize, qrSize, 15);
+          ctx.fill();
+          
+          // Load QR code from API
+          const qrImg = document.createElement('img');
+          qrImg.crossOrigin = 'anonymous';
+          await new Promise<void>((resolve, reject) => {
+            qrImg.onload = () => resolve();
+            qrImg.onerror = () => reject();
+            qrImg.src = `https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=https://farcaster.xyz/${username}`;
+          });
+          
+          // Draw QR with rounded corners
+          ctx.save();
+          ctx.beginPath();
+          ctx.roundRect(qrX, qrY, qrSize, qrSize, 15);
+          ctx.clip();
+          ctx.drawImage(qrImg, qrX, qrY, qrSize, qrSize);
+          ctx.restore();
+        } catch {
+          console.log('QR code loading failed');
+        }
+      }
+      
+      // Tagline
+      ctx.fillStyle = '#6b7280';
+      ctx.font = '16px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('Generated by Bluera • Track. Trade. Dominate.', width / 2, footerY + 60);
 
       return canvas.toDataURL('image/png');
     } catch (error) {
@@ -291,8 +444,26 @@ export function ShareableAuraCard({
           background: "linear-gradient(135deg, rgba(168, 85, 247, 0.1) 0%, rgba(0, 0, 0, 0) 50%, rgba(234, 179, 8, 0.1) 100%)",
         }}
       >
+        {/* Bluera Logo Header */}
+        <div className="flex items-center justify-center gap-3 mb-6">
+          <Image 
+            src="/original.webp" 
+            alt="Bluera Logo" 
+            width={40} 
+            height={40}
+            className="rounded-lg"
+            unoptimized
+          />
+          <div className="text-center">
+            <h2 className="text-2xl font-bold bg-gradient-to-r from-purple-400 to-yellow-400 bg-clip-text text-transparent">
+              BLUERA
+            </h2>
+            <p className="text-xs text-muted-foreground">Trading Aura Card</p>
+          </div>
+        </div>
+
         {/* Header with Profile */}
-        <div className="flex items-center gap-4 mb-8">
+        <div className="flex items-center gap-4 mb-4">
           <div className="w-16 h-16 rounded-full border-2 border-purple-400 overflow-hidden bg-muted relative">
             {pfpUrl ? (
               <Image 
@@ -311,7 +482,11 @@ export function ShareableAuraCard({
           </div>
           <div className="flex-1">
             <h3 className="font-bold text-lg">{username || 'Trader'}</h3>
-            <p className="text-sm text-muted-foreground">FID #{fid || '11222'}</p>
+            <p className="text-xs text-muted-foreground">FID #{fid || '11222'} • Rank #{rank}</p>
+            <div className="flex items-center gap-1 mt-1">
+              <span className="text-orange-500 text-lg">🔥</span>
+              <span className="text-xs font-semibold">{streak} Day Streak</span>
+            </div>
           </div>
         </div>
 
@@ -326,39 +501,86 @@ export function ShareableAuraCard({
           </span>
         </div>
 
-        {/* Stats Grid - 3 rows x 2 cols */}
-        <div className="grid grid-cols-2 gap-3 mt-6">
-          <div className="text-center p-3 rounded-xl bg-background/50 border border-border">
-            <p className="text-xs text-muted-foreground mb-1">All-time Volume</p>
-            <p className="font-semibold text-sm">${(allTimeVolume / 1000000).toFixed(1)}M</p>
+        {/* Stats Grid - 3x3 */}
+        <div className="grid grid-cols-3 gap-2 mt-6">
+          <div className="text-center p-2 rounded-lg bg-background/50 border border-border">
+            <p className="text-[10px] text-muted-foreground mb-0.5">All-Time Vol</p>
+            <p className="font-bold text-xs">${(allTimeVolume / 1000000).toFixed(1)}M</p>
           </div>
-          <div className="text-center p-3 rounded-xl bg-background/50 border border-border">
-            <p className="text-xs text-muted-foreground mb-1">PnL</p>
-            <p className={`font-semibold text-sm ${pnl >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+          <div className="text-center p-2 rounded-lg bg-background/50 border border-border">
+            <p className="text-[10px] text-muted-foreground mb-0.5">Weekly Vol</p>
+            <p className="font-bold text-xs">${(weeklyVolume / 1000).toFixed(0)}K</p>
+          </div>
+          <div className="text-center p-2 rounded-lg bg-background/50 border border-border">
+            <p className="text-[10px] text-muted-foreground mb-0.5">Monthly Vol</p>
+            <p className="font-bold text-xs">${(monthlyVolume / 1000).toFixed(0)}K</p>
+          </div>
+          <div className="text-center p-2 rounded-lg bg-background/50 border border-border">
+            <p className="text-[10px] text-muted-foreground mb-0.5">Total PnL</p>
+            <p className={`font-bold text-xs ${pnl >= 0 ? 'text-green-500' : 'text-red-500'}`}>
               {pnl >= 0 ? '+' : ''}${(pnl / 1000).toFixed(0)}K
             </p>
           </div>
-          <div className="text-center p-3 rounded-xl bg-background/50 border border-border">
-            <p className="text-xs text-muted-foreground mb-1">Net Worth</p>
-            <p className="font-semibold text-sm">${(networth / 1000).toFixed(0)}K</p>
+          <div className="text-center p-2 rounded-lg bg-background/50 border border-border">
+            <p className="text-[10px] text-muted-foreground mb-0.5">Weekly PnL</p>
+            <p className={`font-bold text-xs ${weeklyPnl >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+              {weeklyPnl >= 0 ? '+' : ''}${(weeklyPnl / 1000).toFixed(1)}K
+            </p>
           </div>
-          <div className="text-center p-3 rounded-xl bg-background/50 border border-border">
-            <p className="text-xs text-muted-foreground mb-1">FID</p>
-            <p className="font-semibold text-sm">#{fid || '11222'}</p>
+          <div className="text-center p-2 rounded-lg bg-background/50 border border-border">
+            <p className="text-[10px] text-muted-foreground mb-0.5">Net Worth</p>
+            <p className="font-bold text-xs">${(networth / 1000).toFixed(0)}K</p>
           </div>
-          <div className="text-center p-3 rounded-xl bg-background/50 border border-border">
-            <p className="text-xs text-muted-foreground mb-1">Followers</p>
-            <p className="font-semibold text-sm">{followers?.toLocaleString()}</p>
+          <div className="text-center p-2 rounded-lg bg-background/50 border border-border">
+            <p className="text-[10px] text-muted-foreground mb-0.5">Total Trades</p>
+            <p className="font-bold text-xs">{totalTrades}</p>
           </div>
-          <div className="text-center p-3 rounded-xl bg-background/50 border border-border">
-            <p className="text-xs text-muted-foreground mb-1">Following</p>
-            <p className="font-semibold text-sm">{following?.toLocaleString()}</p>
+          <div className="text-center p-2 rounded-lg bg-background/50 border border-border">
+            <p className="text-[10px] text-muted-foreground mb-0.5">Followers</p>
+            <p className="font-bold text-xs">{followers?.toLocaleString()}</p>
+          </div>
+          <div className="text-center p-2 rounded-lg bg-background/50 border border-border">
+            <p className="text-[10px] text-muted-foreground mb-0.5">Following</p>
+            <p className="font-bold text-xs">{following?.toLocaleString()}</p>
           </div>
         </div>
 
-        {/* Footer */}
-        <div className="mt-6 pt-4 border-t border-border/50 text-center">
-          <p className="text-xs text-muted-foreground">Generated by Bluera</p>
+        {/* Mini Performance Chart */}
+        <div className="mt-6 p-3 rounded-xl bg-background/50 border border-border">
+          <p className="text-xs text-muted-foreground mb-2 text-center">7-Day Performance</p>
+          <div className="flex items-end justify-between gap-1 h-12">
+            {[65, 72, 68, 85, 90, 82, 95].map((value, i) => (
+              <div
+                key={i}
+                className="flex-1 bg-gradient-to-t from-purple-500 to-yellow-500 rounded-t opacity-80"
+                style={{ height: `${value}%` }}
+              />
+            ))}
+          </div>
+        </div>
+
+        {/* Footer with QR Code */}
+        <div className="mt-6 pt-4 border-t border-border/50">
+          <div className="flex items-center justify-between">
+            <div className="flex-1">
+              <p className="text-xs font-semibold mb-1">Scan to Follow</p>
+              <p className="text-[10px] text-muted-foreground">
+                {username ? `@${username}` : 'on Farcaster'}
+              </p>
+            </div>
+            {username && (
+              <div className="w-16 h-16 bg-white rounded-lg p-1 flex items-center justify-center">
+                <img
+                  src={`https://api.qrserver.com/v1/create-qr-code/?size=64x64&data=https://farcaster.xyz/${username}`}
+                  alt="QR Code"
+                  className="w-full h-full"
+                />
+              </div>
+            )}
+          </div>
+          <p className="text-[10px] text-center text-muted-foreground mt-3">
+            Generated by Bluera • Track. Trade. Dominate.
+          </p>
         </div>
       </div>
 
