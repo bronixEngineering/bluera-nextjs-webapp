@@ -92,11 +92,43 @@ export default async function Home() {
   const { data, totalVolume, error } = await getHeatmapData();
 
   return (
-    <HeatmapClient
-      initialData={data}
-      totalVolume={totalVolume}
-      isLoading={false}
-      error={error || null}
-    />
+    <div className="py-6 space-y-4">
+      {/* Welcome Section */}
+      <div className="text-center space-y-3">
+        <h1 className="text-xl font-semibold text-foreground">
+          Market Overview
+        </h1>
+        
+        {/* Compact Stats */}
+        <div className="flex justify-center gap-6 text-sm">
+          <div className="flex items-center gap-1">
+            <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+            <span className="text-muted-foreground">
+              {data.filter(token => token.change24h > 0).length} Rising
+            </span>
+          </div>
+          <div className="flex items-center gap-1">
+            <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+            <span className="text-muted-foreground">
+              {data.filter(token => token.change24h < 0).length} Declining
+            </span>
+          </div>
+          <div className="flex items-center gap-1">
+            <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+            <span className="text-muted-foreground">
+              {data.length} Total
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* Heatmap */}
+      <HeatmapClient
+        initialData={data}
+        totalVolume={totalVolume}
+        isLoading={false}
+        error={error || null}
+      />
+    </div>
   );
 }

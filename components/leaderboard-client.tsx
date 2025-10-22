@@ -1,9 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Trophy, Medal, AlertCircle } from 'lucide-react';
+import { Trophy, Medal, AlertCircle, TrendingUp, BarChart3, DollarSign } from 'lucide-react';
 
 interface WalletStats {
   wallet_address: string;
@@ -23,7 +23,42 @@ interface LeaderboardClientProps {
 }
 
 export function LeaderboardClient({ initialData, error }: LeaderboardClientProps) {
-  const [activeTab, setActiveTab] = useState('allTimeVolume');
+  const [activeTab, setActiveTab] = useState('weeklyVolume');
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const [startX, setStartX] = useState(0);
+  const [scrollLeft, setScrollLeft] = useState(0);
+
+  // Mouse drag scroll handlers
+  const handleMouseDown = (e: React.MouseEvent) => {
+    if (!scrollContainerRef.current) return;
+    setIsDragging(true);
+    setStartX(e.pageX - scrollContainerRef.current.offsetLeft);
+    setScrollLeft(scrollContainerRef.current.scrollLeft);
+    scrollContainerRef.current.style.cursor = 'grabbing';
+  };
+
+  const handleMouseLeave = () => {
+    setIsDragging(false);
+    if (scrollContainerRef.current) {
+      scrollContainerRef.current.style.cursor = 'grab';
+    }
+  };
+
+  const handleMouseUp = () => {
+    setIsDragging(false);
+    if (scrollContainerRef.current) {
+      scrollContainerRef.current.style.cursor = 'grab';
+    }
+  };
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!isDragging || !scrollContainerRef.current) return;
+    e.preventDefault();
+    const x = e.pageX - scrollContainerRef.current.offsetLeft;
+    const walk = (x - startX) * 1; // Reduced multiplier for more control
+    scrollContainerRef.current.scrollLeft = scrollLeft - walk;
+  };
 
   const getRankIcon = (rank: number) => {
     if (rank === 1) return <Medal className="h-5 w-5 text-yellow-500" />;
@@ -134,75 +169,89 @@ export function LeaderboardClient({ initialData, error }: LeaderboardClientProps
     <div className="py-6 space-y-8">
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Trophy className="h-6 w-6" />
-            Trading Leaderboard
-          </CardTitle>
+                <CardTitle className="flex items-center gap-2">
+                  <Trophy className="h-6 w-6" />
+                  Leaderboard
+                </CardTitle>
           <CardDescription>
             Top traders ranked by volume, PnL, and net worth
           </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-6">
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2">
+            <div 
+              ref={scrollContainerRef}
+              className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide cursor-grab select-none" 
+              style={{ scrollBehavior: 'smooth', WebkitOverflowScrolling: 'touch' }}
+              onMouseDown={handleMouseDown}
+              onMouseLeave={handleMouseLeave}
+              onMouseUp={handleMouseUp}
+              onMouseMove={handleMouseMove}
+            >
               <button
                 onClick={() => setActiveTab('allTimeVolume')}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap flex items-center gap-2 ${
                   activeTab === 'allTimeVolume'
                     ? 'bg-primary text-primary-foreground'
                     : 'bg-muted hover:bg-muted/80'
                 }`}
               >
-                All-Time
+                <Trophy className="h-4 w-4" />
+                All-Time Vol
               </button>
               <button
                 onClick={() => setActiveTab('weeklyVolume')}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap flex items-center gap-2 ${
                   activeTab === 'weeklyVolume'
                     ? 'bg-primary text-primary-foreground'
                     : 'bg-muted hover:bg-muted/80'
                 }`}
               >
+                <TrendingUp className="h-4 w-4" />
                 Weekly Vol
               </button>
               <button
                 onClick={() => setActiveTab('monthlyVolume')}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap flex items-center gap-2 ${
                   activeTab === 'monthlyVolume'
                     ? 'bg-primary text-primary-foreground'
                     : 'bg-muted hover:bg-muted/80'
                 }`}
               >
+                <BarChart3 className="h-4 w-4" />
                 Monthly Vol
               </button>
               <button
                 onClick={() => setActiveTab('weeklyPnl')}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap flex items-center gap-2 ${
                   activeTab === 'weeklyPnl'
                     ? 'bg-primary text-primary-foreground'
                     : 'bg-muted hover:bg-muted/80'
                 }`}
               >
+                <TrendingUp className="h-4 w-4" />
                 Weekly PnL
               </button>
               <button
                 onClick={() => setActiveTab('monthlyPnl')}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap flex items-center gap-2 ${
                   activeTab === 'monthlyPnl'
                     ? 'bg-primary text-primary-foreground'
                     : 'bg-muted hover:bg-muted/80'
                 }`}
               >
+                <BarChart3 className="h-4 w-4" />
                 Monthly PnL
               </button>
               <button
                 onClick={() => setActiveTab('netWorth')}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap flex items-center gap-2 ${
                   activeTab === 'netWorth'
                     ? 'bg-primary text-primary-foreground'
                     : 'bg-muted hover:bg-muted/80'
                 }`}
               >
+                <DollarSign className="h-4 w-4" />
                 Net Worth
               </button>
             </div>
@@ -255,27 +304,31 @@ export function LeaderboardClient({ initialData, error }: LeaderboardClientProps
         </Card>
         <Card>
           <CardContent className="p-4">
-            <div className="text-sm text-muted-foreground">Top Volume</div>
+            <div className="text-sm text-muted-foreground">Profitable Traders</div>
             <div className="text-2xl font-bold">
               {(() => {
-                const volumes = initialData.map(w => w.all_time_volume || 0);
-                const maxVolume = Math.max(...volumes);
-                return formatValue(maxVolume);
+                const profitableCount = initialData.filter(w => 
+                  (w.weekly_pnl && w.weekly_pnl > 0) || 
+                  (w.monthly_pnl && w.monthly_pnl > 0)
+                ).length;
+                const percentage = initialData.length > 0 ? Math.round((profitableCount / initialData.length) * 100) : 0;
+                return `${profitableCount} (${percentage}%)`;
               })()}
             </div>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4">
-            <div className="text-sm text-muted-foreground">Total Volume</div>
+            <div className="text-sm text-muted-foreground">Average Net Worth</div>
             <div className="text-2xl font-bold">
               {(() => {
-                const totalVolume = initialData.reduce((sum, w) => {
-                  const volume = w.all_time_volume || 0;
-                  // Prevent overflow by capping at reasonable values
-                  return sum + (volume > 1e15 ? 1e15 : volume);
-                }, 0);
-                return formatValue(totalVolume);
+                const netWorths = initialData
+                  .map(w => w.net_worth || 0)
+                  .filter(nw => nw > 0);
+                const average = netWorths.length > 0 
+                  ? netWorths.reduce((sum, nw) => sum + nw, 0) / netWorths.length 
+                  : 0;
+                return formatValue(average);
               })()}
             </div>
           </CardContent>
