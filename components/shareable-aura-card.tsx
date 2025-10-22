@@ -61,19 +61,30 @@ export function ShareableAuraCard({
       canvas.width = width;
       canvas.height = height;
 
-      // Background - subtle gradient
-      const bgGradient = ctx.createLinearGradient(0, 0, width, height);
+      // Fill entire canvas with black first
+      ctx.fillStyle = '#000000';
+      ctx.fillRect(0, 0, width, height);
+
+      // Rounded card background with gradient (clipped to rounded rect)
+      ctx.save();
+      ctx.beginPath();
+      ctx.roundRect(20, 20, width - 40, height - 40, 32);
+      ctx.clip();
+      
+      // Background - subtle gradient (inside rounded rect)
+      const bgGradient = ctx.createLinearGradient(20, 20, width - 20, height - 20);
       bgGradient.addColorStop(0, 'rgba(168, 85, 247, 0.1)');
       bgGradient.addColorStop(0.5, 'rgba(0, 0, 0, 1)');
       bgGradient.addColorStop(1, 'rgba(234, 179, 8, 0.1)');
       ctx.fillStyle = bgGradient;
-      ctx.fillRect(0, 0, width, height);
+      ctx.fillRect(20, 20, width - 40, height - 40);
+      ctx.restore();
 
-      // Card border (full canvas edge)
-      ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
-      ctx.lineWidth = 2;
+      // Card border with rounded corners
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+      ctx.lineWidth = 3;
       ctx.beginPath();
-      ctx.roundRect(1, 1, width - 2, height - 2, 0);
+      ctx.roundRect(20, 20, width - 40, height - 40, 32);
       ctx.stroke();
 
       // Bluera Logo Header (centered)
@@ -435,13 +446,12 @@ export function ShareableAuraCard({
 
   return (
     <div className="space-y-6">
-      {/* Minimalist Aura Card */}
+      {/* Just the content, no card wrapper */}
       <div
         ref={cardRef}
-        className="relative overflow-hidden rounded-3xl border border-border bg-gradient-to-br from-purple-500/10 via-background to-yellow-500/10 p-8 mx-auto backdrop-blur-sm"
+        className="mx-auto"
         style={{
           maxWidth: "500px",
-          background: "linear-gradient(135deg, rgba(168, 85, 247, 0.1) 0%, rgba(0, 0, 0, 0) 50%, rgba(234, 179, 8, 0.1) 100%)",
         }}
       >
         {/* Bluera Logo Header */}
@@ -626,8 +636,8 @@ export function ShareableAuraCard({
               </button>
             </div>
             
-            <div className="border rounded-lg overflow-hidden relative w-full aspect-[5/6]">
-              <Image src={previewUrl} alt="Trading Aura Card" fill className="object-contain" />
+            <div className="border rounded-3xl overflow-hidden relative w-full aspect-[5/6] bg-black">
+              <Image src={previewUrl} alt="Trading Aura Card" fill className="object-contain rounded-3xl" />
             </div>
             
             <div className="flex gap-2 justify-center">
