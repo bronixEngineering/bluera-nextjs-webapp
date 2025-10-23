@@ -2,9 +2,12 @@
 
 import * as React from "react";
 import { Button } from "@/components/ui/button";
-import { Download } from "lucide-react";
+import { Download, Sparkles } from "lucide-react";
 import Image from "next/image";
 // html2canvas removed - using native Canvas API instead
+import { useAccount, useConnect, useWriteContract, useSwitchChain, useChainId } from "wagmi";
+import { base } from "wagmi/chains";
+import type { Abi } from "viem";
 
 type ShareableAuraCardProps = {
   username?: string;
