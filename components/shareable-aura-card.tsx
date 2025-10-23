@@ -2,9 +2,13 @@
 
 import * as React from "react";
 import { Button } from "@/components/ui/button";
-import { Download } from "lucide-react";
+import { Download, Sparkles } from "lucide-react";
 import Image from "next/image";
 // html2canvas removed - using native Canvas API instead
+import { useAccount, useConnect, useSwitchChain, useChainId, useSendCalls } from "wagmi";
+import { base } from "wagmi/chains";
+import type { Abi } from "viem";
+import { encodeFunctionData, parseUnits } from "viem";
 
 type ShareableAuraCardProps = {
   username?: string;
@@ -44,9 +48,15 @@ export function ShareableAuraCard({
   rank = 1234,
 }: ShareableAuraCardProps) {
   const [isGenerating, setIsGenerating] = React.useState(false);
+  const [isMinting, setIsMinting] = React.useState(false);
   const [showPreview, setShowPreview] = React.useState(false);
   const [previewUrl, setPreviewUrl] = React.useState<string | null>(null);
   const cardRef = React.useRef<HTMLDivElement>(null);
+  const { isConnected } = useAccount();
+  const { connect, connectors } = useConnect();
+  const chainId = useChainId();
+  const { switchChainAsync } = useSwitchChain();
+  const { sendCalls } = useSendCalls();
 
   const generateImage = async () => {
     try {
@@ -564,6 +574,65 @@ export function ShareableAuraCard({
     }
   };
 
+  const handleMint = async () => {
+    try {
+      setIsMinting(true);
+
+      // 1) Ensure connected (Mini App connector auto-connects if available)
+      if (!isConnected) {
+        await connect({ connector: connectors[0] });
+      }
+
+      // 2) Ensure Base chain
+      if (chainId !== base.id) {
+        await switchChainAsync({ chainId: base.id });
+      }
+
+      // 3) Fetch contracts from server
+            const [auraRes, usdcRes] = await Promise.all([
+              fetch("/api/contracts?name=aura-nft&is_test=false"),
+              fetch("/api/contracts?name=usdc&is_test=false"),
+            ]);
+            if (!auraRes.ok) throw new Error("Aura contract not found");
+            if (!usdcRes.ok) throw new Error("USDC contract not found");
+      
+            const aura = (await auraRes.json()) as { id: string; address: `0x${string}`; abi: Abi };
+            const usdc = (await usdcRes.json()) as { address: `0x${string}`; abi: Abi };
+      
+            // 4) Build batched calls: approve USDC -> mint (with Supabase UUID)
+            const amount = parseUnits("1", 6); // TODO: set actual mint price amount in USDC (6 decimals)
+            await sendCalls({
+              chainId: base.id,
+              calls: [
+                {
+                  to: usdc.address,
+                  data: encodeFunctionData({
+                    abi: usdc.abi,
+                    functionName: "approve",
+                    args: [aura.address, amount],
+                  }),
+                },
+                {
+                  to: aura.address,
+                  data: encodeFunctionData({
+                    abi: aura.abi,
+                    functionName: "mint",
+                    args: [aura.id], // Supabase UUID from contracts table
+                  }),
+                },
+              ],
+            });
+      
+            console.log("✅ Batched approve + mint sent");
+            alert("✅ Transaction sent! Check your wallet/notification.");
+    } catch (error) {
+      console.error("Mint error:", error);
+      alert("❌ Failed to mint. Please try again.");
+    } finally {
+      setIsMinting(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Just the content, no card wrapper */}
@@ -751,6 +820,28 @@ export function ShareableAuraCard({
         </div>
       </div>
 
+      {/* Mint Button */}
+      <div className="flex justify-center">
+        <Button
+          onClick={handleMint}
+          disabled={isMinting}
+          size="lg"
+          className="bg-gradient-to-r from-yellow-500 to-purple-500 hover:from-yellow-600 hover:to-purple-600 text-white font-semibold px-8 shadow-lg hover:shadow-xl transition-all mb-3"
+        >
+          {isMinting ? (
+            <>
+              <div className="h-5 w-5 animate-spin rounded-full border-b-2 border-white mr-2" />
+              Minting...
+            </>
+          ) : (
+            <>
+              <Sparkles className="h-5 w-5 mr-2" />
+              Mint Aura NFT
+            </>
+          )}
+        </Button>
+      </div>
+
       {/* Action Button */}
       <div className="flex justify-center">
         <Button
@@ -772,6 +863,7 @@ export function ShareableAuraCard({
           )}
         </Button>
       </div>
+      
 
       {/* Preview Modal */}
       {showPreview && previewUrl && (
