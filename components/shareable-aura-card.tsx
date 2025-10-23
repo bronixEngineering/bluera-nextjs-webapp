@@ -9,6 +9,9 @@ import { useAccount, useConnect, useSwitchChain, useChainId, useSendCalls } from
 import { base } from "wagmi/chains";
 import type { Abi } from "viem";
 import { encodeFunctionData, parseUnits } from "viem";
+import auraAbi from "@/components/ABI/aura_nft_contract_abi";
+import usdcAbi from "@/components/ABI/usdc_contract_abi";
+
 
 type ShareableAuraCardProps = {
   username?: string;
@@ -52,11 +55,13 @@ export function ShareableAuraCard({
   const [showPreview, setShowPreview] = React.useState(false);
   const [previewUrl, setPreviewUrl] = React.useState<string | null>(null);
   const cardRef = React.useRef<HTMLDivElement>(null);
-  const { isConnected } = useAccount();
+  const { isConnected, address } = useAccount();
   const { connect, connectors } = useConnect();
   const chainId = useChainId();
   const { switchChainAsync } = useSwitchChain();
   const { sendCalls } = useSendCalls();
+  const AURA_NFT_ADDRESS = "0x0BDDf09e207B0303f3F5CA5Af69C9b2ECF74b453";
+  const USDC_ADDRESS = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";
 
   const generateImage = async () => {
     try {
@@ -589,17 +594,15 @@ export function ShareableAuraCard({
       }
 
       // 3) Fetch contracts from server
-            const [auraRes, usdcRes] = await Promise.all([
-              fetch("/api/contracts?name=aura-nft&is_test=false"),
-              fetch("/api/contracts?name=usdc&is_test=false"),
-            ]);
-            if (!auraRes.ok) throw new Error("Aura contract not found");
-            if (!usdcRes.ok) throw new Error("USDC contract not found");
+      const aura = { address: AURA_NFT_ADDRESS as `0x${string}`, abi: auraAbi as Abi };
+      const usdc = { address: USDC_ADDRESS as `0x${string}`, abi: usdcAbi as Abi };
+
+      if (!address) throw new Error("Wallet not connected");
+
+      const latestRes = await fetch(`/api/aura-card?wallet=${address}&network=base`);
+      if (!latestRes.ok) throw new Error("Latest aura_card id not found");
+      const { id: auraCardId } = await latestRes.json(); // UUID string
       
-            const aura = (await auraRes.json()) as { id: string; address: `0x${string}`; abi: Abi };
-            const usdc = (await usdcRes.json()) as { address: `0x${string}`; abi: Abi };
-      
-            // 4) Build batched calls: approve USDC -> mint (with Supabase UUID)
             const amount = parseUnits("1", 6); // TODO: set actual mint price amount in USDC (6 decimals)
             await sendCalls({
               chainId: base.id,
@@ -617,7 +620,7 @@ export function ShareableAuraCard({
                   data: encodeFunctionData({
                     abi: aura.abi,
                     functionName: "mint",
-                    args: [aura.id], // Supabase UUID from contracts table
+                    args: [auraCardId], // Supabase UUID from contracts table
                   }),
                 },
               ],
@@ -826,7 +829,7 @@ export function ShareableAuraCard({
           onClick={handleMint}
           disabled={isMinting}
           size="lg"
-          className="bg-gradient-to-r from-yellow-500 to-purple-500 hover:from-yellow-600 hover:to-purple-600 text-white font-semibold px-8 shadow-lg hover:shadow-xl transition-all mb-3"
+          className="bg-gradient-to-r from-purple-500 to-yellow-500 hover:from-purple-600 hover:to-yellow-600 text-white font-semibold px-8 shadow-lg hover:shadow-xl transition-all"
         >
           {isMinting ? (
             <>
