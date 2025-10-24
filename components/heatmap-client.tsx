@@ -1,16 +1,11 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { TrendingUp, TrendingDown, RefreshCw, AlertCircle } from "lucide-react";
 import { Treemap, ResponsiveContainer, Tooltip } from "recharts";
+import { useRouter } from "next/navigation";
 
 interface HeatmapToken {
   token_address: string;
@@ -36,6 +31,8 @@ export function HeatmapClient({
   isLoading,
   error,
 }: HeatmapClientProps) {
+  const router = useRouter();
+
   // Debug: check if image_url exists
   console.log(
     "🔍 Heatmap tokens with images:",
@@ -44,6 +41,10 @@ export function HeatmapClient({
 
   const handleRefresh = () => {
     window.location.reload();
+  };
+
+  const handleTokenClick = (tokenAddress: string) => {
+    router.push(`/app/token/${tokenAddress}`);
   };
   // Transform data for Recharts Treemap with linear scaling across top 20 tokens
   const topTokens = [...initialData]
@@ -80,20 +81,34 @@ export function HeatmapClient({
   );
 
   // Debug logs for sentiment analysis
-  console.log("🔍 Debug - Top 20 tokens data:", topTokens.map(t => ({ 
-    symbol: t.symbol, 
-    change24h: t.change24h, 
-    isPositive: t.change24h > 0 
-  })));
-  
+  console.log(
+    "🔍 Debug - Top 20 tokens data:",
+    topTokens.map((t) => ({
+      symbol: t.symbol,
+      change24h: t.change24h,
+      isPositive: t.change24h > 0,
+    }))
+  );
+
   const positiveTokens = topTokens.filter((t) => t.change24h > 0);
   const negativeTokens = topTokens.filter((t) => t.change24h < 0);
-  
-  console.log("📊 Debug - Positive tokens:", positiveTokens.length, positiveTokens.map(t => t.symbol));
-  console.log("📊 Debug - Negative tokens:", negativeTokens.length, negativeTokens.map(t => t.symbol));
+
+  console.log(
+    "📊 Debug - Positive tokens:",
+    positiveTokens.length,
+    positiveTokens.map((t) => t.symbol)
+  );
+  console.log(
+    "📊 Debug - Negative tokens:",
+    negativeTokens.length,
+    negativeTokens.map((t) => t.symbol)
+  );
   console.log("📊 Debug - Total tokens:", topTokens.length);
-  console.log("📊 Debug - Sentiment percentage:", Math.round((positiveTokens.length / topTokens.length) * 100) + "%");
-  
+  console.log(
+    "📊 Debug - Sentiment percentage:",
+    Math.round((positiveTokens.length / topTokens.length) * 100) + "%"
+  );
+
   // Debug color calculation
   console.log("🎨 Debug - Color calculation:");
   topTokens.forEach((token, index) => {
@@ -101,8 +116,12 @@ export function HeatmapClient({
     const isPositive = token.change24h > 0;
     const isNegative = token.change24h < 0;
     const isZero = token.change24h === 0;
-    
-    console.log(`${index + 1}. ${token.symbol}: change24h=${token.change24h}, color=${color}, positive=${isPositive}, negative=${isNegative}, zero=${isZero}`);
+
+    console.log(
+      `${index + 1}. ${token.symbol}: change24h=${
+        token.change24h
+      }, color=${color}, positive=${isPositive}, negative=${isNegative}, zero=${isZero}`
+    );
   });
 
   // Loading state
@@ -179,6 +198,8 @@ export function HeatmapClient({
                           stroke="#1e293b"
                           strokeWidth={2}
                           rx={4}
+                          style={{ cursor: "pointer" }}
+                          onClick={() => handleTokenClick(coin.token_address)}
                         />
                         {/* Token image from backend (if provided) */}
                         {(() => {
@@ -376,7 +397,7 @@ export function HeatmapClient({
                 <div className="col-span-3 text-center">Volume</div>
                 <div className="col-span-2 text-center">Swaps</div>
               </div>
-              
+
               {/* Table Rows */}
               {topTokens.slice(0, 8).map((token, index) => (
                 <div
@@ -384,12 +405,20 @@ export function HeatmapClient({
                   className="grid grid-cols-12 gap-4 py-3 px-3 hover:bg-muted/50 rounded-lg transition-colors"
                 >
                   <div className="col-span-4 flex items-center gap-2">
-                    <span className="text-xs text-muted-foreground">#{index + 1}</span>
+                    <span className="text-xs text-muted-foreground">
+                      #{index + 1}
+                    </span>
                     <span className="text-sm font-medium">{token.symbol}</span>
                   </div>
                   <div className="col-span-3 text-center">
                     <Badge
-                      variant={token.change24h > 0 ? "default" : token.change24h < 0 ? "destructive" : "secondary"}
+                      variant={
+                        token.change24h > 0
+                          ? "default"
+                          : token.change24h < 0
+                          ? "destructive"
+                          : "secondary"
+                      }
                       className="text-xs"
                     >
                       {token.change24h > 0 ? "+" : ""}
