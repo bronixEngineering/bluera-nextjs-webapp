@@ -62,6 +62,8 @@ export function ShareableAuraCard({
   const [weeklyPnlState, setWeeklyPnlState] = React.useState<number | undefined>(weeklyPnl);
   const [pnlState, setPnlState] = React.useState<number | undefined>(pnl);
   const [totalTradesState, setTotalTradesState] = React.useState<number>(totalTrades || 0);
+  const [isGenratingAuraCard, setIsGenratingAuraCard] = React.useState(false);
+  const [isAuraCardGenerated, setIsAuraCardGenerated] = React.useState(false);
 
   // Para formatlayıcı: $X.X, $X.XK, $X.XM
   const fmtMoney = (v: number) => {
@@ -119,6 +121,36 @@ export function ShareableAuraCard({
 
     load();
   }, [fid, address, allTimeVolume, networth, weeklyVolume, monthlyVolume, weeklyPnl, pnl]);
+
+  const handleGenerateAuraCard = async () => {
+    if (isAuraCardGenerated) return; // already generated, do nothing
+    try {
+      setIsGenratingAuraCard(true);
+  
+      if (!isConnected) await connect({ connector: connectors[0] });
+      if (!address) throw new Error("Wallet not connected");
+  
+      const walletAddress = address.toLowerCase();
+      const res = await fetch("/api/generate-aura-card", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ walletAddress }),
+      });
+  
+      if (!res.ok) {
+        const txt = await res.text();
+        throw new Error(txt || "Request failed");
+      }
+  
+      setIsAuraCardGenerated(true); // disable button after success
+      alert("✅ Aura card generated!");
+    } catch (err) {
+      console.error("Generate error:", err);
+      alert("❌ Failed to generate aura card.");
+    } finally {
+      setIsGenratingAuraCard(false);
+    }
+  };
 
   const generateImage = async () => {
     try {
@@ -187,7 +219,7 @@ export function ShareableAuraCard({
 
       ctx.fillStyle = "#9ca3af";
       ctx.font = '15px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
-      ctx.fillText("Trading Aura Card", logoX + logoSize + 20, logoY + 48);
+      ctx.fillText("Aura Card", logoX + logoSize + 20, logoY + 48);
 
       const pfpSize = 85;
       const pfpX = 110;
@@ -347,7 +379,6 @@ export function ShareableAuraCard({
       ctx.fillStyle = "#9ca3af";
       ctx.font = '18px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
       ctx.textAlign = "center";
-      ctx.fillText("7-Day Performance", width / 2, chartY + 25);
 
       const barData = [65, 72, 68, 85, 90, 82, 95];
       const barWidth = (chartWidth - 100) / barData.length;
@@ -575,7 +606,7 @@ export function ShareableAuraCard({
             <h2 className="text-2xl font-bold bg-gradient-to-r from-purple-400 to-yellow-400 bg-clip-text text-transparent">
               BLUERA
             </h2>
-            <p className="text-xs text-muted-foreground">Trading Aura Card</p>
+            <p className="text-xs text-muted-foreground">Aura Card</p>
           </div>
         </div>
 
@@ -606,14 +637,20 @@ export function ShareableAuraCard({
         </div>
 
         {/* Tags */}
-        <div className="flex flex-wrap gap-2 justify-center mb-6">
-          <span className="px-3 py-1 rounded-full bg-purple-500/10 border border-purple-400/20 text-xs font-medium">
-            {holderTag}
-          </span>
-          <span className="px-3 py-1 rounded-full bg-yellow-500/10 border border-yellow-400/20 text-xs font-medium">
-            {traderTag}
-          </span>
-        </div>
+        {(holderTag || traderTag) && (
+          <div className="flex flex-wrap gap-2 justify-center mb-6">
+            {holderTag && (
+              <span className="px-3 py-1 rounded-full bg-purple-500/10 border border-purple-400/20 text-xs font-medium">
+                {holderTag}
+              </span>
+            )}
+            {traderTag && (
+              <span className="px-3 py-1 rounded-full bg-yellow-500/10 border border-yellow-400/20 text-xs font-medium">
+                {traderTag}
+              </span>
+            )}
+          </div>
+        )}
 
         {/* Stats Grid */}
         <div className="grid grid-cols-3 gap-2 mt-6">
@@ -665,22 +702,6 @@ export function ShareableAuraCard({
           </div>
         </div>
 
-        {/* Mini Performance Chart */}
-        <div className="mt-6 p-3 rounded-xl bg-background/50 border border-border">
-          <p className="text-xs text-muted-foreground mb-2 text-center">
-            7-Day Performance
-          </p>
-          <div className="flex items-end justify-between gap-1 h-12">
-            {[65, 72, 68, 85, 90, 82, 95].map((value, i) => (
-              <div
-                key={i}
-                className="flex-1 bg-gradient-to-t from-purple-500 to-yellow-500 rounded-t opacity-80"
-                style={{ height: `${value}%` }}
-              />
-            ))}
-          </div>
-        </div>
-
         {/* Footer with QR Code */}
         <div className="mt-6 pt-4 border-t border-border/50">
           <div className="flex items-center justify-between">
@@ -706,8 +727,29 @@ export function ShareableAuraCard({
         </div>
       </div>
 
-      {/* Mint Button */}
+      {/* Generate Button */}
       <div className="flex justify-center">
+      <Button
+        onClick={handleGenerateAuraCard}
+        disabled={isGenratingAuraCard || isAuraCardGenerated}
+        size="lg"
+        className="bg-gradient-to-r from-purple-500 to-yellow-500 hover:from-purple-600 hover:to-yellow-600 text-white font-semibold px-8 shadow-lg hover:shadow-xl transition-all"
+      >
+        {isGenratingAuraCard ? (
+          <>
+            <div className="h-5 w-5 animate-spin rounded-full border-b-2 border-white mr-2" />
+            Generating...
+          </>
+        ) : isAuraCardGenerated ? (
+          <>Generated</>
+        ) : (
+          <>Generate Your Aura Card</>
+        )}
+      </Button>
+    </div>
+
+      {/* Actions Row */}
+      <div className="flex justify-center gap-3">
         <Button
           onClick={handleMint}
           disabled={isMinting}
@@ -726,10 +768,7 @@ export function ShareableAuraCard({
             </>
           )}
         </Button>
-      </div>
 
-      {/* Action Button */}
-      <div className="flex justify-center">
         <Button
           onClick={handlePreview}
           disabled={isGenerating}
@@ -761,7 +800,7 @@ export function ShareableAuraCard({
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between">
-              <h3 className="text-lg font-semibold">Your Trading Aura Card</h3>
+              <h3 className="text-lg font-semibold">Aura Card</h3>
               <button
                 onClick={() => setShowPreview(false)}
                 className="text-muted-foreground hover:text-foreground"
@@ -773,7 +812,7 @@ export function ShareableAuraCard({
             <div className="overflow-hidden relative w-full aspect-[5/6]">
               <Image
                 src={previewUrl}
-                alt="Trading Aura Card"
+                alt="Aura Card"
                 fill
                 className="object-contain rounded-3xl"
               />

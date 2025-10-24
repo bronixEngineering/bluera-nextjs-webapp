@@ -1,3 +1,4 @@
+// app/api/aura-card-holder-tag/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { createClient as createServerClient } from "@/utils/supabase/server";
 
@@ -6,24 +7,24 @@ export async function GET(req: NextRequest) {
     const supabase = await createServerClient();
     const { searchParams } = new URL(req.url);
     const wallet = searchParams.get("wallet");
+    const network = (searchParams.get("network") || "base").toLowerCase();
 
     if (!wallet) {
       return NextResponse.json({ error: "wallet required" }, { status: 400 });
     }
 
     const { data, error } = await supabase
-      .from("wallet_token_status")
-      .select("token_transfer_count")
-      .eq("wallet_address", wallet.toLowerCase());
+      .from("aura_card")
+      .select("holder_tag")
+      .eq("wallet_address", wallet.toLowerCase())
+      .eq("network", network)
+      .order("created_at", { ascending: false })
+      .limit(1);
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    if (!data || data.length === 0) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-    const totalTrades = (data || []).reduce((sum, row) => {
-      const n = Number((row as any).token_transfer_count || 0);
-      return sum + (isFinite(n) ? n : 0);
-    }, 0);
-
-    return NextResponse.json({ totalTrades });
+    return NextResponse.json({ holder_tag: data[0].holder_tag });
   } catch (e: any) {
     return NextResponse.json({ error: e?.message || "Unknown error" }, { status: 500 });
   }
