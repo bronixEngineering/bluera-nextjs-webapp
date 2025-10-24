@@ -12,7 +12,6 @@ import { encodeFunctionData, parseUnits } from "viem";
 import auraAbi from "@/components/ABI/aura_nft_contract_abi";
 import usdcAbi from "@/components/ABI/usdc_contract_abi";
 
-
 type ShareableAuraCardProps = {
   username?: string;
   fid?: number;

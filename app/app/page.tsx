@@ -43,18 +43,34 @@ async function getHeatmapData(): Promise<{
         symbol: token.token_ticker || "UNKNOWN",
         volume: token.total_volume_24h || 0,
         swaps: token.total_swaps_24h || 0,
-        change24h: token.total_volume_changing_rate || 0,
+        change24h: (token.total_volume_changing_rate || 0) * 100, // Convert to percentage
         image_url: token.image_url, // Use image from database
         token_type: token.token_type,
-        // Generate color based on volume change
-        color:
-          token.total_volume_changing_rate > 0
-            ? `hsl(${120 + token.total_volume_changing_rate * 2}, 50%, 35%)` // Green for positive
-            : token.total_volume_changing_rate < 0
-            ? `hsl(${
-                0 + Math.abs(token.total_volume_changing_rate * 2)
-              }, 50%, 35%)` // Red for negative
-            : `hsl(0, 0%, 50%)`, // Gray for zero/neutral
+        // Generate softer, more modern colors based on volume change intensity
+        color: (() => {
+          const change = token.total_volume_changing_rate * 100; // Convert to percentage
+          
+          if (change === 0) {
+            return `hsl(0, 0%, 45%)`; // Softer gray for zero
+          }
+          
+          // Calculate intensity (0-1) based on absolute change
+          const intensity = Math.min(Math.abs(change) / 50, 1); // More sensitive to changes
+          
+          if (change > 0) {
+            // Softer green spectrum: emerald to forest green
+            const hue = 140 + intensity * 20; // 140-160 (emerald to forest)
+            const saturation = Math.min(60, 30 + intensity * 30); // 30-60% (softer)
+            const lightness = Math.max(35, 55 - intensity * 20); // 35-55% (warmer)
+            return `hsl(${hue}, ${saturation}%, ${lightness}%)`;
+          } else {
+            // More intense red spectrum: light red to dark red
+            const hue = 0; // Pure red (0 degrees)
+            const saturation = Math.min(70, 40 + intensity * 30); // 40-70% (more saturated)
+            const lightness = Math.max(35, 55 - intensity * 20); // 35-55% (darker for intensity)
+            return `hsl(${hue}, ${saturation}%, ${lightness}%)`;
+          }
+        })()
       })) || [];
 
     // If no data from database, return empty
@@ -96,7 +112,7 @@ export default async function Home() {
       {/* Welcome Section */}
       <div className="text-center space-y-3">
         <h1 className="text-xl font-semibold text-foreground">
-          Market Overview
+        Market Volume Overview
         </h1>
         
         {/* Compact Stats */}
