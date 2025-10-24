@@ -166,26 +166,17 @@ export function LeaderboardClient({ initialData, error }: LeaderboardClientProps
   const sortedData = getTabData();
 
   return (
-    <div className="py-6 space-y-6">
-      {/* Hero Header */}
-      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-yellow-500/10 via-orange-500/10 to-red-500/10 border border-yellow-500/20 p-8">
-        <div className="absolute top-0 right-0 w-40 h-40 bg-yellow-500/20 rounded-full blur-3xl" />
-        <div className="absolute bottom-0 left-0 w-40 h-40 bg-orange-500/20 rounded-full blur-3xl" />
-        <div className="relative z-10 flex items-center gap-4">
-          <div className="p-4 rounded-2xl bg-gradient-to-br from-yellow-500/20 to-orange-500/20 backdrop-blur-sm">
-            <Trophy className="h-10 w-10 text-yellow-500" />
-          </div>
-          <div>
-            <h1 className="text-3xl font-bold mb-1">Leaderboard</h1>
-            <p className="text-muted-foreground">Top traders ranked by volume, PnL, and net worth</p>
-          </div>
-        </div>
+    <div className="py-6 space-y-4">
+      {/* Header */}
+      <div className="space-y-1">
+        <h1 className="text-xl font-bold">Leaderboard</h1>
+        <p className="text-sm text-muted-foreground">Top traders ranked by performance</p>
       </div>
 
       {/* Category Tabs */}
       <div 
         ref={scrollContainerRef}
-        className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide cursor-grab select-none" 
+        className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide cursor-grab select-none" 
         style={{ scrollBehavior: 'smooth', WebkitOverflowScrolling: 'touch' }}
         onMouseDown={handleMouseDown}
         onMouseLeave={handleMouseLeave}
@@ -194,68 +185,68 @@ export function LeaderboardClient({ initialData, error }: LeaderboardClientProps
       >
         <button
           onClick={() => setActiveTab('allTimeVolume')}
-          className={`group px-5 py-3 rounded-xl text-sm font-medium transition-all whitespace-nowrap flex items-center gap-2 ${
+          className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all whitespace-nowrap flex items-center gap-1.5 ${
             activeTab === 'allTimeVolume'
-              ? 'bg-gradient-to-r from-yellow-500 to-orange-500 text-white shadow-lg shadow-yellow-500/30 scale-105'
-              : 'bg-muted hover:bg-muted/80 hover:scale-105'
+              ? 'bg-gradient-to-r from-yellow-500 to-orange-500 text-white shadow-md'
+              : 'bg-muted hover:bg-muted/80'
           }`}
         >
-          <Trophy className="h-4 w-4" />
-          All-Time Vol
+          <Trophy className="h-3.5 w-3.5" />
+          All-Time
         </button>
         <button
           onClick={() => setActiveTab('weeklyVolume')}
-          className={`group px-5 py-3 rounded-xl text-sm font-medium transition-all whitespace-nowrap flex items-center gap-2 ${
+          className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all whitespace-nowrap flex items-center gap-1.5 ${
             activeTab === 'weeklyVolume'
-              ? 'bg-gradient-to-r from-blue-500 to-cyan-500 text-white shadow-lg shadow-blue-500/30 scale-105'
-              : 'bg-muted hover:bg-muted/80 hover:scale-105'
+              ? 'bg-gradient-to-r from-blue-500 to-cyan-500 text-white shadow-md'
+              : 'bg-muted hover:bg-muted/80'
           }`}
         >
-          <TrendingUp className="h-4 w-4" />
+          <TrendingUp className="h-3.5 w-3.5" />
           Weekly Vol
         </button>
         <button
           onClick={() => setActiveTab('monthlyVolume')}
-          className={`group px-5 py-3 rounded-xl text-sm font-medium transition-all whitespace-nowrap flex items-center gap-2 ${
+          className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all whitespace-nowrap flex items-center gap-1.5 ${
             activeTab === 'monthlyVolume'
-              ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-lg shadow-purple-500/30 scale-105'
-              : 'bg-muted hover:bg-muted/80 hover:scale-105'
+              ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-md'
+              : 'bg-muted hover:bg-muted/80'
           }`}
         >
-          <BarChart3 className="h-4 w-4" />
+          <BarChart3 className="h-3.5 w-3.5" />
           Monthly Vol
         </button>
         <button
           onClick={() => setActiveTab('weeklyPnl')}
-          className={`group px-5 py-3 rounded-xl text-sm font-medium transition-all whitespace-nowrap flex items-center gap-2 ${
+          className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all whitespace-nowrap flex items-center gap-1.5 ${
             activeTab === 'weeklyPnl'
-              ? 'bg-gradient-to-r from-green-500 to-emerald-500 text-white shadow-lg shadow-green-500/30 scale-105'
-              : 'bg-muted hover:bg-muted/80 hover:scale-105'
+              ? 'bg-gradient-to-r from-green-500 to-emerald-500 text-white shadow-md'
+              : 'bg-muted hover:bg-muted/80'
           }`}
         >
-          <TrendingUp className="h-4 w-4" />
+          <TrendingUp className="h-3.5 w-3.5" />
           Weekly PnL
         </button>
         <button
           onClick={() => setActiveTab('monthlyPnl')}
-          className={`group px-5 py-3 rounded-xl text-sm font-medium transition-all whitespace-nowrap flex items-center gap-2 ${
+          className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all whitespace-nowrap flex items-center gap-1.5 ${
             activeTab === 'monthlyPnl'
-              ? 'bg-gradient-to-r from-teal-500 to-cyan-500 text-white shadow-lg shadow-teal-500/30 scale-105'
-              : 'bg-muted hover:bg-muted/80 hover:scale-105'
+              ? 'bg-gradient-to-r from-teal-500 to-cyan-500 text-white shadow-md'
+              : 'bg-muted hover:bg-muted/80'
           }`}
         >
-          <BarChart3 className="h-4 w-4" />
+          <BarChart3 className="h-3.5 w-3.5" />
           Monthly PnL
         </button>
         <button
           onClick={() => setActiveTab('netWorth')}
-          className={`group px-5 py-3 rounded-xl text-sm font-medium transition-all whitespace-nowrap flex items-center gap-2 ${
+          className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all whitespace-nowrap flex items-center gap-1.5 ${
             activeTab === 'netWorth'
-              ? 'bg-gradient-to-r from-indigo-500 to-purple-500 text-white shadow-lg shadow-indigo-500/30 scale-105'
-              : 'bg-muted hover:bg-muted/80 hover:scale-105'
+              ? 'bg-gradient-to-r from-indigo-500 to-purple-500 text-white shadow-md'
+              : 'bg-muted hover:bg-muted/80'
           }`}
         >
-          <DollarSign className="h-4 w-4" />
+          <DollarSign className="h-3.5 w-3.5" />
           Net Worth
         </button>
       </div>
@@ -273,42 +264,42 @@ export function LeaderboardClient({ initialData, error }: LeaderboardClientProps
                 return (
                   <div
                     key={wallet.wallet_address}
-                    className="group flex items-center justify-between p-4 hover:bg-gradient-to-r hover:from-muted/50 hover:to-transparent transition-all duration-200"
+                    className="group flex items-center justify-between p-3 hover:bg-gradient-to-r hover:from-muted/50 hover:to-transparent transition-all duration-200"
                   >
-                    <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-3 flex-1 min-w-0">
                       {/* Rank Badge */}
-                      <div className={`relative w-12 h-12 rounded-xl flex items-center justify-center text-sm font-bold transition-all ${
+                      <div className={`relative w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold flex-shrink-0 transition-all ${
                         index === 0 
-                          ? "bg-gradient-to-br from-yellow-500/30 to-yellow-600/30 text-yellow-500 border-2 border-yellow-500/50 shadow-lg shadow-yellow-500/20" 
+                          ? "bg-gradient-to-br from-yellow-500/30 to-yellow-600/30 text-yellow-500 border border-yellow-500/50" 
                           : index === 1 
-                          ? "bg-gradient-to-br from-gray-400/30 to-gray-500/30 text-gray-300 border-2 border-gray-400/50 shadow-lg shadow-gray-400/20" 
+                          ? "bg-gradient-to-br from-gray-400/30 to-gray-500/30 text-gray-300 border border-gray-400/50" 
                           : index === 2 
-                          ? "bg-gradient-to-br from-orange-600/30 to-orange-700/30 text-orange-500 border-2 border-orange-600/50 shadow-lg shadow-orange-600/20" 
+                          ? "bg-gradient-to-br from-orange-600/30 to-orange-700/30 text-orange-500 border border-orange-600/50" 
                           : "bg-muted/50 text-muted-foreground group-hover:bg-primary/10 group-hover:text-primary"
                       }`}>
                         {index < 3 ? (
                           <>
-                            <Medal className="h-6 w-6" />
-                            <div className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-gradient-to-br from-yellow-400 to-orange-500 animate-pulse" />
+                            <Medal className="h-4 w-4" />
+                            <div className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-gradient-to-br from-yellow-400 to-orange-500 animate-pulse" />
                           </>
                         ) : (
-                          <span>#{index + 1}</span>
+                          <span className="text-xs">#{index + 1}</span>
                         )}
                       </div>
                       
                       {/* Wallet Address */}
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <div className="font-mono text-sm font-semibold group-hover:text-primary transition-colors">
-                            {wallet.wallet_address.slice(0, 6)}...{wallet.wallet_address.slice(-6)}
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <div className="font-mono text-xs font-semibold group-hover:text-primary transition-colors">
+                            {wallet.wallet_address.slice(0, 6)}...{wallet.wallet_address.slice(-4)}
                           </div>
                           {index < 3 && (
-                            <div className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                            <div className={`px-1.5 py-0.5 rounded text-xs font-medium ${
                               index === 0 ? 'bg-yellow-500/10 text-yellow-500' :
                               index === 1 ? 'bg-gray-400/10 text-gray-400' :
                               'bg-orange-600/10 text-orange-600'
                             }`}>
-                              {index === 0 ? '🥇 Champion' : index === 1 ? '🥈 Runner-up' : '🥉 Third'}
+                              {index === 0 ? '🥇' : index === 1 ? '🥈' : '🥉'}
                             </div>
                           )}
                         </div>
@@ -321,8 +312,8 @@ export function LeaderboardClient({ initialData, error }: LeaderboardClientProps
                     </div>
                     
                     {/* Value */}
-                    <div className="text-right">
-                      <div className={`text-lg font-bold group-hover:scale-110 transition-transform ${
+                    <div className="text-right flex-shrink-0 ml-2">
+                      <div className={`text-sm font-bold ${
                         isPnlTab && pnlValue !== null && pnlValue !== 0 
                           ? (pnlValue >= 0 ? 'text-green-500' : 'text-red-500') 
                           : ''

@@ -107,33 +107,69 @@ async function getHeatmapData(): Promise<{
 export default async function Home() {
   const { data, totalVolume, error } = await getHeatmapData();
 
+  const risingCount = data.filter(token => token.change24h > 0).length;
+  const decliningCount = data.filter(token => token.change24h < 0).length;
+
   return (
     <div className="py-6 space-y-4">
-      {/* Welcome Section */}
-      <div className="text-center space-y-3">
-        <h1 className="text-xl font-semibold text-foreground">
-        Market Volume Overview
-        </h1>
+      {/* Simple Header */}
+      <div className="space-y-3">
+        <h1 className="text-xl font-bold">Market Overview</h1>
         
-        {/* Compact Stats */}
-        <div className="flex justify-center gap-6 text-sm">
-          <div className="flex items-center gap-1">
-            <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-            <span className="text-muted-foreground">
-              {data.filter(token => token.change24h > 0).length} Rising
-            </span>
+        {/* Stats Pills */}
+        <div className="flex flex-wrap gap-2">
+          {/* Rising */}
+          <div className="px-3 py-1.5 rounded-lg bg-green-500/10 border border-green-500/20">
+            <div className="flex items-center gap-1.5">
+              <div className="w-1.5 h-1.5 bg-green-500 rounded-full"></div>
+              <span className="text-xs font-medium text-green-600">
+                {risingCount} Rising
+              </span>
+              <svg className="w-3.5 h-3.5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+              </svg>
+            </div>
           </div>
-          <div className="flex items-center gap-1">
-            <div className="w-2 h-2 bg-red-500 rounded-full"></div>
-            <span className="text-muted-foreground">
-              {data.filter(token => token.change24h < 0).length} Declining
-            </span>
+
+          {/* Declining */}
+          <div className="px-3 py-1.5 rounded-lg bg-red-500/10 border border-red-500/20">
+            <div className="flex items-center gap-1.5">
+              <div className="w-1.5 h-1.5 bg-red-500 rounded-full"></div>
+              <span className="text-xs font-medium text-red-600">
+                {decliningCount} Declining
+              </span>
+              <svg className="w-3.5 h-3.5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 17h8m0 0V9m0 8l-8-8-4 4-6-6" />
+              </svg>
+            </div>
           </div>
-          <div className="flex items-center gap-1">
-            <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-            <span className="text-muted-foreground">
-              {data.length} Total
-            </span>
+
+          {/* Total Tokens */}
+          <div className="px-3 py-1.5 rounded-lg bg-muted/50 border border-white/5">
+            <div className="flex items-center gap-1.5">
+              <div className="w-1.5 h-1.5 bg-blue-500 rounded-full"></div>
+              <span className="text-xs font-medium text-muted-foreground">
+                {data.length} Tokens
+              </span>
+            </div>
+          </div>
+
+          {/* Total Volume */}
+          <div className="px-3 py-1.5 rounded-lg bg-muted/50 border border-white/5">
+            <div className="flex items-center gap-1.5">
+              <svg className="w-3.5 h-3.5 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <span className="text-xs font-medium text-muted-foreground">
+                {(() => {
+                  const value = totalVolume;
+                  if (value >= 1e9) return `$${(value / 1e9).toFixed(2)}B`;
+                  if (value >= 1e6) return `$${(value / 1e6).toFixed(2)}M`;
+                  if (value >= 1e3) return `$${(value / 1e3).toFixed(2)}K`;
+                  return `$${value.toFixed(2)}`;
+                })()}
+              </span>
+            </div>
           </div>
         </div>
       </div>
