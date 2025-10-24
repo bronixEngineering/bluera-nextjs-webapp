@@ -112,7 +112,7 @@ export default async function Home() {
       {/* Welcome Section */}
       <div className="text-center space-y-3">
         <h1 className="text-xl font-semibold text-foreground">
-          Market Overview
+        Market Volume Overview
         </h1>
         
         {/* Compact Stats */}
