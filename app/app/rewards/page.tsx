@@ -476,9 +476,9 @@ export default function RewardsPage() {
 
   return (
     <div className="py-6 space-y-8">
-      <div className="text-center space-y-2">
-        <h1 className="text-3xl font-bold">Rewards</h1>
-        <p className="text-muted-foreground">
+      <div className="space-y-1">
+        <h1 className="text-xl font-bold">Rewards</h1>
+        <p className="text-sm text-muted-foreground">
           Complete tasks and earn rewards for your trading achievements
         </p>
       </div>
