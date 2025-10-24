@@ -1,5 +1,5 @@
 // app/api/auth/route.ts
-import { createClient, Errors } from '@farcaster/quick-auth';
+import { createClient } from '@farcaster/quick-auth';
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient as createSupabaseClient } from '@/utils/supabase/server';
 

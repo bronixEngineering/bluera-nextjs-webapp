@@ -1,10 +1,10 @@
+// components/shareable-aura-card.tsx
 "use client";
 
 import * as React from "react";
 import { Button } from "@/components/ui/button";
 import { Download, Sparkles } from "lucide-react";
 import Image from "next/image";
-// html2canvas removed - using native Canvas API instead
 import { useAccount, useConnect, useSwitchChain, useChainId, useSendCalls } from "wagmi";
 import { base } from "wagmi/chains";
 import type { Abi } from "viem";
@@ -21,14 +21,10 @@ type ShareableAuraCardProps = {
   allTimeVolume: number;
   pnl: number;
   networth: number;
-  followers: number;
-  following: number;
-  streak?: number; // Days active
   weeklyVolume?: number;
   monthlyVolume?: number;
   totalTrades?: number;
   weeklyPnl?: number;
-  rank?: number;
 };
 
 export function ShareableAuraCard({
@@ -40,14 +36,10 @@ export function ShareableAuraCard({
   allTimeVolume,
   pnl,
   networth,
-  followers,
-  following,
-  streak = 7,
-  weeklyVolume = 50000,
-  monthlyVolume = 200000,
-  totalTrades = 45,
-  weeklyPnl = 5000,
-  rank = 1234,
+  weeklyVolume,
+  monthlyVolume,
+  totalTrades = 0,
+  weeklyPnl,
 }: ShareableAuraCardProps) {
   const [isGenerating, setIsGenerating] = React.useState(false);
   const [isMinting, setIsMinting] = React.useState(false);
@@ -62,36 +54,93 @@ export function ShareableAuraCard({
   const AURA_NFT_ADDRESS = "0x0BDDf09e207B0303f3F5CA5Af69C9b2ECF74b453";
   const USDC_ADDRESS = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";
 
+  // API'den gelen değerleri tutan state'ler (prop'lardan başlatılır)
+  const [allTimeVolumeState, setAllTimeVolumeState] = React.useState<number | undefined>(allTimeVolume);
+  const [networthState, setNetworthState] = React.useState<number | undefined>(networth);
+  const [weeklyVolumeState, setWeeklyVolumeState] = React.useState<number | undefined>(weeklyVolume);
+  const [monthlyVolumeState, setMonthlyVolumeState] = React.useState<number | undefined>(monthlyVolume);
+  const [weeklyPnlState, setWeeklyPnlState] = React.useState<number | undefined>(weeklyPnl);
+  const [pnlState, setPnlState] = React.useState<number | undefined>(pnl);
+  const [totalTradesState, setTotalTradesState] = React.useState<number>(totalTrades || 0);
+
+  // Para formatlayıcı: $X.X, $X.XK, $X.XM
+  const fmtMoney = (v: number) => {
+    const n = Math.abs(Number(v) || 0);
+    if (n < 1000) return `$${n.toFixed(1)}`;
+    if (n < 1_000_000) return `$${(n / 1000).toFixed(1)}K`;
+    return `$${(n / 1_000_000).toFixed(1)}M`;
+  };
+
+  const fmtMoneyOrNA = (v: number | undefined | null) => {
+    if (v == null) return "N/A";
+    return fmtMoney(v);
+  };
+
+  // Supabase'den verileri çek
+  React.useEffect(() => {
+    const n = (v: any) => (v == null ? undefined : Number(v));
+
+    const load = async () => {
+      try {
+        const qs =
+          fid != null
+            ? `fid=${encodeURIComponent(String(fid))}`
+            : address
+            ? `wallet=${encodeURIComponent(address)}`
+            : "";
+
+        if (!qs) return;
+
+        // volumes, pnl, networth
+        const res = await fetch(`/api/wallet-status?${qs}`);
+        if (res.ok) {
+          const json = await res.json();
+          setAllTimeVolumeState(n(json.all_time_volume) ?? allTimeVolume);
+          setNetworthState(n(json.net_worth) ?? networth);
+          setWeeklyVolumeState(n(json.volume_weekly) ?? weeklyVolume);
+          setMonthlyVolumeState(n(json.volume_monthly) ?? monthlyVolume);
+          setWeeklyPnlState(n(json.weekly_pnl) ?? weeklyPnl);
+          setPnlState(n(json.monthly_pnl) ?? pnl);
+        }
+
+        // totalTrades (wallet gerekiyor)
+        if (address) {
+          const resTrades = await fetch(`/api/wallet-token-status?wallet=${encodeURIComponent(address)}`);
+          if (resTrades.ok) {
+            const { totalTrades } = await resTrades.json();
+            const tn = Number(totalTrades) || 0;
+            setTotalTradesState(tn);
+          }
+        }
+      } catch {
+        // sessiz geç
+      }
+    };
+
+    load();
+  }, [fid, address, allTimeVolume, networth, weeklyVolume, monthlyVolume, weeklyPnl, pnl]);
+
   const generateImage = async () => {
     try {
-      // Create canvas - enhanced aura card
       const canvas = document.createElement("canvas");
       const ctx = canvas.getContext("2d");
       if (!ctx) return null;
 
-      // Compact portrait canvas
       const width = 1000;
       const height = 1050;
       canvas.width = width;
       canvas.height = height;
 
-      // Fill entire canvas with black first
       ctx.fillStyle = "#000000";
       ctx.fillRect(0, 0, width, height);
 
-      // Rounded card background with gradient (clipped to rounded rect)
       ctx.save();
       ctx.beginPath();
+      // @ts-ignore
       ctx.roundRect(20, 20, width - 40, height - 40, 32);
       ctx.clip();
 
-      // Background - subtle gradient (inside rounded rect)
-      const bgGradient = ctx.createLinearGradient(
-        20,
-        20,
-        width - 20,
-        height - 20
-      );
+      const bgGradient = ctx.createLinearGradient(20, 20, width - 20, height - 20);
       bgGradient.addColorStop(0, "rgba(168, 85, 247, 0.1)");
       bgGradient.addColorStop(0.5, "rgba(0, 0, 0, 1)");
       bgGradient.addColorStop(1, "rgba(234, 179, 8, 0.1)");
@@ -99,14 +148,13 @@ export function ShareableAuraCard({
       ctx.fillRect(20, 20, width - 40, height - 40);
       ctx.restore();
 
-      // Card border with rounded corners
       ctx.strokeStyle = "rgba(255, 255, 255, 0.2)";
       ctx.lineWidth = 3;
       ctx.beginPath();
+      // @ts-ignore
       ctx.roundRect(20, 20, width - 40, height - 40, 32);
       ctx.stroke();
 
-      // Bluera Logo Header (centered)
       const logoSize = 50;
       const logoX = width / 2 - logoSize / 2 - 70;
       const logoY = 90;
@@ -122,53 +170,35 @@ export function ShareableAuraCard({
 
         ctx.save();
         ctx.beginPath();
+        // @ts-ignore
         ctx.roundRect(logoX, logoY, logoSize, logoSize, 10);
         ctx.clip();
         ctx.drawImage(logoImg, logoX, logoY, logoSize, logoSize);
         ctx.restore();
-      } catch {
-        console.log("Logo loading failed");
-      }
+      } catch {}
 
-      // Bluera text
-      const textGradient = ctx.createLinearGradient(
-        logoX + logoSize + 20,
-        0,
-        logoX + logoSize + 200,
-        0
-      );
+      const textGradient = ctx.createLinearGradient(logoX + logoSize + 20, 0, logoX + logoSize + 200, 0);
       textGradient.addColorStop(0, "#c084fc");
       textGradient.addColorStop(1, "#facc15");
       ctx.fillStyle = textGradient;
-      ctx.font =
-        'bold 36px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+      ctx.font = 'bold 36px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
       ctx.textAlign = "left";
       ctx.fillText("BLUERA", logoX + logoSize + 20, logoY + 28);
 
       ctx.fillStyle = "#9ca3af";
-      ctx.font =
-        '15px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+      ctx.font = '15px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
       ctx.fillText("Trading Aura Card", logoX + logoSize + 20, logoY + 48);
 
-      // Profile section
       const pfpSize = 85;
       const pfpX = 110;
       const pfpY = 170;
 
-      // Profile picture circle
       ctx.strokeStyle = "#a78bfa";
       ctx.lineWidth = 4;
       ctx.beginPath();
-      ctx.arc(
-        pfpX + pfpSize / 2,
-        pfpY + pfpSize / 2,
-        pfpSize / 2,
-        0,
-        Math.PI * 2
-      );
+      ctx.arc(pfpX + pfpSize / 2, pfpY + pfpSize / 2, pfpSize / 2, 0, Math.PI * 2);
       ctx.stroke();
 
-      // Load profile picture
       if (pfpUrl) {
         try {
           const img = document.createElement("img");
@@ -181,101 +211,58 @@ export function ShareableAuraCard({
 
           ctx.save();
           ctx.beginPath();
-          ctx.arc(
-            pfpX + pfpSize / 2,
-            pfpY + pfpSize / 2,
-            pfpSize / 2 - 4,
-            0,
-            Math.PI * 2
-          );
+          ctx.arc(pfpX + pfpSize / 2, pfpY + pfpSize / 2, pfpSize / 2 - 4, 0, Math.PI * 2);
           ctx.clip();
           ctx.drawImage(img, pfpX, pfpY, pfpSize, pfpSize);
           ctx.restore();
         } catch {
-          // Placeholder
           ctx.fillStyle = "rgba(168, 85, 247, 0.2)";
           ctx.beginPath();
-          ctx.arc(
-            pfpX + pfpSize / 2,
-            pfpY + pfpSize / 2,
-            pfpSize / 2 - 4,
-            0,
-            Math.PI * 2
-          );
+          ctx.arc(pfpX + pfpSize / 2, pfpY + pfpSize / 2, pfpSize / 2 - 4, 0, Math.PI * 2);
           ctx.fill();
         }
       }
 
-      // Username and info
       ctx.fillStyle = "#ffffff";
-      ctx.font =
-        'bold 30px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+      ctx.font = 'bold 30px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
       ctx.textAlign = "left";
       ctx.fillText(username || "Trader", pfpX + pfpSize + 22, pfpY + 25);
 
       ctx.fillStyle = "#9ca3af";
-      ctx.font =
-        '17px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
-      ctx.fillText(
-        `FID #${fid || "11222"} • Rank #${rank}`,
-        pfpX + pfpSize + 22,
-        pfpY + 50
-      );
+      ctx.font = '17px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+      ctx.fillText(`FID #${fid || "11222"}`, pfpX + pfpSize + 22, pfpY + 50);
 
-      // Streak
-      ctx.fillStyle = "#ffffff";
-      ctx.font =
-        'bold 18px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
-      ctx.fillText("🔥", pfpX + pfpSize + 22, pfpY + 77);
-      ctx.fillStyle = "#ffffff";
-      ctx.font =
-        '16px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
-      ctx.fillText(`${streak} Day Streak`, pfpX + pfpSize + 50, pfpY + 77);
-
-      // Tags - Holder and Trader (aligned to right, stacked)
       const tagWidth = 160;
       const tagHeight = 35;
       const tagSpacing = 12;
-      const tagsX = width - 240; // Inside border with margin
+      const tagsX = width - 240;
       const tagsY = pfpY + 10;
 
-      // Holder tag (purple) - top
       ctx.fillStyle = "rgba(168, 85, 247, 0.15)";
       ctx.strokeStyle = "rgba(168, 85, 247, 0.3)";
       ctx.lineWidth = 2;
       ctx.beginPath();
+      // @ts-ignore
       ctx.roundRect(tagsX, tagsY, tagWidth, tagHeight, 18);
       ctx.fill();
       ctx.stroke();
 
       ctx.fillStyle = "#c084fc";
-      ctx.font =
-        'bold 14px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+      ctx.font = 'bold 14px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
       ctx.textAlign = "center";
       ctx.fillText(holderTag, tagsX + tagWidth / 2, tagsY + 22);
 
-      // Trader tag (yellow) - bottom
       ctx.fillStyle = "rgba(234, 179, 8, 0.15)";
       ctx.strokeStyle = "rgba(234, 179, 8, 0.3)";
       ctx.beginPath();
-      ctx.roundRect(
-        tagsX,
-        tagsY + tagHeight + tagSpacing,
-        tagWidth,
-        tagHeight,
-        18
-      );
+      // @ts-ignore
+      ctx.roundRect(tagsX, tagsY + tagHeight + tagSpacing, tagWidth, tagHeight, 18);
       ctx.fill();
       ctx.stroke();
 
       ctx.fillStyle = "#facc15";
-      ctx.fillText(
-        traderTag,
-        tagsX + tagWidth / 2,
-        tagsY + tagHeight + tagSpacing + 22
-      );
+      ctx.fillText(traderTag, tagsX + tagWidth / 2, tagsY + tagHeight + tagSpacing + 22);
 
-      // Stats grid (3x3 - 9 stats total)
       const statsY = 370;
       const statBoxWidth = 250;
       const statBoxHeight = 68;
@@ -293,62 +280,46 @@ export function ShareableAuraCard({
         ctx.strokeStyle = "rgba(255, 255, 255, 0.1)";
         ctx.lineWidth = 1.5;
         ctx.beginPath();
+        // @ts-ignore
         ctx.roundRect(x, y, statBoxWidth, statBoxHeight, 12);
         ctx.fill();
         ctx.stroke();
 
         ctx.fillStyle = "#9ca3af";
-        ctx.font =
-          '14px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+        ctx.font = '14px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
         ctx.textAlign = "center";
         ctx.fillText(label, x + statBoxWidth / 2, y + 25);
 
         ctx.fillStyle = color || "#ffffff";
-        ctx.font =
-          'bold 22px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+        ctx.font = 'bold 22px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
         ctx.fillText(value, x + statBoxWidth / 2, y + 52);
       };
 
       // Row 1
-      drawStatBox(
-        statsStartX,
-        statsY,
-        "All-Time Vol",
-        `$${(allTimeVolume / 1000000).toFixed(1)}M`
-      );
-      drawStatBox(
-        statsStartX + statBoxWidth + statSpacing,
-        statsY,
-        "Weekly Vol",
-        `$${(weeklyVolume / 1000).toFixed(0)}K`
-      );
-      drawStatBox(
-        statsStartX + (statBoxWidth + statSpacing) * 2,
-        statsY,
-        "Monthly Vol",
-        `$${(monthlyVolume / 1000).toFixed(0)}K`
-      );
+      drawStatBox(statsStartX, statsY, "All-Time Vol", fmtMoney(allTimeVolumeState ?? 0));
+      drawStatBox(statsStartX + statBoxWidth + statSpacing, statsY, "Weekly Vol", fmtMoney(weeklyVolumeState ?? 0));
+      drawStatBox(statsStartX + (statBoxWidth + statSpacing) * 2, statsY, "Monthly Vol", fmtMoney(monthlyVolumeState ?? 0));
 
       // Row 2
       drawStatBox(
         statsStartX,
         statsY + statBoxHeight + statSpacing,
-        "Total PnL",
-        `${pnl >= 0 ? "+" : ""}$${(pnl / 1000).toFixed(0)}K`,
-        pnl >= 0 ? "#22c55e" : "#ef4444"
+        "Monthly PnL",
+        `${(pnlState ?? 0) >= 0 ? "+" : "-"}${fmtMoney(Math.abs(pnlState ?? 0))}`,
+        (pnlState ?? 0) >= 0 ? "#22c55e" : "#ef4444"
       );
       drawStatBox(
         statsStartX + statBoxWidth + statSpacing,
         statsY + statBoxHeight + statSpacing,
         "Weekly PnL",
-        `${weeklyPnl >= 0 ? "+" : ""}$${(weeklyPnl / 1000).toFixed(1)}K`,
-        weeklyPnl >= 0 ? "#22c55e" : "#ef4444"
+        `${(weeklyPnlState ?? 0) >= 0 ? "+" : "-"}${fmtMoney(Math.abs(weeklyPnlState ?? 0))}`,
+        (weeklyPnlState ?? 0) >= 0 ? "#22c55e" : "#ef4444"
       );
       drawStatBox(
         statsStartX + (statBoxWidth + statSpacing) * 2,
         statsY + statBoxHeight + statSpacing,
         "Net Worth",
-        `$${(networth / 1000).toFixed(0)}K`
+        fmtMoney(networthState ?? 0)
       );
 
       // Row 3
@@ -356,44 +327,28 @@ export function ShareableAuraCard({
         statsStartX,
         statsY + (statBoxHeight + statSpacing) * 2,
         "Total Trades",
-        `${totalTrades}`
-      );
-      drawStatBox(
-        statsStartX + statBoxWidth + statSpacing,
-        statsY + (statBoxHeight + statSpacing) * 2,
-        "Followers",
-        `${followers?.toLocaleString()}`
-      );
-      drawStatBox(
-        statsStartX + (statBoxWidth + statSpacing) * 2,
-        statsY + (statBoxHeight + statSpacing) * 2,
-        "Following",
-        `${following?.toLocaleString()}`
+        `${totalTradesState}`
       );
 
-      // Mini Performance Chart (7-day bar chart)
       const chartY = statsY + (statBoxHeight + statSpacing) * 3 + 18;
       const chartWidth = 800;
       const chartHeight = 80;
       const chartX = (width - chartWidth) / 2;
 
-      // Chart container
       ctx.fillStyle = "rgba(255, 255, 255, 0.05)";
       ctx.strokeStyle = "rgba(255, 255, 255, 0.1)";
       ctx.lineWidth = 1.5;
       ctx.beginPath();
+      // @ts-ignore
       ctx.roundRect(chartX, chartY, chartWidth, chartHeight + 50, 15);
       ctx.fill();
       ctx.stroke();
 
-      // Chart title
       ctx.fillStyle = "#9ca3af";
-      ctx.font =
-        '18px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+      ctx.font = '18px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
       ctx.textAlign = "center";
       ctx.fillText("7-Day Performance", width / 2, chartY + 25);
 
-      // 7-day bar chart
       const barData = [65, 72, 68, 85, 90, 82, 95];
       const barWidth = (chartWidth - 100) / barData.length;
       const barSpacing = 10;
@@ -401,55 +356,45 @@ export function ShareableAuraCard({
       const barStartY = chartY + 45;
       const barMaxHeight = 70;
 
-      barData.forEach((value, i) => {
+      barData.forEach((value) => {
         const barHeight = (value / 100) * barMaxHeight;
-        const x = barStartX + i * barWidth + (barWidth - barSpacing) / 2;
+        const x = barStartX + barData.indexOf(value) * barWidth + (barWidth - barSpacing) / 2;
         const y = barStartY + barMaxHeight - barHeight;
 
-        // Bar gradient
         const barGradient = ctx.createLinearGradient(x, y + barHeight, x, y);
         barGradient.addColorStop(0, "#a78bfa");
         barGradient.addColorStop(1, "#facc15");
         ctx.fillStyle = barGradient;
 
         ctx.beginPath();
+        // @ts-ignore
         ctx.roundRect(x, y, barWidth - barSpacing, barHeight, 5);
         ctx.fill();
       });
 
-      // Footer with QR Code (at bottom)
       const footerY = height - 130;
 
-      // Scan to Follow text (left side)
       ctx.fillStyle = "#ffffff";
-      ctx.font =
-        'bold 20px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+      ctx.font = 'bold 20px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
       ctx.textAlign = "left";
       ctx.fillText("Scan to Follow", 150, footerY);
 
       ctx.fillStyle = "#9ca3af";
-      ctx.font =
-        '16px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
-      ctx.fillText(
-        username ? `@${username}` : "on Farcaster",
-        150,
-        footerY + 25
-      );
+      ctx.font = '16px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+      ctx.fillText(username ? `@${username}` : "on Farcaster", 150, footerY + 25);
 
-      // QR Code (right side) with rounded border
       if (username) {
         try {
           const qrSize = 100;
           const qrX = width - 200;
           const qrY = footerY - 30;
 
-          // QR Code background (white rounded)
           ctx.fillStyle = "#ffffff";
           ctx.beginPath();
+          // @ts-ignore
           ctx.roundRect(qrX, qrY, qrSize, qrSize, 15);
           ctx.fill();
 
-          // Load QR code from API
           const qrImg = document.createElement("img");
           qrImg.crossOrigin = "anonymous";
           await new Promise<void>((resolve, reject) => {
@@ -458,28 +403,20 @@ export function ShareableAuraCard({
             qrImg.src = `https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=https://farcaster.xyz/${username}`;
           });
 
-          // Draw QR with rounded corners
           ctx.save();
           ctx.beginPath();
+          // @ts-ignore
           ctx.roundRect(qrX, qrY, qrSize, qrSize, 15);
           ctx.clip();
           ctx.drawImage(qrImg, qrX, qrY, qrSize, qrSize);
           ctx.restore();
-        } catch {
-          console.log("QR code loading failed");
-        }
+        } catch {}
       }
 
-      // Tagline
       ctx.fillStyle = "#6b7280";
-      ctx.font =
-        '16px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+      ctx.font = '16px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
       ctx.textAlign = "center";
-      ctx.fillText(
-        "Generated by Bluera • Track. Trade. Dominate.",
-        width / 2,
-        footerY + 60
-      );
+      ctx.fillText("Generated by Bluera • Track. Trade. Dominate.", width / 2, footerY + 60);
 
       return canvas.toDataURL("image/png");
     } catch (error) {
@@ -502,7 +439,6 @@ export function ShareableAuraCard({
     if (!previewUrl) return;
 
     try {
-      // Convert data URL to blob
       const base64Data = previewUrl.split(",")[1];
       const byteCharacters = atob(base64Data);
       const byteNumbers = new Array(byteCharacters.length);
@@ -514,14 +450,11 @@ export function ShareableAuraCard({
       const byteArray = new Uint8Array(byteNumbers);
       const blob = new Blob([byteArray], { type: "image/png" });
 
-      // Try Web Share API first (mobile native share)
       if (navigator.share && navigator.canShare) {
         const file = new File(
           [blob],
           `bluera-card-${username || fid || Date.now()}.png`,
-          {
-            type: "image/png",
-          }
+          { type: "image/png" }
         );
 
         if (navigator.canShare({ files: [file] })) {
@@ -530,36 +463,25 @@ export function ShareableAuraCard({
             title: "My Bluera Aura Card",
             text: "Check out my trading aura on Bluera! 🚀",
           });
-          console.log("✅ Shared successfully via Web Share API");
           return;
         }
       }
 
-      // Fallback 1: Try Clipboard API
       if (navigator.clipboard && "write" in navigator.clipboard) {
         try {
-          await navigator.clipboard.write([
-            new ClipboardItem({ "image/png": blob }),
-          ]);
+          await navigator.clipboard.write([new ClipboardItem({ "image/png": blob })]);
           alert("✅ Image copied to clipboard! You can now paste it anywhere.");
-          console.log("✅ Copied to clipboard");
           return;
-        } catch (clipboardError) {
-          console.log("Clipboard failed, trying next method...");
-        }
+        } catch {}
       }
 
-      // Fallback 2: Open in new tab for manual save
       const blobUrl = URL.createObjectURL(blob);
       const newWindow = window.open(blobUrl, "_blank");
 
       if (newWindow) {
-        alert(
-          '💡 Tip: Long press on the image and select "Save Image" to download it to your device.'
-        );
-        setTimeout(() => URL.revokeObjectURL(blobUrl), 60000); // Cleanup after 1 min
+        alert('💡 Tip: Long press on the image and select "Save Image" to download it to your device.');
+        setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
       } else {
-        // Fallback 3: Try direct download (may crash on mini apps)
         const link = document.createElement("a");
         link.href = blobUrl;
         link.download = `bluera-card-${username || fid || Date.now()}.png`;
@@ -582,17 +504,14 @@ export function ShareableAuraCard({
     try {
       setIsMinting(true);
 
-      // 1) Ensure connected (Mini App connector auto-connects if available)
       if (!isConnected) {
         await connect({ connector: connectors[0] });
       }
 
-      // 2) Ensure Base chain
       if (chainId !== base.id) {
         await switchChainAsync({ chainId: base.id });
       }
 
-      // 3) Fetch contracts from server
       const aura = { address: AURA_NFT_ADDRESS as `0x${string}`, abi: auraAbi as Abi };
       const usdc = { address: USDC_ADDRESS as `0x${string}`, abi: usdcAbi as Abi };
 
@@ -600,33 +519,32 @@ export function ShareableAuraCard({
 
       const latestRes = await fetch(`/api/aura-card?wallet=${address}&network=base`);
       if (!latestRes.ok) throw new Error("Latest aura_card id not found");
-      const { id: auraCardId } = await latestRes.json(); // UUID string
-      
-            const amount = parseUnits("1", 6); // TODO: set actual mint price amount in USDC (6 decimals)
-            await sendCalls({
-              chainId: base.id,
-              calls: [
-                {
-                  to: usdc.address,
-                  data: encodeFunctionData({
-                    abi: usdc.abi,
-                    functionName: "approve",
-                    args: [aura.address, amount],
-                  }),
-                },
-                {
-                  to: aura.address,
-                  data: encodeFunctionData({
-                    abi: aura.abi,
-                    functionName: "mint",
-                    args: [auraCardId], // Supabase UUID from contracts table
-                  }),
-                },
-              ],
-            });
-      
-            console.log("✅ Batched approve + mint sent");
-            alert("✅ Transaction sent! Check your wallet/notification.");
+      const { id: auraCardId } = await latestRes.json();
+
+      const amount = parseUnits("1", 6); // 1 USDC
+      await sendCalls({
+        chainId: base.id,
+        calls: [
+          {
+            to: usdc.address,
+            data: encodeFunctionData({
+              abi: usdc.abi,
+              functionName: "approve",
+              args: [aura.address, amount],
+            }),
+          },
+          {
+            to: aura.address,
+            data: encodeFunctionData({
+              abi: aura.abi,
+              functionName: "mint",
+              args: [auraCardId],
+            }),
+          },
+        ],
+      });
+
+      alert("✅ Transaction sent! Check your wallet/notification.");
     } catch (error) {
       console.error("Mint error:", error);
       alert("❌ Failed to mint. Please try again.");
@@ -641,9 +559,7 @@ export function ShareableAuraCard({
       <div
         ref={cardRef}
         className="mx-auto"
-        style={{
-          maxWidth: "500px",
-        }}
+        style={{ maxWidth: "500px" }}
       >
         {/* Bluera Logo Header */}
         <div className="flex items-center justify-center gap-3 mb-6">
@@ -684,12 +600,8 @@ export function ShareableAuraCard({
           <div className="flex-1">
             <h3 className="font-bold text-lg">{username || "Trader"}</h3>
             <p className="text-xs text-muted-foreground">
-              FID #{fid || "11222"} • Rank #{rank}
+              FID #{fid || "11222"}
             </p>
-            <div className="flex items-center gap-1 mt-1">
-              <span className="text-orange-500 text-lg">🔥</span>
-              <span className="text-xs font-semibold">{streak} Day Streak</span>
-            </div>
           </div>
         </div>
 
@@ -703,81 +615,53 @@ export function ShareableAuraCard({
           </span>
         </div>
 
-        {/* Stats Grid - 3x3 */}
+        {/* Stats Grid */}
         <div className="grid grid-cols-3 gap-2 mt-6">
           <div className="text-center p-2 rounded-lg bg-background/50 border border-border">
-            <p className="text-[10px] text-muted-foreground mb-0.5">
-              All-Time Vol
-            </p>
-            <p className="font-bold text-xs">
-              ${(allTimeVolume / 1000000).toFixed(1)}M
-            </p>
+            <p className="text-[10px] text-muted-foreground mb-0.5">All-Time Vol</p>
+            <p className="font-bold text-xs">{fmtMoneyOrNA(allTimeVolumeState)}</p>
           </div>
           <div className="text-center p-2 rounded-lg bg-background/50 border border-border">
-            <p className="text-[10px] text-muted-foreground mb-0.5">
-              Weekly Vol
-            </p>
-            <p className="font-bold text-xs">
-              ${(weeklyVolume / 1000).toFixed(0)}K
-            </p>
+            <p className="text-[10px] text-muted-foreground mb-0.5">Weekly Vol</p>
+            <p className="font-bold text-xs">{fmtMoneyOrNA(weeklyVolumeState)}</p>
           </div>
           <div className="text-center p-2 rounded-lg bg-background/50 border border-border">
-            <p className="text-[10px] text-muted-foreground mb-0.5">
-              Monthly Vol
-            </p>
-            <p className="font-bold text-xs">
-              ${(monthlyVolume / 1000).toFixed(0)}K
-            </p>
+            <p className="text-[10px] text-muted-foreground mb-0.5">Monthly Vol</p>
+            <p className="font-bold text-xs">{fmtMoneyOrNA(monthlyVolumeState)}</p>
           </div>
+
           <div className="text-center p-2 rounded-lg bg-background/50 border border-border">
-            <p className="text-[10px] text-muted-foreground mb-0.5">
-              Total PnL
-            </p>
+            <p className="text-[10px] text-muted-foreground mb-0.5">Monthly PnL</p>
             <p
               className={`font-bold text-xs ${
-                pnl >= 0 ? "text-green-500" : "text-red-500"
+                (pnlState ?? 0) >= 0 ? "text-green-500" : "text-red-500"
               }`}
             >
-              {pnl >= 0 ? "+" : ""}${(pnl / 1000).toFixed(0)}K
+              {(pnlState ?? 0) >= 0 ? "+" : "-"}
+              {fmtMoney(Math.abs(pnlState ?? 0))}
             </p>
           </div>
+
           <div className="text-center p-2 rounded-lg bg-background/50 border border-border">
-            <p className="text-[10px] text-muted-foreground mb-0.5">
-              Weekly PnL
-            </p>
+            <p className="text-[10px] text-muted-foreground mb-0.5">Weekly PnL</p>
             <p
               className={`font-bold text-xs ${
-                weeklyPnl >= 0 ? "text-green-500" : "text-red-500"
+                (weeklyPnlState ?? 0) >= 0 ? "text-green-500" : "text-red-500"
               }`}
             >
-              {weeklyPnl >= 0 ? "+" : ""}${(weeklyPnl / 1000).toFixed(1)}K
+              {(weeklyPnlState ?? 0) >= 0 ? "+" : "-"}
+              {fmtMoney(Math.abs(weeklyPnlState ?? 0))}
             </p>
           </div>
+
           <div className="text-center p-2 rounded-lg bg-background/50 border border-border">
-            <p className="text-[10px] text-muted-foreground mb-0.5">
-              Net Worth
-            </p>
-            <p className="font-bold text-xs">
-              ${(networth / 1000).toFixed(0)}K
-            </p>
+            <p className="text-[10px] text-muted-foreground mb-0.5">Net Worth</p>
+            <p className="font-bold text-xs">{fmtMoneyOrNA(networthState)}</p>
           </div>
+
           <div className="text-center p-2 rounded-lg bg-background/50 border border-border">
-            <p className="text-[10px] text-muted-foreground mb-0.5">
-              Total Trades
-            </p>
-            <p className="font-bold text-xs">{totalTrades}</p>
-          </div>
-          <div className="text-center p-2 rounded-lg bg-background/50 border border-border">
-            <p className="text-[10px] text-muted-foreground mb-0.5">
-              Followers
-            </p>
-            <p className="font-bold text-xs">{followers?.toLocaleString()}</p>
-          </div>
-          <div className="text-center p-2 rounded-lg bg-background/50 border border-border">
-            <p className="text-[10px] text-muted-foreground mb-0.5">
-              Following
-            </p>
-            <p className="font-bold text-xs">{following?.toLocaleString()}</p>
+            <p className="text-[10px] text-muted-foreground mb-0.5">Total Trades</p>
+            <p className="font-bold text-xs">{totalTradesState}</p>
           </div>
         </div>
 
@@ -865,7 +749,6 @@ export function ShareableAuraCard({
           )}
         </Button>
       </div>
-      
 
       {/* Preview Modal */}
       {showPreview && previewUrl && (

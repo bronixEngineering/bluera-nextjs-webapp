@@ -148,17 +148,13 @@ export default function ProfilePage() {
             pfpUrl={user?.pfpUrl || mockUser.avatar}
             holderTag="DEGEN Holder"
             traderTag="REKT Trader"
-            allTimeVolume={1500000}
-            pnl={23000}
-            networth={123000}
-            followers={2000}
-            following={1000}
-            streak={15}
-            weeklyVolume={85000}
-            monthlyVolume={320000}
-            totalTrades={67}
-            weeklyPnl={8500}
-            rank={1234}
+            allTimeVolume={0}
+            pnl={0}
+            networth={0}
+            weeklyVolume={0}
+            monthlyVolume={0}
+            weeklyPnl={0}
+            totalTrades={0}
           />
         </CardContent>
       </Card>
