@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react';
 import { sdk } from '@farcaster/miniapp-sdk';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Badge } from '@/components/ui/badge';
 import { mockUser } from '@/lib/mock-data';
 import Image from 'next/image';
 
@@ -14,7 +13,7 @@ export function Header() {
     displayName?: string;
     pfpUrl?: string;
   } | null>(null);
-  const [isInMiniApp, setIsInMiniApp] = useState(false);
+  const [, setIsInMiniApp] = useState(false);
 
   useEffect(() => {
     const loadUserData = async () => {

@@ -25,7 +25,8 @@ export async function GET(req: NextRequest) {
     if (!data || data.length === 0) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
     return NextResponse.json({ holder_tag: data[0].holder_tag });
-  } catch (e: any) {
-    return NextResponse.json({ error: e?.message || "Unknown error" }, { status: 500 });
+  } catch (e: unknown) {
+    const error = e instanceof Error ? e.message : "Unknown error";
+    return NextResponse.json({ error }, { status: 500 });
   }
 }

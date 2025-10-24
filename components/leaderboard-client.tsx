@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Trophy, Medal, AlertCircle, TrendingUp, BarChart3, DollarSign } from 'lucide-react';
 
@@ -60,12 +60,12 @@ export function LeaderboardClient({ initialData, error }: LeaderboardClientProps
     scrollContainerRef.current.scrollLeft = scrollLeft - walk;
   };
 
-  const getRankIcon = (rank: number) => {
-    if (rank === 1) return <Medal className="h-5 w-5 text-yellow-500" />;
-    if (rank === 2) return <Medal className="h-5 w-5 text-gray-400" />;
-    if (rank === 3) return <Medal className="h-5 w-5 text-amber-600" />;
-    return <span className="text-sm font-bold text-muted-foreground">#{rank}</span>;
-  };
+  // const _getRankIcon = (rank: number) => {
+  //   if (rank === 1) return <Medal className="h-5 w-5 text-yellow-500" />;
+  //   if (rank === 2) return <Medal className="h-5 w-5 text-gray-400" />;
+  //   if (rank === 3) return <Medal className="h-5 w-5 text-amber-600" />;
+  //   return <span className="text-sm font-bold text-muted-foreground">#{rank}</span>;
+  // };
 
   const formatValue = (value: number | null) => {
     if (!value || value === 0) return '$0.00';
@@ -376,7 +376,7 @@ export function LeaderboardClient({ initialData, error }: LeaderboardClientProps
                   (w.weekly_pnl && w.weekly_pnl > 0) || 
                   (w.monthly_pnl && w.monthly_pnl > 0)
                 ).length;
-                const percentage = initialData.length > 0 ? Math.round((profitableCount / initialData.length) * 100) : 0;
+                // const _percentage = initialData.length > 0 ? Math.round((profitableCount / initialData.length) * 100) : 0;
                 return `${profitableCount}`;
               })()}
             </div>

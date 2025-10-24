@@ -27,10 +27,12 @@ interface HeatmapClientProps {
 
 export function HeatmapClient({
   initialData,
-  totalVolume,
+  totalVolume: _totalVolume,
   isLoading,
   error,
 }: HeatmapClientProps) {
+  // totalVolume is available but not used in this component
+  void _totalVolume;
   const router = useRouter();
 
   // Debug: check if image_url exists

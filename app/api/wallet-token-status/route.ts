@@ -19,12 +19,13 @@ export async function GET(req: NextRequest) {
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
     const totalTrades = (data || []).reduce((sum, row) => {
-      const n = Number((row as any).token_transfer_count || 0);
+      const n = Number((row as { token_transfer_count?: number }).token_transfer_count || 0);
       return sum + (isFinite(n) ? n : 0);
     }, 0);
 
     return NextResponse.json({ totalTrades });
-  } catch (e: any) {
-    return NextResponse.json({ error: e?.message || "Unknown error" }, { status: 500 });
+  } catch (e: unknown) {
+    const error = e instanceof Error ? e.message : "Unknown error";
+    return NextResponse.json({ error }, { status: 500 });
   }
 }

@@ -1,23 +1,9 @@
 // app/api/auth/route.ts
-import { createClient } from '@farcaster/quick-auth';
+// import { createClient } from '@farcaster/quick-auth';
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient as createSupabaseClient } from '@/utils/supabase/server';
 
-// For development, try different domain formats
-// Farcaster Quick Auth might expect different domain formats
-const possibleDomains = [
-  'localhost:3000',
-  'http://localhost:3000',
-  'https://localhost:3000',
-  'localhost',
-  '127.0.0.1:3000',
-  'http://127.0.0.1:3000'
-];
-
-const domain = process.env.NODE_ENV === 'production' 
-  ? 'bluera.vercel.app' 
-  : 'localhost:3000'; // Start with this, we'll try others if needed
-const client = createClient();
+// const _client = createClient(); // Unused for now
 
 // This endpoint returns the authenticated user's FID 
 export async function GET(request: NextRequest) {
@@ -46,7 +32,7 @@ export async function GET(request: NextRequest) {
     } else {
       return NextResponse.json({ error: 'Invalid token - no FID found' }, { status: 401 });
     }
-  } catch (extractError) {
+  } catch {
     return NextResponse.json({ error: 'Invalid token - extraction failed' }, { status: 401 });
   }
 
@@ -60,7 +46,7 @@ export async function GET(request: NextRequest) {
       const { result } = await res.json();
       primaryAddress = result.address.address;
     }
-  } catch (addrError) {
+  } catch {
     // Silently fail
   }
   
@@ -106,7 +92,7 @@ export async function GET(request: NextRequest) {
           .select();
       }
     }
-  } catch (supabaseError) {
+  } catch {
     // Silently fail
   }
   

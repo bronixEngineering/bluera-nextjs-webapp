@@ -11,15 +11,8 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Button } from "@/components/ui/button";
-import { mockUser, mockUserStats, mockTokens } from "@/lib/mock-data";
+import { mockUser } from "@/lib/mock-data";
 import {
-  Sparkles,
-  TrendingUp,
-  TrendingDown,
-  Coins,
-  DollarSign,
-  Target,
   Activity,
   Award,
   LogIn,
@@ -38,13 +31,9 @@ export default function ProfilePage() {
   const [isInMiniApp, setIsInMiniApp] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
-  const favoriteToken = mockTokens.find(
-    (token) => token.symbol === mockUserStats.favoriteCoin
-  );
-
   const { address } = useAccount();
   const [holderTag, setHolderTag] = useState<string | null>(null);
-  const [totalTrades, setTotalTrades] = useState<number | null>(null);
+  const [, setTotalTrades] = useState<number | null>(null);
 
   useEffect(() => {
     const loadHolderTag = async () => {
@@ -79,13 +68,6 @@ export default function ProfilePage() {
     loadAllTimeVolume();
   }, [user?.fid]);
 
-  // imports altında uyguna ekleyin
-  const fmtMoney = (v: number) => {
-    const n = Math.abs(Number(v) || 0);
-    if (n < 1000) return `$${n.toFixed(1)}`;
-    if (n < 1_000_000) return `$${(n / 1000).toFixed(1)}K`;
-    return `$${(n / 1_000_000).toFixed(1)}M`;
-  };
 
   useEffect(() => {
     const loadTotalTrades = async () => {

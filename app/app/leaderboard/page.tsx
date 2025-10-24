@@ -1,18 +1,6 @@
 import { createClient as createSupabaseClient } from "@/utils/supabase/server";
 import { LeaderboardClient } from '@/components/leaderboard-client';
 
-interface WalletStats {
-  wallet_address: string;
-  volume_monthly: number | null;
-  net_worth: number | null;
-  weekly_pnl: number | null;
-  fid: string | null;
-  volume_daily: number | null;
-  volume_weekly: number | null;
-  monthly_pnl: number | null;
-  all_time_volume: number | null;
-}
-
 async function getLeaderboardData() {
   try {
     const supabase = await createSupabaseClient();

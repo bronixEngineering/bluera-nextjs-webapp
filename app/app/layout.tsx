@@ -10,7 +10,7 @@ export default function AppLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [, setIsAuthenticated] = useState(false);
 
   useEffect(() => {
     const initializeApp = async () => {

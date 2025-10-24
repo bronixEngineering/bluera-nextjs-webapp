@@ -80,7 +80,7 @@ export function ShareableAuraCard({
 
   // Supabase'den verileri çek
   React.useEffect(() => {
-    const n = (v: any) => (v == null ? undefined : Number(v));
+    const n = (v: unknown) => (v == null ? undefined : Number(v));
 
     const load = async () => {
       try {
@@ -168,8 +168,11 @@ export function ShareableAuraCard({
 
       ctx.save();
       ctx.beginPath();
-      // @ts-ignore
-      ctx.roundRect(20, 20, width - 40, height - 40, 32);
+      if (typeof ctx.roundRect === "function") {
+        ctx.roundRect(20, 20, width - 40, height - 40, 32);
+      } else {
+        ctx.rect(20, 20, width - 40, height - 40);
+      }
       ctx.clip();
 
       const bgGradient = ctx.createLinearGradient(20, 20, width - 20, height - 20);
@@ -183,8 +186,11 @@ export function ShareableAuraCard({
       ctx.strokeStyle = "rgba(255, 255, 255, 0.2)";
       ctx.lineWidth = 3;
       ctx.beginPath();
-      // @ts-ignore
-      ctx.roundRect(20, 20, width - 40, height - 40, 32);
+      if (ctx.roundRect) {
+        ctx.roundRect(20, 20, width - 40, height - 40, 32);
+      } else {
+        ctx.rect(20, 20, width - 40, height - 40);
+      }
       ctx.stroke();
 
       const logoSize = 50;
@@ -202,8 +208,11 @@ export function ShareableAuraCard({
 
         ctx.save();
         ctx.beginPath();
-        // @ts-ignore
-        ctx.roundRect(logoX, logoY, logoSize, logoSize, 10);
+        if (typeof ctx.roundRect === "function") {
+            ctx.roundRect(logoX, logoY, logoSize, logoSize, 10);
+        } else {
+            ctx.rect(logoX, logoY, logoSize, logoSize);
+        }
         ctx.clip();
         ctx.drawImage(logoImg, logoX, logoY, logoSize, logoSize);
         ctx.restore();
@@ -274,8 +283,11 @@ export function ShareableAuraCard({
       ctx.strokeStyle = "rgba(168, 85, 247, 0.3)";
       ctx.lineWidth = 2;
       ctx.beginPath();
-      // @ts-ignore
-      ctx.roundRect(tagsX, tagsY, tagWidth, tagHeight, 18);
+      if (typeof ctx.roundRect === 'function') {
+        ctx.roundRect(tagsX, tagsY, tagWidth, tagHeight, 18);
+      } else {
+        console.error("roundRect is not supported in this context");
+      }
       ctx.fill();
       ctx.stroke();
 
@@ -286,9 +298,13 @@ export function ShareableAuraCard({
 
       ctx.fillStyle = "rgba(234, 179, 8, 0.15)";
       ctx.strokeStyle = "rgba(234, 179, 8, 0.3)";
+      ctx.lineWidth = 2;
       ctx.beginPath();
-      // @ts-ignore
-      ctx.roundRect(tagsX, tagsY + tagHeight + tagSpacing, tagWidth, tagHeight, 18);
+      if (typeof ctx.roundRect === 'function') {
+        ctx.roundRect(tagsX, tagsY + tagHeight + tagSpacing, tagWidth, tagHeight, 18);
+      } else {
+        console.error("roundRect is not supported in this context");
+      }
       ctx.fill();
       ctx.stroke();
 
@@ -312,8 +328,11 @@ export function ShareableAuraCard({
         ctx.strokeStyle = "rgba(255, 255, 255, 0.1)";
         ctx.lineWidth = 1.5;
         ctx.beginPath();
-        // @ts-ignore
-        ctx.roundRect(x, y, statBoxWidth, statBoxHeight, 12);
+        if (typeof ctx.roundRect === 'function') {
+            ctx.roundRect(x, y, statBoxWidth, statBoxHeight, 12);
+        } else {
+            console.error("roundRect is not supported in this context");
+        }
         ctx.fill();
         ctx.stroke();
 
@@ -371,8 +390,7 @@ export function ShareableAuraCard({
       ctx.strokeStyle = "rgba(255, 255, 255, 0.1)";
       ctx.lineWidth = 1.5;
       ctx.beginPath();
-      // @ts-ignore
-      ctx.roundRect(chartX, chartY, chartWidth, chartHeight + 50, 15);
+      ctx.rect(chartX, chartY, chartWidth, chartHeight + 50);
       ctx.fill();
       ctx.stroke();
 
@@ -396,10 +414,18 @@ export function ShareableAuraCard({
         barGradient.addColorStop(0, "#a78bfa");
         barGradient.addColorStop(1, "#facc15");
         ctx.fillStyle = barGradient;
-
         ctx.beginPath();
-        // @ts-ignore
-        ctx.roundRect(x, y, barWidth - barSpacing, barHeight, 5);
+        // Using a rectangle with rounded corners without using roundRect
+        ctx.moveTo(x + 5, y);
+        ctx.lineTo(x + barWidth - barSpacing - 5, y);
+        ctx.quadraticCurveTo(x + barWidth - barSpacing, y, x + barWidth - barSpacing, y + 5);
+        ctx.lineTo(x + barWidth - barSpacing, y + barHeight - 5);
+        ctx.quadraticCurveTo(x + barWidth - barSpacing, y + barHeight, x + barWidth - barSpacing - 5, y + barHeight);
+        ctx.lineTo(x + 5, y + barHeight);
+        ctx.quadraticCurveTo(x, y + barHeight, x, y + barHeight - 5);
+        ctx.lineTo(x, y + 5);
+        ctx.quadraticCurveTo(x, y, x + 5, y);
+        ctx.closePath();
         ctx.fill();
       });
 
@@ -422,8 +448,16 @@ export function ShareableAuraCard({
 
           ctx.fillStyle = "#ffffff";
           ctx.beginPath();
-          // @ts-ignore
-          ctx.roundRect(qrX, qrY, qrSize, qrSize, 15);
+          ctx.moveTo(qrX + 15, qrY);
+          ctx.lineTo(qrX + qrSize - 15, qrY);
+          ctx.quadraticCurveTo(qrX + qrSize, qrY, qrX + qrSize, qrY + 15);
+          ctx.lineTo(qrX + qrSize, qrY + qrSize - 15);
+          ctx.quadraticCurveTo(qrX + qrSize, qrY + qrSize, qrX + qrSize - 15, qrY + qrSize);
+          ctx.lineTo(qrX + 15, qrY + qrSize);
+          ctx.quadraticCurveTo(qrX, qrY + qrSize, qrX, qrY + qrSize - 15);
+          ctx.lineTo(qrX, qrY + 15);
+          ctx.quadraticCurveTo(qrX, qrY, qrX + 15, qrY);
+          ctx.closePath();
           ctx.fill();
 
           const qrImg = document.createElement("img");
@@ -436,8 +470,16 @@ export function ShareableAuraCard({
 
           ctx.save();
           ctx.beginPath();
-          // @ts-ignore
-          ctx.roundRect(qrX, qrY, qrSize, qrSize, 15);
+          ctx.moveTo(qrX + 15, qrY);
+          ctx.lineTo(qrX + qrSize - 15, qrY);
+          ctx.quadraticCurveTo(qrX + qrSize, qrY, qrX + qrSize, qrY + 15);
+          ctx.lineTo(qrX + qrSize, qrY + qrSize - 15);
+          ctx.quadraticCurveTo(qrX + qrSize, qrY + qrSize, qrX + qrSize - 15, qrY + qrSize);
+          ctx.lineTo(qrX + 15, qrY + qrSize);
+          ctx.quadraticCurveTo(qrX, qrY + qrSize, qrX, qrY + qrSize - 15);
+          ctx.lineTo(qrX, qrY + 15);
+          ctx.quadraticCurveTo(qrX, qrY, qrX + 15, qrY);
+          ctx.closePath();
           ctx.clip();
           ctx.drawImage(qrImg, qrX, qrY, qrSize, qrSize);
           ctx.restore();
@@ -713,10 +755,13 @@ export function ShareableAuraCard({
             </div>
             {username && (
               <div className="w-16 h-16 bg-white rounded-lg p-1 flex items-center justify-center">
-                <img
+                <Image
                   src={`https://api.qrserver.com/v1/create-qr-code/?size=64x64&data=https://farcaster.xyz/${username}`}
                   alt="QR Code"
+                  width={64}
+                  height={64}
                   className="w-full h-full"
+                  unoptimized
                 />
               </div>
             )}

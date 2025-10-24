@@ -358,7 +358,7 @@ export default function RewardsPage() {
   const [contract, setContract] = React.useState<{ address: `0x${string}`; abi: Abi } | null>(null);
   const [isLoadingContract, setIsLoadingContract] = React.useState(true);
   const [isClaiming, setIsClaiming] = React.useState(false);
-  const [tokenDecimals, setTokenDecimals] = React.useState<number>(18);
+  const [, setTokenDecimals] = React.useState<number>(18);
   const [tokenSymbol, setTokenSymbol] = React.useState<string>('USDC');
 
 
