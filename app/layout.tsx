@@ -3,7 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
 import { FarcasterProvider } from "@/components/farcaster-provider";
-import {WagmiConfigProvider} from "@/components/wagmi-config-provider";
+import { WagmiConfigProvider } from "@/components/wagmi-config-provider";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
