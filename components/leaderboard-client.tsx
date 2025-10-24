@@ -166,161 +166,256 @@ export function LeaderboardClient({ initialData, error }: LeaderboardClientProps
   const sortedData = getTabData();
 
   return (
-    <div className="py-6 space-y-8">
-      <Card>
-        <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Trophy className="h-6 w-6" />
-                  Leaderboard
-                </CardTitle>
-          <CardDescription>
-            Top traders ranked by volume, PnL, and net worth
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-6">
-            <div 
-              ref={scrollContainerRef}
-              className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide cursor-grab select-none" 
-              style={{ scrollBehavior: 'smooth', WebkitOverflowScrolling: 'touch' }}
-              onMouseDown={handleMouseDown}
-              onMouseLeave={handleMouseLeave}
-              onMouseUp={handleMouseUp}
-              onMouseMove={handleMouseMove}
-            >
-              <button
-                onClick={() => setActiveTab('allTimeVolume')}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap flex items-center gap-2 ${
-                  activeTab === 'allTimeVolume'
-                    ? 'bg-primary text-primary-foreground'
-                    : 'bg-muted hover:bg-muted/80'
-                }`}
-              >
-                <Trophy className="h-4 w-4" />
-                All-Time Vol
-              </button>
-              <button
-                onClick={() => setActiveTab('weeklyVolume')}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap flex items-center gap-2 ${
-                  activeTab === 'weeklyVolume'
-                    ? 'bg-primary text-primary-foreground'
-                    : 'bg-muted hover:bg-muted/80'
-                }`}
-              >
-                <TrendingUp className="h-4 w-4" />
-                Weekly Vol
-              </button>
-              <button
-                onClick={() => setActiveTab('monthlyVolume')}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap flex items-center gap-2 ${
-                  activeTab === 'monthlyVolume'
-                    ? 'bg-primary text-primary-foreground'
-                    : 'bg-muted hover:bg-muted/80'
-                }`}
-              >
-                <BarChart3 className="h-4 w-4" />
-                Monthly Vol
-              </button>
-              <button
-                onClick={() => setActiveTab('weeklyPnl')}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap flex items-center gap-2 ${
-                  activeTab === 'weeklyPnl'
-                    ? 'bg-primary text-primary-foreground'
-                    : 'bg-muted hover:bg-muted/80'
-                }`}
-              >
-                <TrendingUp className="h-4 w-4" />
-                Weekly PnL
-              </button>
-              <button
-                onClick={() => setActiveTab('monthlyPnl')}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap flex items-center gap-2 ${
-                  activeTab === 'monthlyPnl'
-                    ? 'bg-primary text-primary-foreground'
-                    : 'bg-muted hover:bg-muted/80'
-                }`}
-              >
-                <BarChart3 className="h-4 w-4" />
-                Monthly PnL
-              </button>
-              <button
-                onClick={() => setActiveTab('netWorth')}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap flex items-center gap-2 ${
-                  activeTab === 'netWorth'
-                    ? 'bg-primary text-primary-foreground'
-                    : 'bg-muted hover:bg-muted/80'
-                }`}
-              >
-                <DollarSign className="h-4 w-4" />
-                Net Worth
-              </button>
-            </div>
-            
-            <ScrollArea className="h-[400px]">
-              <div className="space-y-1">
-                {sortedData.map((wallet, index) => {
-                  const currentValue = getValueForTab(wallet);
-                  const isPnlTab = activeTab === 'weeklyPnl' || activeTab === 'monthlyPnl';
-                  const pnlValue = activeTab === 'weeklyPnl' ? wallet.weekly_pnl : wallet.monthly_pnl;
-                  
-                  return (
-                    <div
-                      key={wallet.wallet_address}
-                      className="flex items-center justify-between p-2 rounded hover:bg-muted/50 transition-colors min-h-[40px]"
-                    >
-                      <div className="flex items-center gap-3 flex-1 min-w-0">
-                        <div className="flex items-center justify-center w-6 flex-shrink-0">
-                          {index < 3 ? getRankIcon(index + 1) : <span className="text-xs font-bold text-muted-foreground">#{index + 1}</span>}
-                        </div>
-                        <div className="font-mono text-xs truncate">
-                          {wallet.wallet_address.slice(0, 4)}...{wallet.wallet_address.slice(-4)}
-                        </div>
+    <div className="py-6 space-y-6">
+      {/* Hero Header */}
+      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-yellow-500/10 via-orange-500/10 to-red-500/10 border border-yellow-500/20 p-8">
+        <div className="absolute top-0 right-0 w-40 h-40 bg-yellow-500/20 rounded-full blur-3xl" />
+        <div className="absolute bottom-0 left-0 w-40 h-40 bg-orange-500/20 rounded-full blur-3xl" />
+        <div className="relative z-10 flex items-center gap-4">
+          <div className="p-4 rounded-2xl bg-gradient-to-br from-yellow-500/20 to-orange-500/20 backdrop-blur-sm">
+            <Trophy className="h-10 w-10 text-yellow-500" />
+          </div>
+          <div>
+            <h1 className="text-3xl font-bold mb-1">Leaderboard</h1>
+            <p className="text-muted-foreground">Top traders ranked by volume, PnL, and net worth</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Category Tabs */}
+      <div 
+        ref={scrollContainerRef}
+        className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide cursor-grab select-none" 
+        style={{ scrollBehavior: 'smooth', WebkitOverflowScrolling: 'touch' }}
+        onMouseDown={handleMouseDown}
+        onMouseLeave={handleMouseLeave}
+        onMouseUp={handleMouseUp}
+        onMouseMove={handleMouseMove}
+      >
+        <button
+          onClick={() => setActiveTab('allTimeVolume')}
+          className={`group px-5 py-3 rounded-xl text-sm font-medium transition-all whitespace-nowrap flex items-center gap-2 ${
+            activeTab === 'allTimeVolume'
+              ? 'bg-gradient-to-r from-yellow-500 to-orange-500 text-white shadow-lg shadow-yellow-500/30 scale-105'
+              : 'bg-muted hover:bg-muted/80 hover:scale-105'
+          }`}
+        >
+          <Trophy className="h-4 w-4" />
+          All-Time Vol
+        </button>
+        <button
+          onClick={() => setActiveTab('weeklyVolume')}
+          className={`group px-5 py-3 rounded-xl text-sm font-medium transition-all whitespace-nowrap flex items-center gap-2 ${
+            activeTab === 'weeklyVolume'
+              ? 'bg-gradient-to-r from-blue-500 to-cyan-500 text-white shadow-lg shadow-blue-500/30 scale-105'
+              : 'bg-muted hover:bg-muted/80 hover:scale-105'
+          }`}
+        >
+          <TrendingUp className="h-4 w-4" />
+          Weekly Vol
+        </button>
+        <button
+          onClick={() => setActiveTab('monthlyVolume')}
+          className={`group px-5 py-3 rounded-xl text-sm font-medium transition-all whitespace-nowrap flex items-center gap-2 ${
+            activeTab === 'monthlyVolume'
+              ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-lg shadow-purple-500/30 scale-105'
+              : 'bg-muted hover:bg-muted/80 hover:scale-105'
+          }`}
+        >
+          <BarChart3 className="h-4 w-4" />
+          Monthly Vol
+        </button>
+        <button
+          onClick={() => setActiveTab('weeklyPnl')}
+          className={`group px-5 py-3 rounded-xl text-sm font-medium transition-all whitespace-nowrap flex items-center gap-2 ${
+            activeTab === 'weeklyPnl'
+              ? 'bg-gradient-to-r from-green-500 to-emerald-500 text-white shadow-lg shadow-green-500/30 scale-105'
+              : 'bg-muted hover:bg-muted/80 hover:scale-105'
+          }`}
+        >
+          <TrendingUp className="h-4 w-4" />
+          Weekly PnL
+        </button>
+        <button
+          onClick={() => setActiveTab('monthlyPnl')}
+          className={`group px-5 py-3 rounded-xl text-sm font-medium transition-all whitespace-nowrap flex items-center gap-2 ${
+            activeTab === 'monthlyPnl'
+              ? 'bg-gradient-to-r from-teal-500 to-cyan-500 text-white shadow-lg shadow-teal-500/30 scale-105'
+              : 'bg-muted hover:bg-muted/80 hover:scale-105'
+          }`}
+        >
+          <BarChart3 className="h-4 w-4" />
+          Monthly PnL
+        </button>
+        <button
+          onClick={() => setActiveTab('netWorth')}
+          className={`group px-5 py-3 rounded-xl text-sm font-medium transition-all whitespace-nowrap flex items-center gap-2 ${
+            activeTab === 'netWorth'
+              ? 'bg-gradient-to-r from-indigo-500 to-purple-500 text-white shadow-lg shadow-indigo-500/30 scale-105'
+              : 'bg-muted hover:bg-muted/80 hover:scale-105'
+          }`}
+        >
+          <DollarSign className="h-4 w-4" />
+          Net Worth
+        </button>
+      </div>
+
+      {/* Leaderboard List */}
+      <Card className="overflow-hidden">
+        <CardContent className="p-0">
+          <ScrollArea className="h-[500px]">
+            <div className="divide-y">
+              {sortedData.map((wallet, index) => {
+                const currentValue = getValueForTab(wallet);
+                const isPnlTab = activeTab === 'weeklyPnl' || activeTab === 'monthlyPnl';
+                const pnlValue = activeTab === 'weeklyPnl' ? wallet.weekly_pnl : wallet.monthly_pnl;
+                
+                return (
+                  <div
+                    key={wallet.wallet_address}
+                    className="group flex items-center justify-between p-4 hover:bg-gradient-to-r hover:from-muted/50 hover:to-transparent transition-all duration-200"
+                  >
+                    <div className="flex items-center gap-4">
+                      {/* Rank Badge */}
+                      <div className={`relative w-12 h-12 rounded-xl flex items-center justify-center text-sm font-bold transition-all ${
+                        index === 0 
+                          ? "bg-gradient-to-br from-yellow-500/30 to-yellow-600/30 text-yellow-500 border-2 border-yellow-500/50 shadow-lg shadow-yellow-500/20" 
+                          : index === 1 
+                          ? "bg-gradient-to-br from-gray-400/30 to-gray-500/30 text-gray-300 border-2 border-gray-400/50 shadow-lg shadow-gray-400/20" 
+                          : index === 2 
+                          ? "bg-gradient-to-br from-orange-600/30 to-orange-700/30 text-orange-500 border-2 border-orange-600/50 shadow-lg shadow-orange-600/20" 
+                          : "bg-muted/50 text-muted-foreground group-hover:bg-primary/10 group-hover:text-primary"
+                      }`}>
+                        {index < 3 ? (
+                          <>
+                            <Medal className="h-6 w-6" />
+                            <div className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-gradient-to-br from-yellow-400 to-orange-500 animate-pulse" />
+                          </>
+                        ) : (
+                          <span>#{index + 1}</span>
+                        )}
                       </div>
-                      <div className={`text-sm font-semibold whitespace-nowrap ml-2 ${isPnlTab && pnlValue !== null && pnlValue !== 0 ? (pnlValue >= 0 ? 'text-green-500' : 'text-red-500') : ''}`}>
+                      
+                      {/* Wallet Address */}
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <div className="font-mono text-sm font-semibold group-hover:text-primary transition-colors">
+                            {wallet.wallet_address.slice(0, 6)}...{wallet.wallet_address.slice(-6)}
+                          </div>
+                          {index < 3 && (
+                            <div className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                              index === 0 ? 'bg-yellow-500/10 text-yellow-500' :
+                              index === 1 ? 'bg-gray-400/10 text-gray-400' :
+                              'bg-orange-600/10 text-orange-600'
+                            }`}>
+                              {index === 0 ? '🥇 Champion' : index === 1 ? '🥈 Runner-up' : '🥉 Third'}
+                            </div>
+                          )}
+                        </div>
+                        {wallet.fid && (
+                          <div className="text-xs text-muted-foreground mt-0.5">
+                            FID: {wallet.fid}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    
+                    {/* Value */}
+                    <div className="text-right">
+                      <div className={`text-lg font-bold group-hover:scale-110 transition-transform ${
+                        isPnlTab && pnlValue !== null && pnlValue !== 0 
+                          ? (pnlValue >= 0 ? 'text-green-500' : 'text-red-500') 
+                          : ''
+                      }`}>
                         {currentValue}
                       </div>
                     </div>
-                  );
-                })}
-                
-                {sortedData.length === 0 && (
-                  <div className="text-center py-8 text-muted-foreground text-sm">
-                    No data available
                   </div>
-                )}
-              </div>
-            </ScrollArea>
-          </div>
+                );
+              })}
+              
+              {sortedData.length === 0 && (
+                <div className="text-center py-12 text-muted-foreground">
+                  <Trophy className="h-12 w-12 mx-auto mb-3 opacity-20" />
+                  <p>No data available</p>
+                </div>
+              )}
+            </div>
+          </ScrollArea>
         </CardContent>
       </Card>
 
       {/* Statistics */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card>
-          <CardContent className="p-4">
-            <div className="text-sm text-muted-foreground">Total Traders</div>
-            <div className="text-2xl font-bold">{initialData.length}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="text-sm text-muted-foreground">Profitable Traders</div>
-            <div className="text-2xl font-bold">
+        {/* Total Traders */}
+        <div className="group relative overflow-hidden rounded-2xl border bg-gradient-to-br from-blue-500/5 to-transparent p-5 hover:shadow-xl hover:shadow-blue-500/10 transition-all duration-300">
+          <div className="absolute top-0 right-0 w-24 h-24 bg-blue-500/10 rounded-full blur-2xl group-hover:bg-blue-500/20 transition-all" />
+          <div className="absolute bottom-0 left-0 w-16 h-16 bg-blue-500/5 rounded-full blur-xl" />
+          <div className="relative">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="p-2 rounded-xl bg-blue-500/10 group-hover:bg-blue-500/20 transition-colors">
+                <svg className="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                </svg>
+              </div>
+              <div className="text-sm font-medium text-muted-foreground">Total Traders</div>
+            </div>
+            <div className="text-3xl font-bold bg-gradient-to-r from-blue-500 to-cyan-500 bg-clip-text text-transparent">
+              {initialData.length}
+            </div>
+          </div>
+        </div>
+
+        {/* Profitable Traders */}
+        <div className="group relative overflow-hidden rounded-2xl border bg-gradient-to-br from-green-500/5 to-transparent p-5 hover:shadow-xl hover:shadow-green-500/10 transition-all duration-300">
+          <div className="absolute top-0 right-0 w-24 h-24 bg-green-500/10 rounded-full blur-2xl group-hover:bg-green-500/20 transition-all" />
+          <div className="absolute bottom-0 left-0 w-16 h-16 bg-green-500/5 rounded-full blur-xl" />
+          <div className="relative">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="p-2 rounded-xl bg-green-500/10 group-hover:bg-green-500/20 transition-colors">
+                <svg className="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                </svg>
+              </div>
+              <div className="text-sm font-medium text-muted-foreground">Profitable</div>
+            </div>
+            <div className="text-3xl font-bold bg-gradient-to-r from-green-500 to-emerald-500 bg-clip-text text-transparent">
               {(() => {
                 const profitableCount = initialData.filter(w => 
                   (w.weekly_pnl && w.weekly_pnl > 0) || 
                   (w.monthly_pnl && w.monthly_pnl > 0)
                 ).length;
                 const percentage = initialData.length > 0 ? Math.round((profitableCount / initialData.length) * 100) : 0;
-                return `${profitableCount} (${percentage}%)`;
+                return `${profitableCount}`;
               })()}
             </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="text-sm text-muted-foreground">Average Net Worth</div>
-            <div className="text-2xl font-bold">
+            <div className="text-xs text-muted-foreground mt-1">
+              {(() => {
+                const profitableCount = initialData.filter(w => 
+                  (w.weekly_pnl && w.weekly_pnl > 0) || 
+                  (w.monthly_pnl && w.monthly_pnl > 0)
+                ).length;
+                const percentage = initialData.length > 0 ? Math.round((profitableCount / initialData.length) * 100) : 0;
+                return `${percentage}% of all traders`;
+              })()}
+            </div>
+          </div>
+        </div>
+
+        {/* Average Net Worth */}
+        <div className="group relative overflow-hidden rounded-2xl border bg-gradient-to-br from-purple-500/5 to-transparent p-5 hover:shadow-xl hover:shadow-purple-500/10 transition-all duration-300">
+          <div className="absolute top-0 right-0 w-24 h-24 bg-purple-500/10 rounded-full blur-2xl group-hover:bg-purple-500/20 transition-all" />
+          <div className="absolute bottom-0 left-0 w-16 h-16 bg-purple-500/5 rounded-full blur-xl" />
+          <div className="relative">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="p-2 rounded-xl bg-purple-500/10 group-hover:bg-purple-500/20 transition-colors">
+                <svg className="w-5 h-5 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <div className="text-sm font-medium text-muted-foreground">Avg Net Worth</div>
+            </div>
+            <div className="text-3xl font-bold bg-gradient-to-r from-purple-500 to-pink-500 bg-clip-text text-transparent">
               {(() => {
                 const netWorths = initialData
                   .map(w => w.net_worth || 0)
@@ -331,8 +426,8 @@ export function LeaderboardClient({ initialData, error }: LeaderboardClientProps
                 return formatValue(average);
               })()}
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </div>
     </div>
   );
