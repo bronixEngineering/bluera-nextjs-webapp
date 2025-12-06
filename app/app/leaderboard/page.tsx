@@ -1,6 +1,9 @@
 import { createClient as createSupabaseClient } from "@/utils/supabase/server";
 import { LeaderboardClient } from '@/components/leaderboard-client';
 
+// Bu satırı ekleyin
+export const dynamic = 'force-dynamic';
+
 async function getLeaderboardData() {
   try {
     const supabase = await createSupabaseClient();
