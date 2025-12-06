@@ -33,7 +33,7 @@ export function LeaderboardClient({ initialData, error }: LeaderboardClientProps
   const [scrollLeft, setScrollLeft] = useState(0);
 
   // TanStack Query ile wallet-status-moralis endpoint'ini çağır
-  const { data: moralisData } = useQuery({
+  const { } = useQuery({
     queryKey: ['wallet-status-moralis', address],
     queryFn: async () => {
       if (!address) return null;

@@ -69,10 +69,7 @@ export async function POST(request: Request) {
     // Limit pages and tokens to reduce API I/O and improve latency
     const maxPages = Number.isFinite(body?.maxPages)
       ? Math.max(1, Math.min(20, Number(body.maxPages)))
-      : 5;
-    const maxTokens = Number.isFinite(body?.maxTokens)
-      ? Math.max(1, Math.min(50, Number(body.maxTokens)))
-      : 10;
+      : 100;
 
     if (!walletAddress || !/^0x[a-fA-F0-9]{40}$/.test(walletAddress)) {
       return NextResponse.json({ success: false, error: 'Invalid walletAddress' }, { status: 400 });
@@ -99,8 +96,8 @@ export async function POST(request: Request) {
     const tokenAddressesAll: string[] = (wl || [])
       .map((r: any) => String(r?.token_address || '').toLowerCase())
       .filter(Boolean);
-    // Cap how many tokens we process per wallet
-    const tokenAddresses: string[] = tokenAddressesAll.slice(0, maxTokens);
+    // Tüm whitelisted token'ları kullan (limit kaldırıldı)
+    const tokenAddresses: string[] = tokenAddressesAll; // slice(0, maxTokens) kaldırıldı
 
     if (tokenAddresses.length === 0) {
       return NextResponse.json({ success: true, wallet: walletAddress, message: 'No whitelisted tokens', volume_daily: 0, volume_weekly: 0, volume_monthly: 0 });

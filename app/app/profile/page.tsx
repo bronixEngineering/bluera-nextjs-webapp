@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { sdk } from "@farcaster/miniapp-sdk";
 import { useQuery } from "@tanstack/react-query";
+import { sdk } from "@farcaster/miniapp-sdk";
 import {
   Card,
   CardContent,
@@ -10,8 +10,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { mockUser } from "@/lib/mock-data";
 import {
   Activity,
@@ -34,35 +32,6 @@ export default function ProfilePage() {
 
   const { address } = useAccount();
 
-  // TanStack Query ile wallet-status-moralis endpoint'ini çağır
-  const { data: moralisData } = useQuery({
-    queryKey: ['wallet-status-moralis', address, user?.fid],
-    queryFn: async () => {
-      if (!address) return null;
-      
-      const response = await fetch('/api/wallet-status-moralis', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          walletAddress: address,
-          chain: 'base',
-          fid: user?.fid ? String(user.fid) : undefined,
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch wallet status');
-      }
-
-      return response.json();
-    },
-    enabled: !!address && !!user?.fid, // Sadece address ve fid varsa çağır
-    refetchOnWindowFocus: true, // Window focus olduğunda yeniden fetch
-    staleTime: 30000, // 30 saniye cache
-  });
-
   // TanStack Query ile holder tag endpoint'ini çağır
   const { data: holderTagData } = useQuery({
     queryKey: ['aura-card-holder-tag', address],
@@ -84,7 +53,7 @@ export default function ProfilePage() {
 
   // TanStack Query ile wallet-status endpoint'ini çağır
   const { data: walletStatusData } = useQuery({
-    queryKey: ['wallet-status', user?.fid, moralisData],
+    queryKey: ['wallet-status', user?.fid],
     queryFn: async () => {
       if (!user?.fid) return null;
       
@@ -120,6 +89,36 @@ export default function ProfilePage() {
 
   const totalTrades = walletTokenStatusData?.totalTrades ? Number(walletTokenStatusData.totalTrades) : 0;
 
+  // TanStack Query ile wallet-token-status-moralis endpoint'ini çağır
+  const { data: walletTokenStatusMoralisData } = useQuery({
+    queryKey: ['wallet-token-status-moralis', address],
+    queryFn: async () => {
+      if (!address) return null;
+      
+      const response = await fetch('/api/wallet-token-status-moralis', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          walletAddress: address,
+          chain: 'base',
+          hours: 24, // Son 24 saat
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch wallet token status from Moralis');
+      }
+
+      return response.json();
+    },
+    enabled: !!address, // Sadece address varsa çağır
+    refetchOnWindowFocus: true, // Window focus olduğunda yeniden fetch
+    staleTime: 60000, // 60 saniye cache (bu endpoint ağır işlem yapıyor)
+  });
+
+  // SDK context yükleme - useEffect kalmalı (side effect)
   useEffect(() => {
     const loadUserData = async () => {
       try {
@@ -185,34 +184,6 @@ export default function ProfilePage() {
 
   return (
     <div className="py-6 space-y-8">
-      {/* Profile Header - Minimalist */}
-      <div className="flex items-center justify-between px-2">
-        <div className="flex items-center gap-3">
-          <Avatar className="h-14 w-14 border-2 border-purple-400/20">
-            <AvatarImage 
-              src={user?.pfpUrl || mockUser.avatar} 
-              alt={user?.displayName || user?.username || mockUser.username} 
-            />
-            <AvatarFallback className="text-lg">
-              {(user?.displayName || user?.username || mockUser.username).charAt(0).toUpperCase()}
-            </AvatarFallback>
-          </Avatar>
-          <div>
-            <h1 className="text-xl font-bold">
-              {user?.displayName || user?.username || mockUser.username}
-            </h1>
-            {user?.username && (
-              <p className="text-sm text-muted-foreground">
-                @{user.username}
-              </p>
-            )}
-          </div>
-        </div>
-        <Badge variant="secondary" className="text-xs">
-          FID #{user?.fid || mockUser.fid}
-        </Badge>
-      </div>
-
       {/* Trading Aura Visualization - Shareable */}
       <Card>
         <CardHeader>
