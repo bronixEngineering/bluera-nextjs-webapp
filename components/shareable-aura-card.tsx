@@ -2,6 +2,7 @@
 "use client";
 
 import * as React from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Download, Sparkles } from "lucide-react";
 import Image from "next/image";
@@ -41,11 +42,30 @@ export function ShareableAuraCard({
   totalTrades = 0,
   weeklyPnl,
 }: ShareableAuraCardProps) {
+  // Bu satırları SİL (45-56 arası):
+  // const [isGenerating, setIsGenerating] = React.useState(false);
+  // const [isMinting, setIsMinting] = React.useState(false);
+  // const [showPreview, setShowPreview] = React.useState(false);
+  // const [previewUrl, setPreviewUrl] = React.useState<string | null>(null);
+  // const cardRef = React.useRef<HTMLDivElement>(null);
+  // const { isConnected, address } = useAccount();
+  // const { connect, connectors } = useConnect();
+  // const chainId = useChainId();
+  // const { switchChainAsync } = useSwitchChain();
+  // const { sendCalls } = useSendCalls();
+  // const AURA_NFT_ADDRESS = "0x0BDDf09e207B0303f3F5CA5Af69C9b2ECF74b453";
+  // const USDC_ADDRESS = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";
+
+  // Bu satırları TUT (58-64 arası):
   const [isGenerating, setIsGenerating] = React.useState(false);
   const [isMinting, setIsMinting] = React.useState(false);
   const [showPreview, setShowPreview] = React.useState(false);
   const [previewUrl, setPreviewUrl] = React.useState<string | null>(null);
   const cardRef = React.useRef<HTMLDivElement>(null);
+  const [isGenratingAuraCard, setIsGenratingAuraCard] = React.useState(false);
+  const [isAuraCardGenerated, setIsAuraCardGenerated] = React.useState(false);
+  
+  // Wagmi hooks'ları ekle:
   const { isConnected, address } = useAccount();
   const { connect, connectors } = useConnect();
   const chainId = useChainId();
@@ -53,17 +73,6 @@ export function ShareableAuraCard({
   const { sendCalls } = useSendCalls();
   const AURA_NFT_ADDRESS = "0x0BDDf09e207B0303f3F5CA5Af69C9b2ECF74b453";
   const USDC_ADDRESS = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";
-
-  // API'den gelen değerleri tutan state'ler (prop'lardan başlatılır)
-  const [allTimeVolumeState, setAllTimeVolumeState] = React.useState<number | undefined>(allTimeVolume);
-  const [networthState, setNetworthState] = React.useState<number | undefined>(networth);
-  const [weeklyVolumeState, setWeeklyVolumeState] = React.useState<number | undefined>(weeklyVolume);
-  const [monthlyVolumeState, setMonthlyVolumeState] = React.useState<number | undefined>(monthlyVolume);
-  const [weeklyPnlState, setWeeklyPnlState] = React.useState<number | undefined>(weeklyPnl);
-  const [pnlState, setPnlState] = React.useState<number | undefined>(pnl);
-  const [totalTradesState, setTotalTradesState] = React.useState<number>(totalTrades || 0);
-  const [isGenratingAuraCard, setIsGenratingAuraCard] = React.useState(false);
-  const [isAuraCardGenerated, setIsAuraCardGenerated] = React.useState(false);
 
   // Para formatlayıcı: $X.X, $X.XK, $X.XM
   const fmtMoney = (v: number) => {
@@ -78,49 +87,56 @@ export function ShareableAuraCard({
     return fmtMoney(v);
   };
 
-  // Supabase'den verileri çek
-  React.useEffect(() => {
-    const n = (v: unknown) => (v == null ? undefined : Number(v));
+  // TanStack Query ile wallet-status endpoint'ini çağır
+  const { data: walletStatusData } = useQuery({
+    queryKey: ['wallet-status-shareable', fid, address],
+    queryFn: async () => {
+      const qs =
+        fid != null
+          ? `fid=${encodeURIComponent(String(fid))}`
+          : address
+          ? `wallet=${encodeURIComponent(address)}`
+          : "";
 
-    const load = async () => {
-      try {
-        const qs =
-          fid != null
-            ? `fid=${encodeURIComponent(String(fid))}`
-            : address
-            ? `wallet=${encodeURIComponent(address)}`
-            : "";
+      if (!qs) return null;
 
-        if (!qs) return;
-
-        // volumes, pnl, networth
-        const res = await fetch(`/api/wallet-status?${qs}`);
-        if (res.ok) {
-          const json = await res.json();
-          setAllTimeVolumeState(n(json.all_time_volume) ?? allTimeVolume);
-          setNetworthState(n(json.net_worth) ?? networth);
-          setWeeklyVolumeState(n(json.volume_weekly) ?? weeklyVolume);
-          setMonthlyVolumeState(n(json.volume_monthly) ?? monthlyVolume);
-          setWeeklyPnlState(n(json.weekly_pnl) ?? weeklyPnl);
-          setPnlState(n(json.monthly_pnl) ?? pnl);
-        }
-
-        // totalTrades (wallet gerekiyor)
-        if (address) {
-          const resTrades = await fetch(`/api/wallet-token-status?wallet=${encodeURIComponent(address)}`);
-          if (resTrades.ok) {
-            const { totalTrades } = await resTrades.json();
-            const tn = Number(totalTrades) || 0;
-            setTotalTradesState(tn);
-          }
-        }
-      } catch {
-        // sessiz geç
+      const response = await fetch(`/api/wallet-status?${qs}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch wallet status');
       }
-    };
+      return response.json();
+    },
+    enabled: !!(fid || address),
+    refetchOnWindowFocus: true,
+    staleTime: 30000, // 30 saniye cache
+  });
 
-    load();
-  }, [fid, address, allTimeVolume, networth, weeklyVolume, monthlyVolume, weeklyPnl, pnl]);
+  // TanStack Query ile wallet-token-status endpoint'ini çağır
+  const { data: walletTokenStatusData } = useQuery({
+    queryKey: ['wallet-token-status-shareable', address],
+    queryFn: async () => {
+      if (!address) return null;
+      
+      const response = await fetch(`/api/wallet-token-status?wallet=${encodeURIComponent(address)}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch wallet token status');
+      }
+      return response.json();
+    },
+    enabled: !!address,
+    refetchOnWindowFocus: true,
+    staleTime: 30000, // 30 saniye cache
+  });
+
+  // API'den gelen verileri kullan, yoksa prop'ları kullan
+  const n = (v: unknown) => (v == null ? undefined : Number(v));
+  const allTimeVolumeState = n(walletStatusData?.all_time_volume) ?? allTimeVolume;
+  const networthState = n(walletStatusData?.net_worth) ?? networth;
+  const weeklyVolumeState = n(walletStatusData?.volume_weekly) ?? weeklyVolume;
+  const monthlyVolumeState = n(walletStatusData?.volume_monthly) ?? monthlyVolume;
+  const weeklyPnlState = n(walletStatusData?.weekly_pnl) ?? weeklyPnl;
+  const pnlState = n(walletStatusData?.monthly_pnl) ?? pnl;
+  const totalTradesState = n(walletTokenStatusData?.totalTrades) ?? (totalTrades || 0);
 
   const handleGenerateAuraCard = async () => {
     if (isAuraCardGenerated) return; // already generated, do nothing
@@ -429,68 +445,6 @@ export function ShareableAuraCard({
         ctx.fill();
       });
 
-      const footerY = height - 130;
-
-      ctx.fillStyle = "#ffffff";
-      ctx.font = 'bold 20px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
-      ctx.textAlign = "left";
-      ctx.fillText("Scan to Follow", 150, footerY);
-
-      ctx.fillStyle = "#9ca3af";
-      ctx.font = '16px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
-      ctx.fillText(username ? `@${username}` : "on Farcaster", 150, footerY + 25);
-
-      if (username) {
-        try {
-          const qrSize = 100;
-          const qrX = width - 200;
-          const qrY = footerY - 30;
-
-          ctx.fillStyle = "#ffffff";
-          ctx.beginPath();
-          ctx.moveTo(qrX + 15, qrY);
-          ctx.lineTo(qrX + qrSize - 15, qrY);
-          ctx.quadraticCurveTo(qrX + qrSize, qrY, qrX + qrSize, qrY + 15);
-          ctx.lineTo(qrX + qrSize, qrY + qrSize - 15);
-          ctx.quadraticCurveTo(qrX + qrSize, qrY + qrSize, qrX + qrSize - 15, qrY + qrSize);
-          ctx.lineTo(qrX + 15, qrY + qrSize);
-          ctx.quadraticCurveTo(qrX, qrY + qrSize, qrX, qrY + qrSize - 15);
-          ctx.lineTo(qrX, qrY + 15);
-          ctx.quadraticCurveTo(qrX, qrY, qrX + 15, qrY);
-          ctx.closePath();
-          ctx.fill();
-
-          const qrImg = document.createElement("img");
-          qrImg.crossOrigin = "anonymous";
-          await new Promise<void>((resolve, reject) => {
-            qrImg.onload = () => resolve();
-            qrImg.onerror = () => reject();
-            qrImg.src = `https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=https://farcaster.xyz/${username}`;
-          });
-
-          ctx.save();
-          ctx.beginPath();
-          ctx.moveTo(qrX + 15, qrY);
-          ctx.lineTo(qrX + qrSize - 15, qrY);
-          ctx.quadraticCurveTo(qrX + qrSize, qrY, qrX + qrSize, qrY + 15);
-          ctx.lineTo(qrX + qrSize, qrY + qrSize - 15);
-          ctx.quadraticCurveTo(qrX + qrSize, qrY + qrSize, qrX + qrSize - 15, qrY + qrSize);
-          ctx.lineTo(qrX + 15, qrY + qrSize);
-          ctx.quadraticCurveTo(qrX, qrY + qrSize, qrX, qrY + qrSize - 15);
-          ctx.lineTo(qrX, qrY + 15);
-          ctx.quadraticCurveTo(qrX, qrY, qrX + 15, qrY);
-          ctx.closePath();
-          ctx.clip();
-          ctx.drawImage(qrImg, qrX, qrY, qrSize, qrSize);
-          ctx.restore();
-        } catch {}
-      }
-
-      ctx.fillStyle = "#6b7280";
-      ctx.font = '16px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
-      ctx.textAlign = "center";
-      ctx.fillText("Generated by Bluera • Track. Trade. Dominate.", width / 2, footerY + 60);
-
       return canvas.toDataURL("image/png");
     } catch (error) {
       console.error("Image generation failed:", error);
@@ -742,33 +696,6 @@ export function ShareableAuraCard({
             <p className="text-[10px] text-muted-foreground mb-0.5">Total Trades</p>
             <p className="font-bold text-xs">{totalTradesState}</p>
           </div>
-        </div>
-
-        {/* Footer with QR Code */}
-        <div className="mt-6 pt-4 border-t border-border/50">
-          <div className="flex items-center justify-between">
-            <div className="flex-1">
-              <p className="text-xs font-semibold mb-1">Scan to Follow</p>
-              <p className="text-[10px] text-muted-foreground">
-                {username ? `@${username}` : "on Farcaster"}
-              </p>
-            </div>
-            {username && (
-              <div className="w-16 h-16 bg-white rounded-lg p-1 flex items-center justify-center">
-                <Image
-                  src={`https://api.qrserver.com/v1/create-qr-code/?size=64x64&data=https://farcaster.xyz/${username}`}
-                  alt="QR Code"
-                  width={64}
-                  height={64}
-                  className="w-full h-full"
-                  unoptimized
-                />
-              </div>
-            )}
-          </div>
-          <p className="text-[10px] text-center text-muted-foreground mt-3">
-            Generated by Bluera • Track. Trade. Dominate.
-          </p>
         </div>
       </div>
 

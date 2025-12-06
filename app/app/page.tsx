@@ -1,6 +1,9 @@
 import { createClient as createSupabaseClient } from "@/utils/supabase/server";
 import { HeatmapClient } from "@/components/heatmap-client";
 
+// Bu satırı ekleyin
+export const dynamic = 'force-dynamic';
+
 interface HeatmapToken {
   token_address: string;
   symbol: string;
