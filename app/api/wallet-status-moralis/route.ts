@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { NextResponse } from 'next/server';
-import { getSupabaseServerClient } from '@/lib/supabase';
+// Değiştir: getSupabaseServerClient yerine createClient kullan
+import { createClient as createSupabaseClient } from '@/utils/supabase/server';
 
 type VolumeBuckets = {
   day: Map<string, number>;    
@@ -84,7 +85,8 @@ export async function POST(request: Request) {
     
     const headers = { 'X-API-Key': apiKey, accept: 'application/json' };
     const baseUrl = 'https://deep-index.moralis.io/api/v2.2';
-    const supabase = getSupabaseServerClient();
+    // Değiştir: getSupabaseServerClient() yerine createSupabaseClient()
+    const supabase = await createSupabaseClient();
 
     // Load tokens to filter one-by-one
     const { data: wl, error: wlErr } = await supabase

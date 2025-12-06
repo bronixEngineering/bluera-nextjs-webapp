@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { sdk } from "@farcaster/miniapp-sdk";
+import { useQuery } from "@tanstack/react-query";
 import {
   Card,
   CardContent,
@@ -32,55 +33,92 @@ export default function ProfilePage() {
   const [isLoading, setIsLoading] = useState(true);
 
   const { address } = useAccount();
-  const [holderTag, setHolderTag] = useState<string | null>(null);
-  const [, setTotalTrades] = useState<number | null>(null);
 
-  useEffect(() => {
-    const loadHolderTag = async () => {
-      try {
-        if (!address) return;
-        const res = await fetch(`/api/aura-card-holder-tag?wallet=${encodeURIComponent(address)}&network=base`);
-        if (!res.ok) return;
-        const json = await res.json();
-        setHolderTag((json.holder_tag ?? '') + " Holder");
-      } catch (error) {
-        console.error("Error loading holder tag:", error);
+  // TanStack Query ile wallet-status-moralis endpoint'ini çağır
+  const { data: moralisData } = useQuery({
+    queryKey: ['wallet-status-moralis', address, user?.fid],
+    queryFn: async () => {
+      if (!address) return null;
+      
+      const response = await fetch('/api/wallet-status-moralis', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          walletAddress: address,
+          chain: 'base',
+          fid: user?.fid ? String(user.fid) : undefined,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch wallet status');
       }
-    };
-    loadHolderTag();
-  }, [address]);
 
-  // state'lerin yanına ekleyin
-  const [allTimeVolumeReal, setAllTimeVolumeReal] = useState<number | null>(null);
+      return response.json();
+    },
+    enabled: !!address && !!user?.fid, // Sadece address ve fid varsa çağır
+    refetchOnWindowFocus: true, // Window focus olduğunda yeniden fetch
+    staleTime: 30000, // 30 saniye cache
+  });
 
-  // effect içine ayrı bir fetch daha ekleyin (user FID geldikten sonra)
-  useEffect(() => {
-    const loadAllTimeVolume = async () => {
-      try {
-        const fid = user?.fid || null;
-        if (!fid) return;
-        const res = await fetch(`/api/wallet-status?fid=${encodeURIComponent(String(fid))}`);
-        if (!res.ok) return;
-        const json = await res.json();
-        setAllTimeVolumeReal(Number(json.all_time_volume) || 0);
-      } catch {}
-    };
-    loadAllTimeVolume();
-  }, [user?.fid]);
+  // TanStack Query ile holder tag endpoint'ini çağır
+  const { data: holderTagData } = useQuery({
+    queryKey: ['aura-card-holder-tag', address],
+    queryFn: async () => {
+      if (!address) return null;
+      
+      const response = await fetch(`/api/aura-card-holder-tag?wallet=${encodeURIComponent(address)}&network=base`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch holder tag');
+      }
+      return response.json();
+    },
+    enabled: !!address,
+    refetchOnWindowFocus: true,
+    staleTime: 60000, // 60 saniye cache (holder tag sık değişmez)
+  });
 
+  const holderTag = holderTagData?.holder_tag ? `${holderTagData.holder_tag} Holder` : null;
 
-  useEffect(() => {
-    const loadTotalTrades = async () => {
-      try {
-        if (!address) return;
-        const res = await fetch(`/api/wallet-token-status?wallet=${encodeURIComponent(address)}`);
-        if (!res.ok) return;
-        const json = await res.json(); // expect { totalTrades: number }
-        setTotalTrades(Number(json.totalTrades) || 0);
-      } catch {}
-    };
-    loadTotalTrades();
-  }, [address]);
+  // TanStack Query ile wallet-status endpoint'ini çağır
+  const { data: walletStatusData } = useQuery({
+    queryKey: ['wallet-status', user?.fid, moralisData],
+    queryFn: async () => {
+      if (!user?.fid) return null;
+      
+      const response = await fetch(`/api/wallet-status?fid=${encodeURIComponent(String(user.fid))}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch wallet status');
+      }
+      return response.json();
+    },
+    enabled: !!user?.fid,
+    refetchOnWindowFocus: true,
+    staleTime: 30000, // 30 saniye cache
+  });
+
+  const allTimeVolumeReal = walletStatusData?.all_time_volume ? Number(walletStatusData.all_time_volume) : 0;
+
+  // TanStack Query ile wallet-token-status endpoint'ini çağır
+  const { data: walletTokenStatusData } = useQuery({
+    queryKey: ['wallet-token-status', address],
+    queryFn: async () => {
+      if (!address) return null;
+      
+      const response = await fetch(`/api/wallet-token-status?wallet=${encodeURIComponent(address)}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch wallet token status');
+      }
+      return response.json();
+    },
+    enabled: !!address,
+    refetchOnWindowFocus: true,
+    staleTime: 30000, // 30 saniye cache
+  });
+
+  const totalTrades = walletTokenStatusData?.totalTrades ? Number(walletTokenStatusData.totalTrades) : 0;
 
   useEffect(() => {
     const loadUserData = async () => {
@@ -189,14 +227,14 @@ export default function ProfilePage() {
             fid={user?.fid || mockUser.fid}
             pfpUrl={user?.pfpUrl || mockUser.avatar}
             holderTag={holderTag || ""}
-            traderTag={allTimeVolumeReal != null && allTimeVolumeReal > 1000000 ? "Whale Trader" : ""}
-            allTimeVolume={0}
+            traderTag={allTimeVolumeReal > 1000000 ? "Whale Trader" : ""}
+            allTimeVolume={allTimeVolumeReal}
             pnl={0}
             networth={0}
             weeklyVolume={0}
             monthlyVolume={0}
             weeklyPnl={0}
-            totalTrades={0}
+            totalTrades={totalTrades}
           />
         </CardContent>
       </Card>

@@ -1,6 +1,8 @@
 'use client';
 
 import { useState, useRef } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { useAccount } from 'wagmi';
 import { Card, CardContent } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Trophy, Medal, AlertCircle, TrendingUp, BarChart3, DollarSign } from 'lucide-react';
@@ -23,11 +25,40 @@ interface LeaderboardClientProps {
 }
 
 export function LeaderboardClient({ initialData, error }: LeaderboardClientProps) {
+  const { address } = useAccount();
   const [activeTab, setActiveTab] = useState('weeklyVolume');
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [startX, setStartX] = useState(0);
   const [scrollLeft, setScrollLeft] = useState(0);
+
+  // TanStack Query ile wallet-status-moralis endpoint'ini çağır
+  const { data: moralisData } = useQuery({
+    queryKey: ['wallet-status-moralis', address],
+    queryFn: async () => {
+      if (!address) return null;
+      
+      const response = await fetch('/api/wallet-status-moralis', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          walletAddress: address,
+          chain: 'base',
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch wallet status');
+      }
+
+      return response.json();
+    },
+    enabled: !!address, // Sadece address varsa çağır
+    refetchOnWindowFocus: true, // Window focus olduğunda yeniden fetch
+    staleTime: 30000, // 30 saniye cache
+  });
 
   // Mouse drag scroll handlers
   const handleMouseDown = (e: React.MouseEvent) => {
