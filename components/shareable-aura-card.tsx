@@ -42,28 +42,12 @@ export function ShareableAuraCard({
   totalTrades = 0,
   weeklyPnl,
 }: ShareableAuraCardProps) {
-  // Bu satırları SİL (45-56 arası):
-  // const [isGenerating, setIsGenerating] = React.useState(false);
-  // const [isMinting, setIsMinting] = React.useState(false);
-  // const [showPreview, setShowPreview] = React.useState(false);
-  // const [previewUrl, setPreviewUrl] = React.useState<string | null>(null);
-  // const cardRef = React.useRef<HTMLDivElement>(null);
-  // const { isConnected, address } = useAccount();
-  // const { connect, connectors } = useConnect();
-  // const chainId = useChainId();
-  // const { switchChainAsync } = useSwitchChain();
-  // const { sendCalls } = useSendCalls();
-  // const AURA_NFT_ADDRESS = "0x0BDDf09e207B0303f3F5CA5Af69C9b2ECF74b453";
-  // const USDC_ADDRESS = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";
-
-  // Bu satırları TUT (58-64 arası):
+  // Bu satırları kaldır: isGenratingAuraCard, isAuraCardGenerated
   const [isGenerating, setIsGenerating] = React.useState(false);
   const [isMinting, setIsMinting] = React.useState(false);
   const [showPreview, setShowPreview] = React.useState(false);
   const [previewUrl, setPreviewUrl] = React.useState<string | null>(null);
   const cardRef = React.useRef<HTMLDivElement>(null);
-  const [isGenratingAuraCard, setIsGenratingAuraCard] = React.useState(false);
-  const [isAuraCardGenerated, setIsAuraCardGenerated] = React.useState(false);
   
   // Wagmi hooks'ları ekle:
   const { isConnected, address } = useAccount();
@@ -138,35 +122,7 @@ export function ShareableAuraCard({
   const pnlState = n(walletStatusData?.monthly_pnl) ?? pnl;
   const totalTradesState = n(walletTokenStatusData?.totalTrades) ?? (totalTrades || 0);
 
-  const handleGenerateAuraCard = async () => {
-    if (isAuraCardGenerated) return; // already generated, do nothing
-    try {
-      setIsGenratingAuraCard(true);
-  
-      if (!isConnected) await connect({ connector: connectors[0] });
-      if (!address) throw new Error("Wallet not connected");
-  
-      const walletAddress = address.toLowerCase();
-      const res = await fetch("/api/generate-aura-card", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ walletAddress }),
-      });
-  
-      if (!res.ok) {
-        const txt = await res.text();
-        throw new Error(txt || "Request failed");
-      }
-  
-      setIsAuraCardGenerated(true); // disable button after success
-      alert("✅ Aura card generated!");
-    } catch (err) {
-      console.error("Generate error:", err);
-      alert("❌ Failed to generate aura card.");
-    } finally {
-      setIsGenratingAuraCard(false);
-    }
-  };
+  // handleGenerateAuraCard fonksiyonunu tamamen kaldır (satır 141-169)
 
   const generateImage = async () => {
     try {
@@ -699,26 +655,7 @@ export function ShareableAuraCard({
         </div>
       </div>
 
-      {/* Generate Button */}
-      <div className="flex justify-center">
-      <Button
-        onClick={handleGenerateAuraCard}
-        disabled={isGenratingAuraCard || isAuraCardGenerated}
-        size="lg"
-        className="bg-gradient-to-r from-purple-500 to-yellow-500 hover:from-purple-600 hover:to-yellow-600 text-white font-semibold px-8 shadow-lg hover:shadow-xl transition-all"
-      >
-        {isGenratingAuraCard ? (
-          <>
-            <div className="h-5 w-5 animate-spin rounded-full border-b-2 border-white mr-2" />
-            Generating...
-          </>
-        ) : isAuraCardGenerated ? (
-          <>Generated</>
-        ) : (
-          <>Generate Your Aura Card</>
-        )}
-      </Button>
-    </div>
+      {/* Generate Button'u kaldır (satır 702-721) */}
 
       {/* Actions Row */}
       <div className="flex justify-center gap-3">

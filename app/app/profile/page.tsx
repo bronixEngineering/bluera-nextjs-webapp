@@ -178,6 +178,47 @@ export default function ProfilePage() {
     staleTime: 300000, // 5 dakika cache (bu endpoint ağır işlem yapıyor)
   });
 
+  // Yeni useQuery: generate-aura-card endpoint'ini çağır
+  const { } = useQuery({
+    queryKey: ['generate-aura-card', address],
+    queryFn: async () => {
+      if (!address) return null;
+      
+      const response = await fetch('/api/generate-aura-card', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          walletAddress: address.toLowerCase(),
+          chain: 'base',
+        }),
+      });
+
+      if (!response.ok) {
+        const contentType = response.headers.get('content-type');
+        if (contentType?.includes('application/json')) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'Failed to generate aura card');
+        } else {
+          const text = await response.text();
+          throw new Error(`API returned ${response.status}: ${text.substring(0, 200)}`);
+        }
+      }
+
+      const contentType = response.headers.get('content-type');
+      if (!contentType?.includes('application/json')) {
+        const text = await response.text();
+        throw new Error(`API returned non-JSON: ${response.status}`);
+      }
+
+      return response.json();
+    },
+    enabled: !!address && !isConnecting, // Address var ve bağlanma tamamlandıysa çağır
+    refetchOnWindowFocus: false, // Window focus'ta tekrar çağırma (ağır işlem)
+    staleTime: 300000, // 5 dakika cache (bu endpoint ağır işlem yapıyor)
+  });
+
   // SDK context yükleme - useEffect kalmalı (side effect)
   useEffect(() => {
     const loadUserData = async () => {
