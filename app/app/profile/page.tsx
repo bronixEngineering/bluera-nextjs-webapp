@@ -30,7 +30,16 @@ export default function ProfilePage() {
   const [isInMiniApp, setIsInMiniApp] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
-  const { address } = useAccount();
+  const { address, isConnecting } = useAccount();
+
+  // Debug için
+  useEffect(() => {
+    console.log('🔍 [Profile] Wagmi account state:', {
+      address,
+      isConnecting,
+      hasAddress: !!address
+    });
+  }, [address, isConnecting]);
 
   // TanStack Query ile holder tag endpoint'ini çağır
   const { data: holderTagData } = useQuery({
@@ -39,9 +48,24 @@ export default function ProfilePage() {
       if (!address) return null;
       
       const response = await fetch(`/api/aura-card-holder-tag?wallet=${encodeURIComponent(address)}&network=base`);
+      
       if (!response.ok) {
-        throw new Error('Failed to fetch holder tag');
+        const contentType = response.headers.get('content-type');
+        if (contentType?.includes('application/json')) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'Failed to fetch holder tag');
+        } else {
+          const text = await response.text();
+          throw new Error(`API returned ${response.status}: ${text.substring(0, 200)}`);
+        }
       }
+
+      const contentType = response.headers.get('content-type');
+      if (!contentType?.includes('application/json')) {
+        const text = await response.text();
+        throw new Error(`API returned non-JSON: ${response.status}`);
+      }
+
       return response.json();
     },
     enabled: !!address,
@@ -58,9 +82,24 @@ export default function ProfilePage() {
       if (!user?.fid) return null;
       
       const response = await fetch(`/api/wallet-status?fid=${encodeURIComponent(String(user.fid))}`);
+      
       if (!response.ok) {
-        throw new Error('Failed to fetch wallet status');
+        const contentType = response.headers.get('content-type');
+        if (contentType?.includes('application/json')) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'Failed to fetch wallet status');
+        } else {
+          const text = await response.text();
+          throw new Error(`API returned ${response.status}: ${text.substring(0, 200)}`);
+        }
       }
+
+      const contentType = response.headers.get('content-type');
+      if (!contentType?.includes('application/json')) {
+        const text = await response.text();
+        throw new Error(`API returned non-JSON: ${response.status}`);
+      }
+
       return response.json();
     },
     enabled: !!user?.fid,
@@ -77,9 +116,24 @@ export default function ProfilePage() {
       if (!address) return null;
       
       const response = await fetch(`/api/wallet-token-status?wallet=${encodeURIComponent(address)}`);
+      
       if (!response.ok) {
-        throw new Error('Failed to fetch wallet token status');
+        const contentType = response.headers.get('content-type');
+        if (contentType?.includes('application/json')) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'Failed to fetch wallet token status');
+        } else {
+          const text = await response.text();
+          throw new Error(`API returned ${response.status}: ${text.substring(0, 200)}`);
+        }
       }
+
+      const contentType = response.headers.get('content-type');
+      if (!contentType?.includes('application/json')) {
+        const text = await response.text();
+        throw new Error(`API returned non-JSON: ${response.status}`);
+      }
+
       return response.json();
     },
     enabled: !!address,
@@ -89,13 +143,15 @@ export default function ProfilePage() {
 
   const totalTrades = walletTokenStatusData?.totalTrades ? Number(walletTokenStatusData.totalTrades) : 0;
 
-  // TanStack Query ile wallet-token-status-moralis endpoint'ini çağır
-  const { data: walletTokenStatusMoralisData } = useQuery({
-    queryKey: ['wallet-token-status-moralis', address],
+  // TanStack Query ile wallet-status-moralis endpoint'ini çağır (veritabanını güncellemek için)
+  const { data: walletStatusMoralisData, isLoading: isLoadingMoralis, error: errorMoralis, isFetching: isFetchingMoralis } = useQuery({
+    queryKey: ['wallet-status-moralis', address, user?.fid],
     queryFn: async () => {
       if (!address) return null;
       
-      const response = await fetch('/api/wallet-token-status-moralis', {
+      console.log('🚀 [Profile] wallet-status-moralis fetch başladı', { address, fid: user?.fid });
+      
+      const response = await fetch('/api/wallet-status-moralis', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -103,20 +159,58 @@ export default function ProfilePage() {
         body: JSON.stringify({
           walletAddress: address,
           chain: 'base',
-          hours: 24, // Son 24 saat
+          fid: user?.fid ? String(user.fid) : undefined,
         }),
       });
 
+      // Önce status kontrolü
       if (!response.ok) {
-        throw new Error('Failed to fetch wallet token status from Moralis');
+        const contentType = response.headers.get('content-type');
+        if (contentType?.includes('application/json')) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || `Failed: ${response.status}`);
+        } else {
+          const text = await response.text();
+          console.error('❌ [Profile] Error response:', {
+            status: response.status,
+            statusText: response.statusText,
+            body: text.substring(0, 200)
+          });
+          throw new Error(`API returned ${response.status}: ${response.statusText}`);
+        }
+      }
+
+      // Başarılı response için Content-Type kontrolü
+      const contentType = response.headers.get('content-type');
+      if (!contentType?.includes('application/json')) {
+        const text = await response.text();
+        console.error('❌ [Profile] Non-JSON response:', {
+          status: response.status,
+          contentType,
+          body: text.substring(0, 200)
+        });
+        throw new Error(`API returned non-JSON: ${response.status}`);
       }
 
       return response.json();
     },
-    enabled: !!address, // Sadece address varsa çağır
-    refetchOnWindowFocus: true, // Window focus olduğunda yeniden fetch
-    staleTime: 60000, // 60 saniye cache (bu endpoint ağır işlem yapıyor)
+    enabled: !!address && !isConnecting, // Address var ve bağlanma tamamlandıysa çağır
+    refetchOnWindowFocus: false, // Window focus'ta tekrar çağırma (ağır işlem)
+    staleTime: 300000, // 5 dakika cache (bu endpoint ağır işlem yapıyor)
   });
+
+  // Debug için useEffect ekle
+  useEffect(() => {
+    console.log('�� [Profile] useQuery debug:', {
+      address,
+      isConnecting,
+      enabled: !!address && !isConnecting,
+      isLoadingMoralis,
+      isFetchingMoralis,
+      errorMoralis,
+      hasData: !!walletStatusMoralisData
+    });
+  }, [address, isConnecting, isLoadingMoralis, isFetchingMoralis, errorMoralis, walletStatusMoralisData]);
 
   // SDK context yükleme - useEffect kalmalı (side effect)
   useEffect(() => {

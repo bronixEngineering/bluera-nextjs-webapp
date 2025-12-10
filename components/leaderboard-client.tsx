@@ -25,7 +25,7 @@ interface LeaderboardClientProps {
 }
 
 export function LeaderboardClient({ initialData, error }: LeaderboardClientProps) {
-  const { address } = useAccount();
+  const { address, isConnecting } = useAccount();
   const [activeTab, setActiveTab] = useState('weeklyVolume');
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [isDragging, setIsDragging] = useState(false);
@@ -49,15 +49,40 @@ export function LeaderboardClient({ initialData, error }: LeaderboardClientProps
         }),
       });
 
+      // Önce status kontrolü
       if (!response.ok) {
-        throw new Error('Failed to fetch wallet status');
+        const contentType = response.headers.get('content-type');
+        if (contentType?.includes('application/json')) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || `Failed: ${response.status}`);
+        } else {
+          const text = await response.text();
+          console.error('❌ [Leaderboard] Error response:', {
+            status: response.status,
+            statusText: response.statusText,
+            body: text.substring(0, 200)
+          });
+          throw new Error(`API returned ${response.status}: ${response.statusText}`);
+        }
+      }
+
+      // Başarılı response için Content-Type kontrolü
+      const contentType = response.headers.get('content-type');
+      if (!contentType?.includes('application/json')) {
+        const text = await response.text();
+        console.error('❌ [Leaderboard] Non-JSON response:', {
+          status: response.status,
+          contentType,
+          body: text.substring(0, 200)
+        });
+        throw new Error(`API returned non-JSON: ${response.status}`);
       }
 
       return response.json();
     },
-    enabled: !!address, // Sadece address varsa çağır
-    refetchOnWindowFocus: true, // Window focus olduğunda yeniden fetch
-    staleTime: 30000, // 30 saniye cache
+    enabled: !!address && !isConnecting,
+    refetchOnWindowFocus: true,
+    staleTime: 30000,
   });
 
   // Mouse drag scroll handlers

@@ -36,11 +36,28 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Invalid token - extraction failed' }, { status: 401 });
   }
 
+  const fid = payload.sub.toString();
+
+  // Get user's username from Farcaster API
+  let userName: string | null = null;
+  try {
+    const userRes = await fetch(
+      `https://api.farcaster.xyz/v2/user-by-fid?fid=${fid}`
+    );
+    if (userRes.ok) {
+      const userData = await userRes.json();
+      // Farcaster API returns username in result.user.username
+      userName = userData?.result?.user?.username || null;
+    }
+  } catch {
+    // Silently fail - username is optional
+  }
+
   // Optional: Get user's primary Ethereum address
   let primaryAddress;
   try {
     const res = await fetch(
-      `https://api.farcaster.xyz/fc/primary-address?fid=${payload.sub}&protocol=ethereum`
+      `https://api.farcaster.xyz/fc/primary-address?fid=${fid}&protocol=ethereum`
     );
     if (res.ok) {
       const { result } = await res.json();
@@ -52,22 +69,30 @@ export async function GET(request: NextRequest) {
   
   // Save FID to Supabase (FID is unique, so this will either insert or do nothing)
   const supabase = await createSupabaseClient();
-  const fid = payload.sub.toString();
   
   try {
     // First check if FID already exists
     const { data: existingUser, error: checkError } = await supabase
       .from('users_fid')
-      .select('fid')
+      .select('fid, user_name')
       .eq('fid', fid)
       .single();
 
     if (!existingUser && (!checkError || checkError.code === 'PGRST116')) {
-      // Insert new FID
+      // Insert new FID with username
       await supabase
         .from('users_fid')
-        .insert({ fid })
+        .insert({ 
+          fid,
+          user_name: userName
+        })
         .select();
+    } else if (existingUser && userName && existingUser.user_name !== userName) {
+      // Update username if it has changed
+      await supabase
+        .from('users_fid')
+        .update({ user_name: userName })
+        .eq('fid', fid);
     }
 
     // Save wallet address to wallets_status table (if we have primary address)
@@ -100,5 +125,6 @@ export async function GET(request: NextRequest) {
     fid: payload.sub,
     primaryAddress,
     verifiedDomain,
+    userName,
   });
 }
