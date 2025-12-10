@@ -17,7 +17,7 @@ import {
   LogIn,
 } from "lucide-react";
 import { ShareableAuraCard } from "@/components/shareable-aura-card";
-import { useAccount } from "wagmi";
+import { useAccount, useConnect } from "wagmi";
 
 
 export default function ProfilePage() {
@@ -30,16 +30,35 @@ export default function ProfilePage() {
   const [isInMiniApp, setIsInMiniApp] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
-  const { address, isConnecting } = useAccount();
+  const { address, isConnecting, isConnected } = useAccount();
+  const { connect, connectors } = useConnect();
 
   // Debug için
   useEffect(() => {
     console.log('🔍 [Profile] Wagmi account state:', {
       address,
       isConnecting,
-      hasAddress: !!address
+      isConnected,
+      hasAddress: !!address,
+      connectorsCount: connectors.length
     });
-  }, [address, isConnecting]);
+  }, [address, isConnecting, isConnected, connectors]);
+
+  // Mini App içindeyse ve wallet bağlı değilse otomatik bağlan
+  useEffect(() => {
+    const autoConnect = async () => {
+      if (isInMiniApp && !isConnected && !isConnecting && connectors.length > 0) {
+        console.log('🔌 [Profile] Auto-connecting wallet...');
+        try {
+          await connect({ connector: connectors[0] });
+        } catch (error) {
+          console.error('❌ [Profile] Auto-connect failed:', error);
+        }
+      }
+    };
+
+    autoConnect();
+  }, [isInMiniApp, isConnected, isConnecting, connectors, connect]);
 
   // TanStack Query ile holder tag endpoint'ini çağır
   const { data: holderTagData } = useQuery({
