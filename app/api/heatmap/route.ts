@@ -33,8 +33,6 @@ export async function GET() {
         : `hsl(${0 + Math.abs(token.total_volume_changing_rate * 2)}, 70%, 50%)` // Red for negative
     })) || [];
 
-    console.log(`✅ Fetched ${heatmapData.length} tokens for heatmap`);
-
     return NextResponse.json({
       data: heatmapData,
       totalTokens: heatmapData.length,

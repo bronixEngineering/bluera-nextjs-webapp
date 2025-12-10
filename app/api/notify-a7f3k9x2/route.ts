@@ -48,8 +48,6 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  console.log(`Found ${notifications.length} users to notify`);
-
   // Group notifications by URL (different Farcaster clients might have different URLs)
   const notificationsByUrl = notifications.reduce((acc, notif) => {
     const url = notif.notification_url;
@@ -82,8 +80,6 @@ export async function POST(request: NextRequest) {
       };
 
       try {
-        console.log(`Sending to ${batch.length} users via ${url}`);
-        
         const response = await fetch(url, {
           method: "POST",
           headers: {
@@ -101,7 +97,6 @@ export async function POST(request: NextRequest) {
         }
 
         const result = await response.json();
-        console.log("Notification result:", result);
 
         results.successful += result.successfulTokens?.length || 0;
         results.failed += result.invalidTokens?.length || 0;
@@ -113,8 +108,6 @@ export async function POST(request: NextRequest) {
             .from("farcaster_notifications")
             .delete()
             .in("notification_token", result.invalidTokens);
-          
-          console.log(`Removed ${result.invalidTokens.length} invalid tokens`);
         }
       } catch (error) {
         console.error("Error sending notification:", error);

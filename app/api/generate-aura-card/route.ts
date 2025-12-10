@@ -153,23 +153,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: false, error: auraInsErr.message }, { status: 500 });
     }
 
-
-    console.log('[aura_card]', {
-        wallet: walletAddress,
-        chain,
-        all_time_volume,
-        all_time_pnl,
-        holder_tag: bestTicker ?? null,
-        holder_tag_source: bestAddr ? 'whitelist∩holdings' : 'none',
-        debug: {
-          whitelistError: whitelistError || undefined,
-          top_holding_usd: bestUsd,
-          top_holding_address: bestAddr || undefined,
-        },
-        timestamp: new Date().toISOString(),
-      });
-  
-      return NextResponse.json({
+    return NextResponse.json({
         success: true,
         wallet: walletAddress,
         chain,

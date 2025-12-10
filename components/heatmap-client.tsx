@@ -35,12 +35,6 @@ export function HeatmapClient({
   void _totalVolume;
   const router = useRouter();
 
-  // Debug: check if image_url exists
-  console.log(
-    "🔍 Heatmap tokens with images:",
-    initialData.map((t) => ({ symbol: t.symbol, image_url: t.image_url }))
-  );
-
   const handleRefresh = () => {
     window.location.reload();
   };
@@ -81,50 +75,6 @@ export function HeatmapClient({
     (top, token) => (token.change24h > top.change24h ? token : top),
     initialData[0] || { change24h: 0, symbol: "N/A" }
   );
-
-  // Debug logs for sentiment analysis
-  console.log(
-    "🔍 Debug - Top 20 tokens data:",
-    topTokens.map((t) => ({
-      symbol: t.symbol,
-      change24h: t.change24h,
-      isPositive: t.change24h > 0,
-    }))
-  );
-
-  const positiveTokens = topTokens.filter((t) => t.change24h > 0);
-  const negativeTokens = topTokens.filter((t) => t.change24h < 0);
-
-  console.log(
-    "📊 Debug - Positive tokens:",
-    positiveTokens.length,
-    positiveTokens.map((t) => t.symbol)
-  );
-  console.log(
-    "📊 Debug - Negative tokens:",
-    negativeTokens.length,
-    negativeTokens.map((t) => t.symbol)
-  );
-  console.log("📊 Debug - Total tokens:", topTokens.length);
-  console.log(
-    "📊 Debug - Sentiment percentage:",
-    Math.round((positiveTokens.length / topTokens.length) * 100) + "%"
-  );
-
-  // Debug color calculation
-  console.log("🎨 Debug - Color calculation:");
-  topTokens.forEach((token, index) => {
-    const color = token.color;
-    const isPositive = token.change24h > 0;
-    const isNegative = token.change24h < 0;
-    const isZero = token.change24h === 0;
-
-    console.log(
-      `${index + 1}. ${token.symbol}: change24h=${
-        token.change24h
-      }, color=${color}, positive=${isPositive}, negative=${isNegative}, zero=${isZero}`
-    );
-  });
 
   // Loading state
   if (isLoading) {

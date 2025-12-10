@@ -60,7 +60,6 @@ async function getHeatmapData(): Promise<{
 
     // If no data from database, return empty
     if (heatmapData.length === 0) {
-      console.log("No data from database");
       return {
         data: [],
         totalVolume: 0,
@@ -72,8 +71,6 @@ async function getHeatmapData(): Promise<{
       (sum, token) => sum + token.volume,
       0
     );
-
-    console.log(`✅ Fetched ${heatmapData.length} tokens for heatmap`);
 
     return {
       data: heatmapData,

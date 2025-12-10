@@ -370,7 +370,6 @@ export default function RewardsPage() {
         setIsLoadingContract(true);
         const addr = CLAIM_CONTRACT_ADDRESS;
         const res = await fetch(`/api/claim-contract?address=${encodeURIComponent(addr)}&is_test=${String(IS_TEST)}`);
-        console.log('res', res);
         if (!res.ok) {
           const txt = await res.text();
           console.warn('Contracts API error:', res.status, txt);
@@ -463,7 +462,6 @@ export default function RewardsPage() {
         chainId: base.id,
       });
 
-      console.log('✅ Claim tx:', txHash);
       setTimeout(() => refetch(), 2000);
       alert('✅ Claim transaction sent!');
     } catch (e) {

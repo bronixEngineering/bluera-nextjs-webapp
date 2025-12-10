@@ -54,16 +54,10 @@ export async function POST(request: NextRequest) {
     return Response.json({ error: "Invalid JSON" }, { status: 400 });
   }
 
-  // Log incoming request
-  console.log("=== Webhook Received ===");
-  console.log("Raw Body:", JSON.stringify(requestJson, null, 2));
-
   // Decode JFS
   let decoded: ReturnType<typeof decodeJFS>;
   try {
     decoded = decodeJFS(requestJson);
-    console.log("Decoded Header:", decoded.header);
-    console.log("Decoded Payload:", decoded.payload);
   } catch (error) {
     console.error("JFS Decode Error:", error);
     return Response.json({ error: "Invalid JFS format" }, { status: 400 });
@@ -72,8 +66,6 @@ export async function POST(request: NextRequest) {
   const { header, payload } = decoded;
   const fid = header.fid;
   const event = payload.event;
-
-  console.log(`FID: ${fid}, Event: ${event}`);
 
   // Handle different events
   switch (event) {
@@ -99,8 +91,6 @@ export async function POST(request: NextRequest) {
             { status: 500 }
           );
         }
-
-        console.log(`✅ Saved notification details for FID ${fid}`);
       }
       break;
 
@@ -119,8 +109,6 @@ export async function POST(request: NextRequest) {
           { status: 500 }
         );
       }
-
-      console.log(`✅ Deleted notification details for FID ${fid}`);
       break;
   }
 

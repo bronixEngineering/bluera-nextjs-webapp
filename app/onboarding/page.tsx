@@ -13,32 +13,25 @@ export default function OnboardingPage() {
   useEffect(() => {
     const checkOnboardingStatus = async () => {
       try {
-        console.log("🔍 OnboardingPage: Starting check");
-        
         // Check if we're in a mini app
         const miniAppStatus = await sdk.isInMiniApp();
-        console.log("📱 OnboardingPage: Is in mini app:", miniAppStatus);
         
         if (miniAppStatus) {
           // Get user context
           const context = await sdk.context;
           const userFid = context.user.fid;
-          console.log("👤 OnboardingPage: User FID:", userFid);
           
           // Check if user has completed onboarding
           const hasCompleted = localStorage.getItem(`onboarding_completed_v3_${userFid}`);
-          console.log("✅ OnboardingPage: Has completed onboarding:", hasCompleted);
           
           if (hasCompleted) {
             // User already completed onboarding, redirect to app
-            console.log("🚀 OnboardingPage: Redirecting to /app");
             router.push("/app");
             return;
           }
         }
         
         // Show onboarding
-        console.log("🎯 OnboardingPage: Showing onboarding");
         setShouldShowOnboarding(true);
         
         // Hide splash screen now that we're showing onboarding
