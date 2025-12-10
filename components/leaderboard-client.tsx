@@ -17,6 +17,7 @@ interface WalletStats {
   volume_weekly: number | null;
   monthly_pnl: number | null;
   all_time_volume: number | null;
+  user_name: string | null; // Yeni eklenen
 }
 
 interface LeaderboardClientProps {
@@ -333,11 +334,11 @@ export function LeaderboardClient({ initialData, error }: LeaderboardClientProps
                         )}
                       </div>
                       
-                      {/* Wallet Address */}
+                      {/* User Name veya Wallet Address */}
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-1.5 flex-wrap">
-                          <div className="font-mono text-xs font-semibold group-hover:text-primary transition-colors">
-                            {wallet.wallet_address.slice(0, 6)}...{wallet.wallet_address.slice(-4)}
+                          <div className="font-semibold text-sm group-hover:text-primary transition-colors">
+                            {wallet.user_name || `${wallet.wallet_address.slice(0, 6)}...${wallet.wallet_address.slice(-4)}`}
                           </div>
                           {index < 3 && (
                             <div className={`px-1.5 py-0.5 rounded text-xs font-medium ${
@@ -349,11 +350,7 @@ export function LeaderboardClient({ initialData, error }: LeaderboardClientProps
                             </div>
                           )}
                         </div>
-                        {wallet.fid && (
-                          <div className="text-xs text-muted-foreground mt-0.5">
-                            FID: {wallet.fid}
-                          </div>
-                        )}
+                        {/* FID satırı kaldırıldı */}
                       </div>
                     </div>
                     

@@ -8,18 +8,41 @@ async function getLeaderboardData() {
   try {
     const supabase = await createSupabaseClient();
     
-    const { data, error } = await supabase
+    // Önce wallets_status verilerini çek
+    const { data: walletsData, error: walletsError } = await supabase
       .from('wallets_status')
       .select('*')
       .order('all_time_volume', { ascending: false })
       .limit(100);
     
-    if (error) {
-      console.error("❌ Leaderboard error:", error);
+    if (walletsError) {
+      console.error("❌ Leaderboard error:", walletsError);
       return { data: [], error: "Failed to fetch leaderboard" };
     }
     
-    return { data: data || [], error: null };
+    // FID'leri topla
+    const fids = (walletsData || [])
+      .map(w => w.fid)
+      .filter((fid): fid is string => fid !== null && fid !== undefined);
+    
+    // users_fid tablosundan user_name'leri çek
+    const { data: usersData } = await supabase
+      .from('users_fid')
+      .select('fid, user_name')
+      .in('fid', fids);
+    
+    // user_name'leri map'le
+    const userMap = new Map(
+      (usersData || []).map(u => [u.fid, u.user_name])
+    );
+    
+    // Verileri birleştir
+    const dataWithUserNames = (walletsData || []).map(wallet => ({
+      ...wallet,
+      user_name: wallet.fid ? userMap.get(wallet.fid) || null : null,
+    }));
+    
+    return { data: dataWithUserNames, error: null };
   } catch (error) {
     console.error("❌ Leaderboard fetch error:", error);
     return { data: [], error: "Internal server error" };
