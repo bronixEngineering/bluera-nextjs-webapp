@@ -57,11 +57,6 @@ export function LeaderboardClient({ initialData, error }: LeaderboardClientProps
           throw new Error(errorData.error || `Failed: ${response.status}`);
         } else {
           const text = await response.text();
-          console.error('❌ [Leaderboard] Error response:', {
-            status: response.status,
-            statusText: response.statusText,
-            body: text.substring(0, 200)
-          });
           throw new Error(`API returned ${response.status}: ${response.statusText}`);
         }
       }
@@ -70,11 +65,6 @@ export function LeaderboardClient({ initialData, error }: LeaderboardClientProps
       const contentType = response.headers.get('content-type');
       if (!contentType?.includes('application/json')) {
         const text = await response.text();
-        console.error('❌ [Leaderboard] Non-JSON response:', {
-          status: response.status,
-          contentType,
-          body: text.substring(0, 200)
-        });
         throw new Error(`API returned non-JSON: ${response.status}`);
       }
 

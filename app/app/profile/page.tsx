@@ -17,7 +17,7 @@ import {
   LogIn,
 } from "lucide-react";
 import { ShareableAuraCard } from "@/components/shareable-aura-card";
-import { useAccount, useConnect } from "wagmi";
+import { useAccount } from "wagmi";
 
 
 export default function ProfilePage() {
@@ -30,35 +30,7 @@ export default function ProfilePage() {
   const [isInMiniApp, setIsInMiniApp] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
-  const { address, isConnecting, isConnected } = useAccount();
-  const { connect, connectors } = useConnect();
-
-  // Debug için
-  useEffect(() => {
-    console.log('🔍 [Profile] Wagmi account state:', {
-      address,
-      isConnecting,
-      isConnected,
-      hasAddress: !!address,
-      connectorsCount: connectors.length
-    });
-  }, [address, isConnecting, isConnected, connectors]);
-
-  // Mini App içindeyse ve wallet bağlı değilse otomatik bağlan
-  useEffect(() => {
-    const autoConnect = async () => {
-      if (isInMiniApp && !isConnected && !isConnecting && connectors.length > 0) {
-        console.log('🔌 [Profile] Auto-connecting wallet...');
-        try {
-          await connect({ connector: connectors[0] });
-        } catch (error) {
-          console.error('❌ [Profile] Auto-connect failed:', error);
-        }
-      }
-    };
-
-    autoConnect();
-  }, [isInMiniApp, isConnected, isConnecting, connectors, connect]);
+  const { address, isConnecting } = useAccount();
 
   // TanStack Query ile holder tag endpoint'ini çağır
   const { data: holderTagData } = useQuery({
@@ -163,12 +135,10 @@ export default function ProfilePage() {
   const totalTrades = walletTokenStatusData?.totalTrades ? Number(walletTokenStatusData.totalTrades) : 0;
 
   // TanStack Query ile wallet-status-moralis endpoint'ini çağır (veritabanını güncellemek için)
-  const { data: walletStatusMoralisData, isLoading: isLoadingMoralis, error: errorMoralis, isFetching: isFetchingMoralis } = useQuery({
+  const { } = useQuery({
     queryKey: ['wallet-status-moralis', address, user?.fid],
     queryFn: async () => {
       if (!address) return null;
-      
-      console.log('🚀 [Profile] wallet-status-moralis fetch başladı', { address, fid: user?.fid });
       
       const response = await fetch('/api/wallet-status-moralis', {
         method: 'POST',
@@ -190,11 +160,6 @@ export default function ProfilePage() {
           throw new Error(errorData.error || `Failed: ${response.status}`);
         } else {
           const text = await response.text();
-          console.error('❌ [Profile] Error response:', {
-            status: response.status,
-            statusText: response.statusText,
-            body: text.substring(0, 200)
-          });
           throw new Error(`API returned ${response.status}: ${response.statusText}`);
         }
       }
@@ -203,11 +168,6 @@ export default function ProfilePage() {
       const contentType = response.headers.get('content-type');
       if (!contentType?.includes('application/json')) {
         const text = await response.text();
-        console.error('❌ [Profile] Non-JSON response:', {
-          status: response.status,
-          contentType,
-          body: text.substring(0, 200)
-        });
         throw new Error(`API returned non-JSON: ${response.status}`);
       }
 
@@ -218,19 +178,6 @@ export default function ProfilePage() {
     staleTime: 300000, // 5 dakika cache (bu endpoint ağır işlem yapıyor)
   });
 
-  // Debug için useEffect ekle
-  useEffect(() => {
-    console.log('�� [Profile] useQuery debug:', {
-      address,
-      isConnecting,
-      enabled: !!address && !isConnecting,
-      isLoadingMoralis,
-      isFetchingMoralis,
-      errorMoralis,
-      hasData: !!walletStatusMoralisData
-    });
-  }, [address, isConnecting, isLoadingMoralis, isFetchingMoralis, errorMoralis, walletStatusMoralisData]);
-
   // SDK context yükleme - useEffect kalmalı (side effect)
   useEffect(() => {
     const loadUserData = async () => {
@@ -238,16 +185,14 @@ export default function ProfilePage() {
         // Check if we're in a Mini App
         const miniAppStatus = await sdk.isInMiniApp();
         setIsInMiniApp(miniAppStatus);
-        console.log("🔍 Is in Mini App:", miniAppStatus);
 
         if (miniAppStatus) {
           // Get context and extract user info
           const context = await sdk.context;
-          console.log("📱 Mini App Context:", context);
           setUser(context.user);
         }
       } catch (error) {
-        console.error("Error loading user data:", error);
+        // Silently fail
       } finally {
         setIsLoading(false);
       }
