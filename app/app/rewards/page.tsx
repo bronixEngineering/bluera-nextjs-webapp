@@ -19,7 +19,7 @@ import type { Abi } from 'viem';
 import { formatUnits } from 'viem';
 
 // Known address (lower/upper case-insensitive lookup on server)
-const CLAIM_CONTRACT_ADDRESS = '0x734FB924B7f3dd3Af627B4995186Fc44AC581b9d' as `0x${string}`;
+const CLAIM_CONTRACT_ADDRESS = '0x4ee23358C634f80EA26793d605390a9BC4EF997D' as `0x${string}`;
 const IS_TEST = false;
 
 // Minimal ERC20 ABI to read decimals/symbol (optional formatting)
