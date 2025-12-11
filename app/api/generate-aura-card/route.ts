@@ -7,14 +7,6 @@ function toNum(v: unknown): number {
   return Number.isFinite(n) ? n : 0;
 }
 
-async function getProfitabilitySummary(baseUrl: string, headers: Record<string, string>, walletAddress: string, chain: string) {
-  const url = `${baseUrl}/wallets/${walletAddress}/profitability/summary?chain=${chain}`;
-  const resp = await fetch(url, { headers });
-  if (!resp.ok) return null;
-  const json = await resp.json().catch(() => null);
-  return json;
-}
-
 type Holding = { usd: number; symbol?: string | null };
 
 async function getWalletHoldings(baseUrl: string, headers: Record<string, string>, walletAddress: string, chain: string) {
@@ -71,44 +63,10 @@ export async function POST(request: Request) {
     // Değiştir: getSupabaseServerClient() yerine createSupabaseClient()
     const supabase = await createSupabaseClient();
 
-    // 1) All-time metrics
-    const summary = await getProfitabilitySummary(baseUrl, headers, walletAddress, chain);
-    if (!summary) {
-      return NextResponse.json({ success: false, error: 'Failed to fetch profitability summary' }, { status: 502 });
-    }
-    
-    // Debug: API response'unu logla
-    console.log('📊 [generate-aura-card] Moralis API response:', {
-      summaryKeys: Object.keys(summary || {}),
-      total_trade_volume: summary?.total_trade_volume,
-      total_realized_profit_usd: summary?.total_realized_profit_usd,
-      total_usd_pnl: summary?.total_usd_pnl,
-      rawSummary: summary,
-    });
-    
-    // wallet-status-moralis endpoint'indeki gibi parse et (fallback field'lar ile)
-    const volumeRaw = summary?.total_trade_volume ?? 0;
-    const volumeNum = typeof volumeRaw === 'string' ? parseFloat(volumeRaw) : Number(volumeRaw);
-    const all_time_volume = Number.isFinite(volumeNum) ? Math.abs(volumeNum) : 0;
-    
-    // PnL için fallback field kullan (total_usd_pnl)
-    const pnlRaw = summary?.total_realized_profit_usd ?? summary?.total_usd_pnl ?? 0;
-    const pnlNum = typeof pnlRaw === 'string' ? parseFloat(pnlRaw) : Number(pnlRaw);
-    const all_time_pnl = Number.isFinite(pnlNum) ? pnlNum : 0;
-    
-    console.log('📊 [generate-aura-card] Parsed values:', {
-      all_time_volume,
-      all_time_pnl,
-      volumeRaw,
-      pnlRaw,
-      volumeNum,
-      pnlNum,
-    });
-
-    // 2) Holdings
+    // 1) Holdings (whitelisted tokenler için balance/pnl etiketi)
     const holdings = await getWalletHoldings(baseUrl, headers, walletAddress, chain);
 
-    // 3) Whitelist (token_address [+ token_symbol] varsa)
+    // 2) Whitelist (token_address [+ token_symbol] varsa)
     let whitelistRows: Array<{ token_address: string; token_symbol?: string | null }> | null = null;
     let whitelistError: string | null = null;
 
@@ -141,7 +99,7 @@ export async function POST(request: Request) {
       }));
     }
 
-    // 4) Intersection + max holding token'ı bul
+    // 3) Intersection + max holding token'ı bul
     let bestAddr: string | null = null;
     let bestUsd = 0;
     let bestTicker: string | null = null;
@@ -223,15 +181,11 @@ export async function POST(request: Request) {
       bestTickerLength: bestTicker?.length,
       holderTagValue,
       holderTagValueType: typeof holderTagValue,
-      all_time_volume,
-      all_time_pnl,
     });
 
-    // 5) aura_card insert (HER çağrıda yeni satır)
+    // 4) aura_card insert (HER çağrıda yeni satır)
     const insertData = {
       wallet_address: dbWallet,
-      all_time_volume,
-      all_time_pnl,
       holder_tag: holderTagValue,
       // network, created_at, minted: DB default
     };
@@ -245,7 +199,7 @@ export async function POST(request: Request) {
     const { data: insertedData, error: auraInsErr } = await supabase
       .from('aura_card')
       .insert(insertData)
-      .select('holder_tag, all_time_volume, all_time_pnl');
+      .select('holder_tag');
 
     if (auraInsErr) {
       console.error('❌ [generate-aura-card] Insert error:', auraInsErr);
@@ -256,8 +210,6 @@ export async function POST(request: Request) {
       insertedHolderTag: insertedData?.[0]?.holder_tag,
       insertedHolderTagType: typeof insertedData?.[0]?.holder_tag,
       insertedHolderTagIsNull: insertedData?.[0]?.holder_tag === null,
-      insertedVolume: insertedData?.[0]?.all_time_volume,
-      insertedPnl: insertedData?.[0]?.all_time_pnl,
     });
 
     return NextResponse.json({
@@ -265,8 +217,6 @@ export async function POST(request: Request) {
         wallet: walletAddress,
         chain,
         data: {
-          all_time_volume,
-          all_time_pnl,
           holder_tag: holderTagValue,
           holder_tag_source: bestAddr ? 'whitelist∩holdings' : 'none',
         },
@@ -280,20 +230,9 @@ export async function POST(request: Request) {
           bestTicker,
           sampleHoldings: holdingsList.slice(0, 3),
           sampleWhitelist: whitelistList.slice(0, 3),
-          morarisResponse: {
-            total_trade_volume: summary?.total_trade_volume,
-            total_realized_profit_usd: summary?.total_realized_profit_usd,
-            total_usd_pnl: summary?.total_usd_pnl,
-          },
-          parsedValues: {
-            all_time_volume,
-            all_time_pnl,
-          },
-          insertedValues: {
-            holder_tag: insertedData?.[0]?.holder_tag,
-            all_time_volume: insertedData?.[0]?.all_time_volume,
-            all_time_pnl: insertedData?.[0]?.all_time_pnl,
-          },
+          insertedHolderTag: insertedData?.[0]?.holder_tag,
+          insertedHolderTagType: typeof insertedData?.[0]?.holder_tag,
+          insertedHolderTagIsNull: insertedData?.[0]?.holder_tag === null,
         },
         timestamp: new Date().toISOString(),
       });

@@ -44,6 +44,16 @@ async function getAllTimeTradeVolumeUsd(baseUrl: string, headers: Record<string,
   return Number.isFinite(n) ? Math.abs(n) : 0;
 }
 
+async function getAllTimePnlUsd(baseUrl: string, headers: Record<string, string>, walletAddress: string, chain: string) {
+  const url = `${baseUrl}/wallets/${walletAddress}/profitability/summary?chain=${chain}`;
+  const resp = await fetch(url, { headers });
+  if (!resp.ok) return 0;
+  const json = await resp.json().catch(() => ({}));
+  const v = json?.total_realized_profit_usd ?? json?.total_usd_pnl ?? 0;
+  const n = typeof v === 'string' ? parseFloat(v) : Number(v);
+  return Number.isFinite(n) ? n : 0;
+}
+
 async function getNetWorthUsd(baseUrl: string, headers: Record<string, string>, walletAddress: string, chain: string) {
   const url = new URL(`${baseUrl}/wallets/${walletAddress}/net-worth`);
   url.searchParams.append('chains[]', chain);
@@ -197,6 +207,7 @@ export async function POST(request: Request) {
     const monthly_pnl = await getProfitUsd(30, baseUrl, headers, walletAddress, chain);
     const net_worth = await getNetWorthUsd(baseUrl, headers, walletAddress, chain);
     const all_time_volume = await getAllTimeTradeVolumeUsd(baseUrl, headers, walletAddress, chain);
+    const all_time_pnl = await getAllTimePnlUsd(baseUrl, headers, walletAddress, chain);
 
     const dbWallet = walletAddress.toLowerCase();
 
@@ -208,6 +219,7 @@ export async function POST(request: Request) {
       monthly_pnl, 
       net_worth,
       all_time_volume,
+      all_time_pnl,
     };
     if (fid) updateFields.fid = fid;
     
@@ -243,6 +255,7 @@ export async function POST(request: Request) {
       volume_weekly,
       volume_monthly,
       all_time_volume,
+      all_time_pnl,
       db,
       timestamp: new Date().toISOString(),
     };
