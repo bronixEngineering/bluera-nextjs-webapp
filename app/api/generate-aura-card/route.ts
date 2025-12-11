@@ -76,8 +76,34 @@ export async function POST(request: Request) {
     if (!summary) {
       return NextResponse.json({ success: false, error: 'Failed to fetch profitability summary' }, { status: 502 });
     }
-    const all_time_volume = Math.abs(toNum(summary?.total_trade_volume ?? 0));
-    const all_time_pnl = toNum(summary?.total_realized_profit_usd ?? 0);
+    
+    // Debug: API response'unu logla
+    console.log('📊 [generate-aura-card] Moralis API response:', {
+      summaryKeys: Object.keys(summary || {}),
+      total_trade_volume: summary?.total_trade_volume,
+      total_realized_profit_usd: summary?.total_realized_profit_usd,
+      total_usd_pnl: summary?.total_usd_pnl,
+      rawSummary: summary,
+    });
+    
+    // wallet-status-moralis endpoint'indeki gibi parse et (fallback field'lar ile)
+    const volumeRaw = summary?.total_trade_volume ?? 0;
+    const volumeNum = typeof volumeRaw === 'string' ? parseFloat(volumeRaw) : Number(volumeRaw);
+    const all_time_volume = Number.isFinite(volumeNum) ? Math.abs(volumeNum) : 0;
+    
+    // PnL için fallback field kullan (total_usd_pnl)
+    const pnlRaw = summary?.total_realized_profit_usd ?? summary?.total_usd_pnl ?? 0;
+    const pnlNum = typeof pnlRaw === 'string' ? parseFloat(pnlRaw) : Number(pnlRaw);
+    const all_time_pnl = Number.isFinite(pnlNum) ? pnlNum : 0;
+    
+    console.log('📊 [generate-aura-card] Parsed values:', {
+      all_time_volume,
+      all_time_pnl,
+      volumeRaw,
+      pnlRaw,
+      volumeNum,
+      pnlNum,
+    });
 
     // 2) Holdings
     const holdings = await getWalletHoldings(baseUrl, headers, walletAddress, chain);
@@ -126,32 +152,113 @@ export async function POST(request: Request) {
       if (lc) whitelistMap.set(lc, { symbol: r.token_symbol ?? null });
     }
 
+    // Debug: Holdings ve whitelist bilgilerini logla
+    const holdingsList = Array.from(holdings.entries()).map(([addr, h]) => ({
+      addr,
+      usd: h.usd,
+      symbol: h.symbol || 'N/A',
+      isWhitelisted: whitelistMap.has(addr),
+    }));
+
+    const whitelistList = Array.from(whitelistMap.keys());
+
+    console.log('🔍 [generate-aura-card] Holdings count:', holdings.size);
+    console.log('🔍 [generate-aura-card] Whitelist count:', whitelistMap.size);
+    console.log('🔍 [generate-aura-card] Sample holdings:', holdingsList.slice(0, 5));
+    console.log('🔍 [generate-aura-card] Sample whitelist:', whitelistList.slice(0, 5));
+
+    // USD değeri 0'dan büyük veya eşit olanları kontrol et
     for (const [addr, h] of holdings.entries()) {
-      if (!whitelistMap.has(addr)) continue;
-      if (h.usd > bestUsd) {
+      if (!whitelistMap.has(addr)) {
+        console.log(`⚠️ [generate-aura-card] Token ${addr} not in whitelist`);
+        continue;
+      }
+      
+      console.log(`✅ [generate-aura-card] Found whitelisted token: ${addr}, USD: ${h.usd}, Symbol: ${h.symbol || 'N/A'}`);
+      
+      // USD değeri kontrolünü >= 0 yapalım (0 değerleri de dahil)
+      if (h.usd >= bestUsd) {
         bestUsd = h.usd;
         bestAddr = addr;
-        // Öncelik: Supabase token_symbol -> Moralis symbol -> null
-        bestTicker = whitelistMap.get(addr)?.symbol || h.symbol || null;
+        // Öncelik: Supabase token_symbol -> Moralis symbol -> token ticker -> address kısa versiyonu
+        const whitelistSymbol = whitelistMap.get(addr)?.symbol;
+        const moralisSymbol = h.symbol;
+        
+        bestTicker = whitelistSymbol || moralisSymbol || null;
+        
+        console.log(`🎯 [generate-aura-card] New best: ${bestTicker} (USD: ${bestUsd})`);
       }
     }
 
+    // Fallback: Eğer hala ticker yoksa ve bestAddr varsa, token ticker'ı kullan
+    if (!bestTicker && bestAddr) {
+      const holding = holdings.get(bestAddr);
+      if (holding?.symbol) {
+        bestTicker = holding.symbol;
+        console.log(`🔄 [generate-aura-card] Using fallback symbol: ${bestTicker}`);
+      } else {
+        // Son çare: Address'in kısa versiyonu
+        bestTicker = `${bestAddr.slice(0, 6)}...${bestAddr.slice(-4)}`;
+        console.log(`🔄 [generate-aura-card] Using address fallback: ${bestTicker}`);
+      }
+    }
+
+    console.log('📊 [generate-aura-card] Final result:', {
+      bestAddr,
+      bestUsd,
+      bestTicker,
+      bestTickerType: typeof bestTicker,
+      bestTickerLength: bestTicker?.length,
+      hasWhitelistedHoldings: bestAddr !== null,
+    });
+
     const dbWallet = walletAddress.toLowerCase();
 
+    // Boş string kontrolü: Eğer bestTicker boş string ise null yap
+    const holderTagValue = bestTicker && bestTicker.trim() !== '' ? bestTicker.trim() : null;
+    
+    console.log('💾 [generate-aura-card] Before insert:', {
+      bestTicker,
+      bestTickerType: typeof bestTicker,
+      bestTickerLength: bestTicker?.length,
+      holderTagValue,
+      holderTagValueType: typeof holderTagValue,
+      all_time_volume,
+      all_time_pnl,
+    });
+
     // 5) aura_card insert (HER çağrıda yeni satır)
-    const { error: auraInsErr } = await supabase
+    const insertData = {
+      wallet_address: dbWallet,
+      all_time_volume,
+      all_time_pnl,
+      holder_tag: holderTagValue,
+      // network, created_at, minted: DB default
+    };
+
+    console.log('💾 [generate-aura-card] Insert data:', {
+      ...insertData,
+      holder_tag_type: typeof insertData.holder_tag,
+      holder_tag_value: insertData.holder_tag,
+    });
+
+    const { data: insertedData, error: auraInsErr } = await supabase
       .from('aura_card')
-      .insert({
-        wallet_address: dbWallet,
-        all_time_volume,
-        all_time_pnl,
-        holder_tag: bestTicker ?? null,
-        // network, created_at, minted: DB default
-      });
+      .insert(insertData)
+      .select('holder_tag, all_time_volume, all_time_pnl');
 
     if (auraInsErr) {
+      console.error('❌ [generate-aura-card] Insert error:', auraInsErr);
       return NextResponse.json({ success: false, error: auraInsErr.message }, { status: 500 });
     }
+
+    console.log('✅ [generate-aura-card] Insert successful:', {
+      insertedHolderTag: insertedData?.[0]?.holder_tag,
+      insertedHolderTagType: typeof insertedData?.[0]?.holder_tag,
+      insertedHolderTagIsNull: insertedData?.[0]?.holder_tag === null,
+      insertedVolume: insertedData?.[0]?.all_time_volume,
+      insertedPnl: insertedData?.[0]?.all_time_pnl,
+    });
 
     return NextResponse.json({
         success: true,
@@ -160,18 +267,39 @@ export async function POST(request: Request) {
         data: {
           all_time_volume,
           all_time_pnl,
-          holder_tag: bestTicker ?? null,
+          holder_tag: holderTagValue,
           holder_tag_source: bestAddr ? 'whitelist∩holdings' : 'none',
         },
         debug: {
           whitelistError: whitelistError || undefined,
           top_holding_usd: bestUsd,
           top_holding_address: bestAddr || undefined,
+          holdingsCount: holdings.size,
+          whitelistCount: whitelistMap.size,
+          intersectionFound: bestAddr !== null,
+          bestTicker,
+          sampleHoldings: holdingsList.slice(0, 3),
+          sampleWhitelist: whitelistList.slice(0, 3),
+          morarisResponse: {
+            total_trade_volume: summary?.total_trade_volume,
+            total_realized_profit_usd: summary?.total_realized_profit_usd,
+            total_usd_pnl: summary?.total_usd_pnl,
+          },
+          parsedValues: {
+            all_time_volume,
+            all_time_pnl,
+          },
+          insertedValues: {
+            holder_tag: insertedData?.[0]?.holder_tag,
+            all_time_volume: insertedData?.[0]?.all_time_volume,
+            all_time_pnl: insertedData?.[0]?.all_time_pnl,
+          },
         },
         timestamp: new Date().toISOString(),
       });
   } catch (e: unknown) {
     const error = e instanceof Error ? e.message : 'Unknown error';
+    console.error('❌ [generate-aura-card] Fatal error:', error);
     return NextResponse.json({ success: false, error }, { status: 500 });
   }
 }

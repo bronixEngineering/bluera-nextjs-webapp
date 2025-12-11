@@ -53,23 +53,16 @@ export async function GET(request: NextRequest) {
     // Silently fail - username is optional
   }
 
-  // Optional: Get user's primary Ethereum address
-  let primaryAddress;
-  try {
-    const res = await fetch(
-      `https://api.farcaster.xyz/fc/primary-address?fid=${fid}&protocol=ethereum`
-    );
-    if (res.ok) {
-      const { result } = await res.json();
-      primaryAddress = result.address.address;
-    }
-  } catch {
-    // Silently fail
-  }
+  // Connected wallet (Miniapp'ten gelen) - primary fetch yerine bunu kullan
+  const { searchParams } = new URL(request.url);
+  const walletParam = searchParams.get('wallet') || searchParams.get('walletAddress');
+  const providedWallet = walletParam && /^0x[a-fA-F0-9]{40}$/.test(walletParam)
+    ? walletParam.toLowerCase()
+    : null;
   
   // Save FID to Supabase (FID is unique, so this will either insert or do nothing)
   const supabase = await createSupabaseClient();
-  
+
   try {
     // First check if FID already exists
     const { data: existingUser, error: checkError } = await supabase
@@ -95,35 +88,23 @@ export async function GET(request: NextRequest) {
         .eq('fid', fid);
     }
 
-    // Save wallet address to wallets_status table (if we have primary address)
-    if (primaryAddress) {
-      const walletAddress = primaryAddress.toLowerCase();
-      
-      // Check if wallet address already exists
-      const { data: existingWallet, error: walletCheckError } = await supabase
+    // Match provided wallet (connected wallet) to wallets_status with fid
+    if (providedWallet) {
+      await supabase
         .from('wallets_status')
-        .select('wallet_address')
-        .eq('wallet_address', walletAddress)
-        .single();
-
-      if (!existingWallet && (!walletCheckError || walletCheckError.code === 'PGRST116')) {
-        // Insert new wallet address with FID reference
-        await supabase
-          .from('wallets_status')
-          .insert({ 
-            wallet_address: walletAddress,
-            fid: fid
-          })
-          .select();
-      }
+        .upsert(
+          { wallet_address: providedWallet, fid },
+          { onConflict: 'wallet_address' }
+        )
+        .select();
     }
   } catch {
     // Silently fail
   }
-  
+
   return NextResponse.json({
     fid: payload.sub,
-    primaryAddress,
+    walletAddress: providedWallet,
     verifiedDomain,
     userName,
   });
