@@ -120,20 +120,12 @@ export async function POST(request: Request) {
 
     const whitelistList = Array.from(whitelistMap.keys());
 
-    console.log('🔍 [generate-aura-card] Holdings count:', holdings.size);
-    console.log('🔍 [generate-aura-card] Whitelist count:', whitelistMap.size);
-    console.log('🔍 [generate-aura-card] Sample holdings:', holdingsList.slice(0, 5));
-    console.log('🔍 [generate-aura-card] Sample whitelist:', whitelistList.slice(0, 5));
-
     // USD değeri 0'dan büyük veya eşit olanları kontrol et
     for (const [addr, h] of holdings.entries()) {
       if (!whitelistMap.has(addr)) {
-        console.log(`⚠️ [generate-aura-card] Token ${addr} not in whitelist`);
         continue;
       }
-      
-      console.log(`✅ [generate-aura-card] Found whitelisted token: ${addr}, USD: ${h.usd}, Symbol: ${h.symbol || 'N/A'}`);
-      
+            
       // USD değeri kontrolünü >= 0 yapalım (0 değerleri de dahil)
       if (h.usd >= bestUsd) {
         bestUsd = h.usd;
@@ -143,9 +135,7 @@ export async function POST(request: Request) {
         const moralisSymbol = h.symbol;
         
         bestTicker = whitelistSymbol || moralisSymbol || null;
-        
-        console.log(`🎯 [generate-aura-card] New best: ${bestTicker} (USD: ${bestUsd})`);
-      }
+              }
     }
 
     // Fallback: Eğer hala ticker yoksa ve bestAddr varsa, token ticker'ı kullan
@@ -153,35 +143,16 @@ export async function POST(request: Request) {
       const holding = holdings.get(bestAddr);
       if (holding?.symbol) {
         bestTicker = holding.symbol;
-        console.log(`🔄 [generate-aura-card] Using fallback symbol: ${bestTicker}`);
       } else {
         // Son çare: Address'in kısa versiyonu
         bestTicker = `${bestAddr.slice(0, 6)}...${bestAddr.slice(-4)}`;
-        console.log(`🔄 [generate-aura-card] Using address fallback: ${bestTicker}`);
       }
     }
-
-    console.log('📊 [generate-aura-card] Final result:', {
-      bestAddr,
-      bestUsd,
-      bestTicker,
-      bestTickerType: typeof bestTicker,
-      bestTickerLength: bestTicker?.length,
-      hasWhitelistedHoldings: bestAddr !== null,
-    });
 
     const dbWallet = walletAddress.toLowerCase();
 
     // Boş string kontrolü: Eğer bestTicker boş string ise null yap
     const holderTagValue = bestTicker && bestTicker.trim() !== '' ? bestTicker.trim() : null;
-    
-    console.log('💾 [generate-aura-card] Before insert:', {
-      bestTicker,
-      bestTickerType: typeof bestTicker,
-      bestTickerLength: bestTicker?.length,
-      holderTagValue,
-      holderTagValueType: typeof holderTagValue,
-    });
 
     // 4) aura_card insert (HER çağrıda yeni satır)
     const insertData = {
@@ -189,12 +160,6 @@ export async function POST(request: Request) {
       holder_tag: holderTagValue,
       // network, created_at, minted: DB default
     };
-
-    console.log('💾 [generate-aura-card] Insert data:', {
-      ...insertData,
-      holder_tag_type: typeof insertData.holder_tag,
-      holder_tag_value: insertData.holder_tag,
-    });
 
     const { data: insertedData, error: auraInsErr } = await supabase
       .from('aura_card')
@@ -205,12 +170,6 @@ export async function POST(request: Request) {
       console.error('❌ [generate-aura-card] Insert error:', auraInsErr);
       return NextResponse.json({ success: false, error: auraInsErr.message }, { status: 500 });
     }
-
-    console.log('✅ [generate-aura-card] Insert successful:', {
-      insertedHolderTag: insertedData?.[0]?.holder_tag,
-      insertedHolderTagType: typeof insertedData?.[0]?.holder_tag,
-      insertedHolderTagIsNull: insertedData?.[0]?.holder_tag === null,
-    });
 
     return NextResponse.json({
         success: true,
