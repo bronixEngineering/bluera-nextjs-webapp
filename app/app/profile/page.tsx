@@ -66,14 +66,15 @@ export default function ProfilePage() {
 
   const holderTag = holderTagData?.holder_tag ? `${holderTagData.holder_tag} Holder` : null;
 
-  // TanStack Query ile wallet-status endpoint'ini çağır
+  // TanStack Query ile wallet-status endpoint'ini çağır (wallet address ile)
   const { data: walletStatusData } = useQuery({
-    queryKey: ['wallet-status', user?.fid],
+    queryKey: ['wallet-status', address?.toLowerCase()],
     queryFn: async () => {
-      if (!user?.fid) return null;
-      
-      const response = await fetch(`/api/wallet-status?fid=${encodeURIComponent(String(user.fid))}`);
-      
+      if (!address) return null;
+
+      const wallet = address.toLowerCase();
+      const response = await fetch(`/api/wallet-status?wallet=${encodeURIComponent(wallet)}`);
+
       if (!response.ok) {
         const contentType = response.headers.get('content-type');
         if (contentType?.includes('application/json')) {
@@ -93,7 +94,7 @@ export default function ProfilePage() {
 
       return response.json();
     },
-    enabled: !!user?.fid,
+    enabled: !!address,
     refetchOnWindowFocus: true,
     staleTime: 30000, // 30 saniye cache
   });
