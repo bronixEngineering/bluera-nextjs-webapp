@@ -57,7 +57,6 @@ export function LeaderboardClient({ initialData, error }: LeaderboardClientProps
           const errorData = await response.json();
           throw new Error(errorData.error || `Failed: ${response.status}`);
         } else {
-          const text = await response.text();
           throw new Error(`API returned ${response.status}: ${response.statusText}`);
         }
       }
@@ -65,7 +64,6 @@ export function LeaderboardClient({ initialData, error }: LeaderboardClientProps
       // Başarılı response için Content-Type kontrolü
       const contentType = response.headers.get('content-type');
       if (!contentType?.includes('application/json')) {
-        const text = await response.text();
         throw new Error(`API returned non-JSON: ${response.status}`);
       }
 
