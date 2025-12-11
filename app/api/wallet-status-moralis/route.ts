@@ -69,7 +69,7 @@ export async function POST(request: Request) {
     
     // Limit pages and tokens to reduce API I/O and improve latency
     const maxPages = Number.isFinite(body?.maxPages)
-      ? Math.max(1, Math.min(20, Number(body.maxPages)))
+      ? Math.max(1, Math.min(100, Number(body.maxPages)))
       : 100;
 
     if (!walletAddress || !/^0x[a-fA-F0-9]{40}$/.test(walletAddress)) {

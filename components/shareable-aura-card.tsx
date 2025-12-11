@@ -504,7 +504,7 @@ export function ShareableAuraCard({
       if (!latestRes.ok) throw new Error("Latest aura_card id not found");
       const { id: auraCardId } = await latestRes.json();
 
-      const amount = parseUnits("1", 4); // 1 USDC
+      const amount = parseUnits("10", 4); // 1 USDC
       await sendCalls({
         chainId: base.id,
         calls: [
