@@ -71,26 +71,20 @@ export function ShareableAuraCard({
     return fmtMoney(v);
   };
 
-  // TanStack Query ile wallet-status endpoint'ini çağır
+  // TanStack Query ile wallet-status endpoint'ini her zaman wallet address ile çağır
   const { data: walletStatusData } = useQuery({
-    queryKey: ['wallet-status-shareable', fid, address],
+    queryKey: ['wallet-status-shareable', address?.toLowerCase()],
     queryFn: async () => {
-      const qs =
-        fid != null
-          ? `fid=${encodeURIComponent(String(fid))}`
-          : address
-          ? `wallet=${encodeURIComponent(address)}`
-          : "";
+      if (!address) return null;
 
-      if (!qs) return null;
-
-      const response = await fetch(`/api/wallet-status?${qs}`);
+      const wallet = address.toLowerCase();
+      const response = await fetch(`/api/wallet-status?wallet=${encodeURIComponent(wallet)}`);
       if (!response.ok) {
         throw new Error('Failed to fetch wallet status');
       }
       return response.json();
     },
-    enabled: !!(fid || address),
+    enabled: !!address,
     refetchOnWindowFocus: true,
     staleTime: 30000, // 30 saniye cache
   });
