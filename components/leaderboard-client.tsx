@@ -107,12 +107,6 @@ export function LeaderboardClient({ initialData, error }: LeaderboardClientProps
     scrollContainerRef.current.scrollLeft = scrollLeft - walk;
   };
 
-  // const _getRankIcon = (rank: number) => {
-  //   if (rank === 1) return <Medal className="h-5 w-5 text-yellow-500" />;
-  //   if (rank === 2) return <Medal className="h-5 w-5 text-gray-400" />;
-  //   if (rank === 3) return <Medal className="h-5 w-5 text-amber-600" />;
-  //   return <span className="text-sm font-bold text-muted-foreground">#{rank}</span>;
-  // };
 
   const formatValue = (value: number | null) => {
     if (!value || value === 0) return '$0.00';
