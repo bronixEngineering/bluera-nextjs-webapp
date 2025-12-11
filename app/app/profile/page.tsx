@@ -135,6 +135,48 @@ export default function ProfilePage() {
 
   const totalTrades = walletTokenStatusData?.totalTrades ? Number(walletTokenStatusData.totalTrades) : 0;
 
+  // TanStack Query ile wallet-token-status-moralis endpoint'ini çağır (wallet_token_status tablosunu güncellemek için)
+  const { } = useQuery({
+    queryKey: ['wallet-token-status-moralis', address],
+    queryFn: async () => {
+      if (!address) return null;
+
+      const response = await fetch('/api/wallet-token-status-moralis', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          walletAddress: address.toLowerCase(),
+          // opsiyonel: hours alanını göndermek istersen buraya ekleyebilirsin (default: 24)
+          // hours: 24,
+        }),
+      });
+
+      if (!response.ok) {
+        const contentType = response.headers.get('content-type');
+        if (contentType?.includes('application/json')) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || `Failed: ${response.status}`);
+        } else {
+          const text = await response.text();
+          throw new Error(`API returned ${response.status}: ${text.substring(0, 200)}`);
+        }
+      }
+
+      const contentType = response.headers.get('content-type');
+      if (!contentType?.includes('application/json')) {
+        const text = await response.text();
+        throw new Error(`API returned non-JSON: ${response.status}`);
+      }
+
+      return response.json();
+    },
+    enabled: !!address && !isConnecting,
+    refetchOnWindowFocus: false,
+    staleTime: 0, // her mount'ta (sayfa refresh'inde) tekrar çalışsın
+  });
+
   // TanStack Query ile wallet-status-moralis endpoint'ini çağır (veritabanını güncellemek için)
   const { } = useQuery({
     queryKey: ['wallet-status-moralis', address, user?.fid],

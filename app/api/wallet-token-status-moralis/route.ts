@@ -90,7 +90,7 @@ export async function POST(request: Request) {
 
         cursor = json?.cursor ? String(json.cursor) : null;
         pagesTokens += 1;
-      } while (cursor && pagesTokens < 5);
+      } while (cursor && pagesTokens < 100);
     } catch {
       // Satır 91: e kullanılmıyor, kaldır
       // Continue on error
