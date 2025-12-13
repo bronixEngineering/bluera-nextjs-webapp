@@ -180,13 +180,13 @@ export default function ProfilePage() {
     staleTime: 0, // her mount'ta (sayfa refresh'inde) tekrar çalışsın
   });
 
-  // TanStack Query ile wallet-status-moralis endpoint'ini çağır (veritabanını güncellemek için)
+  // TanStack Query ile wallet-status-mobula endpoint'ini çağır (veritabanını güncellemek için)
   const { } = useQuery({
-    queryKey: ['wallet-status-moralis', address, user?.fid],
+    queryKey: ['wallet-status-mobula', address, user?.fid],
     queryFn: async () => {
       if (!address) return null;
       
-      const response = await fetch('/api/wallet-status-moralis', {
+      const response = await fetch('/api/wallet-status-mobula', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -219,7 +219,8 @@ export default function ProfilePage() {
 
       return response.json();
     },
-    enabled: !!address && !isConnecting, // Address var ve bağlanma tamamlandıysa çağır
+    // Address + FID hazırsa ve cüzdan bağlantısı tamamlanmışsa çalıştır
+    enabled: !!address && !isConnecting && !!user?.fid,
     refetchOnWindowFocus: false, // Window focus'ta tekrar çağırma (ağır işlem)
     staleTime: 300000, // 5 dakika cache (bu endpoint ağır işlem yapıyor)
   });
