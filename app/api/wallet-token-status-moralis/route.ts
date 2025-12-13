@@ -1,173 +1,365 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // app/api/wallet-token-status-moralis/route.ts
 import { NextResponse } from 'next/server';
-// Değiştir: getSupabaseServerClient yerine createClient kullan
 import { createClient as createSupabaseClient } from '@/utils/supabase/server';
 
-type SwapItem = {
-  transactionHash?: string;
-  transactionType?: string; // 'buy' | 'sell'
-  totalValueUsd?: number | string;
-  blockTimestamp?: string;
-  block_timestamp?: string;
+type TokenStats = {
+  dailyCount: number;
+  dailyVolume: number;
+  weeklyCount: number;
+  weeklyVolume: number;
+  monthlyCount: number;
+  monthlyVolume: number;
 };
 
-function fromHoursAgo(hours: number) {
-  return new Date(Date.now() - hours * 60 * 60 * 1000);
+type MobulaTx = {
+  timestamp?: number;
+  asset?: {
+    contract?: string | null;
+    symbol?: string | null;
+    name?: string | null;
+  };
+  hash?: string;
+  amount_usd?: number | string | null;
+  blockchain?: string | null;
+  type?: string | null;
+};
+
+type MobulaPortfolioAsset = {
+  price?: number | string | null;
+  cross_chain_balances?: Record<
+    string,
+    {
+      address?: string | null;
+      balance?: number | string | null;
+      balanceRaw?: string | null;
+      chainId?: number | null;
+    }
+  >;
+};
+
+function fromDaysAgo(days: number) {
+  return new Date(Date.now() - days * 24 * 60 * 60 * 1000);
 }
 
-// Satır 18: any → unknown
 function toNum(v: unknown): number {
   const n = typeof v === 'string' ? parseFloat(v) : Number(v);
   return Number.isFinite(n) ? n : 0;
+}
+
+function parseUsd(v: unknown): number {
+  const n = typeof v === 'string' ? parseFloat(v) : Number(v);
+  return Number.isFinite(n) ? Math.abs(n) : 0;
+}
+
+/**
+ * Mobula /wallet/portfolio endpoint'inden holdings çeker.
+ * Her contract address için USD cinsinden holding_amount_usd hesaplar.
+ */
+async function fetchMobulaPortfolioHoldings(
+  walletAddress: string
+): Promise<Map<string, number>> {
+  const apiKey = process.env.MOBULA_API_KEY;
+  if (!apiKey) {
+    console.error('❌ [wallet-token-status-mobula] MOBULA_API_KEY not set');
+    return new Map();
+  }
+
+  const url = new URL('https://api.mobula.io/api/1/wallet/portfolio');
+  url.searchParams.set('wallet', walletAddress);
+
+  let resp: Response;
+  try {
+    resp = await fetch(url.toString(), {
+      headers: { Authorization: `Bearer ${apiKey}` },
+    });
+  } catch (err) {
+    console.error('❌ [wallet-token-status-mobula] Portfolio network error:', err);
+    return new Map();
+  }
+
+  if (!resp.ok) {
+    console.error(
+      '❌ [wallet-token-status-mobula] Portfolio API error:',
+      resp.status,
+      await resp.text()
+    );
+    return new Map();
+  }
+
+  const json: any = await resp.json().catch(() => ({}));
+  const assets: MobulaPortfolioAsset[] = Array.isArray(json?.data?.assets)
+    ? json.data.assets
+    : [];
+
+  const map = new Map<string, number>();
+
+  for (const a of assets) {
+    const price = toNum(a?.price); // token USD fiyatı
+    if (price <= 0) continue;
+
+    const ccBalances = a?.cross_chain_balances;
+    if (!ccBalances || typeof ccBalances !== 'object') continue;
+
+    for (const entry of Object.values(ccBalances) as Array<{
+      address?: string | null;
+      balance?: number | string | null;
+    }>) {
+      const addr = String(entry?.address || '').toLowerCase();
+      if (!addr) continue;
+
+      const balance = toNum(entry?.balance ?? 0);
+      if (balance <= 0) continue;
+
+      const usd = price * balance;
+      if (usd <= 0) continue;
+
+      const prev = map.get(addr) ?? 0;
+      map.set(addr, prev + usd);
+    }
+  }
+
+  return map;
+}
+
+/**
+ * Cüzdanın son 30 günlük işlemlerini Mobula transactions endpoint'inden çeker.
+ */
+async function fetchMobulaTransactions(
+  walletAddress: string,
+  chain: string,
+  from: Date,
+  to: Date,
+  maxPages = 10,
+  pageSize = 500
+): Promise<MobulaTx[]> {
+  const apiKey = process.env.MOBULA_API_KEY;
+  if (!apiKey) {
+    console.error('❌ [wallet-token-status-mobula] MOBULA_API_KEY not set');
+    return [];
+  }
+
+  const baseUrl = 'https://api.mobula.io/api/1/wallet/transactions';
+  const headers = { Authorization: `Bearer ${apiKey}` };
+
+  const fromMs = from.getTime().toString();
+  const toMs = to.getTime().toString();
+
+  const all: MobulaTx[] = [];
+  let offset = 0;
+  let page = 0;
+
+  while (page < maxPages) {
+    const url = new URL(baseUrl);
+    url.searchParams.set('wallet', walletAddress);
+    url.searchParams.set('from', fromMs);
+    url.searchParams.set('to', toMs);
+    url.searchParams.set('limit', String(pageSize));
+    url.searchParams.set('offset', String(offset));
+    url.searchParams.set('order', 'desc');
+    url.searchParams.set('blockchains', chain); // örn: 'base'
+
+    let resp: Response;
+    try {
+      resp = await fetch(url.toString(), { headers });
+    } catch (err) {
+      console.error('❌ [wallet-token-status-mobula] Transactions network error:', err);
+      break;
+    }
+
+    if (!resp.ok) {
+      console.error(
+        '❌ [wallet-token-status-mobula] Transactions API error:',
+        resp.status,
+        await resp.text()
+      );
+      break;
+    }
+
+    const json: any = await resp.json().catch(() => ({}));
+    const txs: MobulaTx[] = Array.isArray(json?.data?.transactions)
+      ? json.data.transactions
+      : [];
+
+    if (txs.length === 0) break;
+
+    all.push(...txs);
+
+    if (txs.length < pageSize) break;
+    offset += pageSize;
+    page += 1;
+  }
+
+  return all;
 }
 
 export async function POST(request: Request) {
   try {
     const body = await request.json().catch(() => ({}));
     const walletAddress = String(body?.walletAddress || '').trim();
-    const chain = 'base';
-    const hours = Number.isFinite(body?.hours) ? Math.max(1, Math.min(168, Number(body.hours))) : 24;
-    const maxPages = 20;
+    const chain = String(body?.chain || 'base');
 
     if (!walletAddress || !/^0x[a-fA-F0-9]{40}$/.test(walletAddress)) {
-      return NextResponse.json({ success: false, error: 'Invalid walletAddress' }, { status: 400 });
+      return NextResponse.json(
+        { success: false, error: 'Invalid walletAddress' },
+        { status: 400 }
+      );
     }
 
-    const apiKey = process.env.MORALIS_API_KEY;
-    if (!apiKey) {
-      return NextResponse.json({ success: false, error: 'MORALIS_API_KEY not set' }, { status: 500 });
-    }
-    const headers = { accept: 'application/json', 'X-API-Key': apiKey };
-    const baseUrl = 'https://deep-index.moralis.io/api/v2.2';
-
-    // Supabase client - Değiştir: getSupabaseServerClient yerine createSupabaseClient
     const supabase = await createSupabaseClient();
 
     // 1) Whitelist
     const { data: wl, error: wlErr } = await supabase
       .from('whitelisted_tokens')
       .select('token_address');
+
     if (wlErr) {
-      return NextResponse.json({ success: false, error: `Failed to load whitelisted tokens: ${wlErr.message}` }, { status: 500 });
+      console.error('❌ [wallet-token-status-mobula] Failed to load whitelisted tokens:', wlErr);
+      return NextResponse.json(
+        { success: false, error: `Failed to load whitelisted tokens: ${wlErr.message}` },
+        { status: 500 }
+      );
     }
 
-    // Satır 54: any → proper type
     const tokenAddresses: string[] = (wl || [])
-      .map((r: { token_address?: string }) => String(r?.token_address || '').toLowerCase())
+      .map((r: { token_address?: string }) =>
+        String(r?.token_address || '').toLowerCase()
+      )
       .filter(Boolean);
 
     if (tokenAddresses.length === 0) {
-      return NextResponse.json({ success: true, updated: 0, message: 'No whitelisted tokens' });
+      return NextResponse.json({
+        success: true,
+        updated: 0,
+        processed: 0,
+        message: 'No whitelisted tokens',
+      });
     }
 
+    const whitelistSet = new Set(tokenAddresses);
     const walletLc = walletAddress.toLowerCase();
-    const fromDate = fromHoursAgo(hours);
 
-    // 2) Holdings (tokens)
-    const holdingUsdMap = new Map<string, number>();
-    let cursor: string | null = null;
-    let pagesTokens = 0;
-    try {
-      do {
-        const url = new URL(`${baseUrl}/wallets/${walletAddress}/tokens`);
-        url.searchParams.set('chain', chain);
-        url.searchParams.set('limit', '100');
-        if (cursor) url.searchParams.set('cursor', cursor);
+    // 2) Holdings (Mobula portfolio)
+    const holdingUsdMap = await fetchMobulaPortfolioHoldings(walletAddress);
 
-        const resp = await fetch(url.toString(), { headers });
-        if (!resp.ok) {
-          break;
-        }
+    // 3) Zaman pencereleri (1 / 7 / 30 gün)
+    const now = new Date();
+    const from30d = fromDaysAgo(30);
+    const from7d = fromDaysAgo(7);
+    const from1d = fromDaysAgo(1);
 
-        // Satır 80-81: any → proper types
-        const json: { result?: Array<{ token_address?: string; usd_value?: number | string; cursor?: string }>; cursor?: string } = await resp.json().catch(() => ({}));
-        const arr = Array.isArray(json?.result) ? json.result : [];
-        for (const t of arr) {
-          const addr = String(t?.token_address || '').toLowerCase();
-          if (!addr) continue;
-          holdingUsdMap.set(addr, toNum(t?.usd_value ?? 0));
-        }
+    // 4) Tüm işlemleri çek ve token bazında daily/weekly/monthly stats hesapla
+    const maxPages = 20;
+    const txs = await fetchMobulaTransactions(
+      walletAddress,
+      chain,
+      from30d,
+      now,
+      maxPages
+    );
 
-        cursor = json?.cursor ? String(json.cursor) : null;
-        pagesTokens += 1;
-      } while (cursor && pagesTokens < 100);
-    } catch {
-      // Satır 91: e kullanılmıyor, kaldır
-      // Continue on error
+    const statsMap = new Map<string, TokenStats>();
+
+    for (const tx of txs) {
+      const ts = typeof tx.timestamp === 'number' ? tx.timestamp : NaN;
+      if (!Number.isFinite(ts)) continue;
+      if (ts < from30d.getTime() || ts > now.getTime()) continue;
+
+      const contract = String(tx.asset?.contract || '').toLowerCase();
+      if (!contract || !whitelistSet.has(contract)) continue;
+
+      const usd = parseUsd(tx.amount_usd ?? 0);
+      if (usd <= 0) continue;
+
+      let stats = statsMap.get(contract);
+      if (!stats) {
+        stats = {
+          dailyCount: 0,
+          dailyVolume: 0,
+          weeklyCount: 0,
+          weeklyVolume: 0,
+          monthlyCount: 0,
+          monthlyVolume: 0,
+        };
+        statsMap.set(contract, stats);
+      }
+
+      // Monthly (30d)
+      stats.monthlyCount += 1;
+      stats.monthlyVolume += usd;
+
+      // Weekly (7d)
+      if (ts >= from7d.getTime()) {
+        stats.weeklyCount += 1;
+        stats.weeklyVolume += usd;
+      }
+
+      // Daily (1d)
+      if (ts >= from1d.getTime()) {
+        stats.dailyCount += 1;
+        stats.dailyVolume += usd;
+      }
     }
 
-    // 3) Iterate whitelisted tokens
+    // 5) Supabase'e yaz: wallet_token_status
     const results: Array<{
       token: string;
-      count: number;
-      volume: number;
-      holding_usd: number;
       updated: boolean;
+      dailyCount: number;
+      dailyVolume: number;
+      weeklyCount: number;
+      weeklyVolume: number;
+      monthlyCount: number;
+      monthlyVolume: number;
+      holding_usd: number;
       upErr?: string | null;
       insErr?: string | null;
     }> = [];
 
     for (const token of tokenAddresses) {
+      const stats = statsMap.get(token) ?? {
+        dailyCount: 0,
+        dailyVolume: 0,
+        weeklyCount: 0,
+        weeklyVolume: 0,
+        monthlyCount: 0,
+        monthlyVolume: 0,
+      };
 
-      const swapsUrl = new URL(`${baseUrl}/wallets/${walletAddress}/swaps`);
-      swapsUrl.searchParams.set('chain', chain);
-      swapsUrl.searchParams.set('order', 'DESC');
-      swapsUrl.searchParams.set('tokenAddress', token);
-      swapsUrl.searchParams.set('from_date', fromDate.toISOString());
+      const holdingUsd = holdingUsdMap.get(token) ?? 0;
 
-      let pages = 0;
-      let cur: string | null = null;
-      let count = 0;
-      let volume = 0;
+      const hasActivity =
+        stats.dailyCount > 0 ||
+        stats.weeklyCount > 0 ||
+        stats.monthlyCount > 0 ||
+        holdingUsd > 0;
 
-      while (pages < maxPages) {
-        const pageUrl = new URL(swapsUrl.toString());
-        if (cur) pageUrl.searchParams.set('cursor', cur);
-
-        let resp: Response;
-        try {
-          resp = await fetch(pageUrl.toString(), { headers });
-        } catch {
-          // Satır 127: e kullanılmıyor, kaldır
-          break;
-        }
-        if (!resp.ok) {
-          break;
-        }
-
-        // Satır 134: any → proper type
-        let json: { result?: SwapItem[]; cursor?: string };
-        try {
-          json = await resp.json();
-        } catch {
-          // Satır 137: e kullanılmıyor, kaldır
-          break;
-        }
-
-        const arr: SwapItem[] = Array.isArray(json?.result) ? json.result : [];
-        if (arr.length === 0) break;
-
-        for (const s of arr) {
-          // Satır 145: any → SwapItem type'ı zaten var
-          const v = toNum(s?.totalValueUsd ?? 0);
-          if (v > 0) volume += Math.abs(v);
-          count += 1;
-        }
-
-        cur = json?.cursor ? String(json.cursor) : null;
-        pages += 1;
-        if (!cur) break;
-      }
-
-
-      // API null/empty ise bu tokenı atla (yazma yok)
-      if (count === 0) {
-        results.push({ token, count, volume, holding_usd: holdingUsdMap.get(token) ?? 0, updated: false });
+      if (!hasActivity) {
+        results.push({
+          token,
+          updated: false,
+          dailyCount: stats.dailyCount,
+          dailyVolume: stats.dailyVolume,
+          weeklyCount: stats.weeklyCount,
+          weeklyVolume: stats.weeklyVolume,
+          monthlyCount: stats.monthlyCount,
+          monthlyVolume: stats.monthlyVolume,
+          holding_usd: holdingUsd,
+        });
         continue;
       }
 
-      const holdingUsd = holdingUsdMap.get(token) ?? 0;
-      const updateFields = { token_transfer_count: count, token_volume: volume, holding_amount_usd: holdingUsd };
+      const updateFields = {
+        token_transfer_count_daily: stats.dailyCount,
+        token_volume_daily: stats.dailyVolume,
+        token_transfer_count_weekly: stats.weeklyCount,
+        token_volume_weekly: stats.weeklyVolume,
+        token_transfer_count_monthly: stats.monthlyCount,
+        token_volume_monthly: stats.monthlyVolume,
+        holding_amount_usd: holdingUsd,
+        last_updated: new Date().toISOString(),
+      };
+
       const { data: upd, error: upErr } = await supabase
         .from('wallet_token_status')
         .update(updateFields)
@@ -176,51 +368,111 @@ export async function POST(request: Request) {
         .select('id');
 
       if (upErr) {
-        // Insert dene
-        const { error: insErr } = await supabase.from('wallet_token_status').insert({
-          wallet_address: walletLc,
-          token_address: token,
-          ...updateFields,
-        });
-        if (insErr) {
-          results.push({ token, count, volume, holding_usd: holdingUsd, updated: false, upErr: upErr.message, insErr: insErr.message });
-        } else {
-          results.push({ token, count, volume, holding_usd: holdingUsd, updated: true, upErr: upErr.message, insErr: null });
-        }
-      } else {
-        if (!upd || upd.length === 0) {
-          // Row yoksa insert
-          const { error: insErr } = await supabase.from('wallet_token_status').insert({
+        const { error: insErr } = await supabase
+          .from('wallet_token_status')
+          .insert({
             wallet_address: walletLc,
             token_address: token,
             ...updateFields,
           });
+
+        if (insErr) {
+          results.push({
+            token,
+            updated: false,
+            dailyCount: stats.dailyCount,
+            dailyVolume: stats.dailyVolume,
+            weeklyCount: stats.weeklyCount,
+            weeklyVolume: stats.weeklyVolume,
+            monthlyCount: stats.monthlyCount,
+            monthlyVolume: stats.monthlyVolume,
+            holding_usd: holdingUsd,
+            upErr: upErr.message,
+            insErr: insErr.message,
+          });
+        } else {
+          results.push({
+            token,
+            updated: true,
+            dailyCount: stats.dailyCount,
+            dailyVolume: stats.dailyVolume,
+            weeklyCount: stats.weeklyCount,
+            weeklyVolume: stats.weeklyVolume,
+            monthlyCount: stats.monthlyCount,
+            monthlyVolume: stats.monthlyVolume,
+            holding_usd: holdingUsd,
+            upErr: upErr.message,
+            insErr: null,
+          });
+        }
+      } else {
+        if (!upd || upd.length === 0) {
+          const { error: insErr } = await supabase
+            .from('wallet_token_status')
+            .insert({
+              wallet_address: walletLc,
+              token_address: token,
+              ...updateFields,
+            });
+
           if (insErr) {
-            results.push({ token, count, volume, holding_usd: holdingUsd, updated: false, insErr: insErr.message });
+            results.push({
+              token,
+              updated: false,
+              dailyCount: stats.dailyCount,
+              dailyVolume: stats.dailyVolume,
+              weeklyCount: stats.weeklyCount,
+              weeklyVolume: stats.weeklyVolume,
+              monthlyCount: stats.monthlyCount,
+              monthlyVolume: stats.monthlyVolume,
+              holding_usd: holdingUsd,
+              insErr: insErr.message,
+            });
           } else {
-            results.push({ token, count, volume, holding_usd: holdingUsd, updated: true });
+            results.push({
+              token,
+              updated: true,
+              dailyCount: stats.dailyCount,
+              dailyVolume: stats.dailyVolume,
+              weeklyCount: stats.weeklyCount,
+              weeklyVolume: stats.weeklyVolume,
+              monthlyCount: stats.monthlyCount,
+              monthlyVolume: stats.monthlyVolume,
+              holding_usd: holdingUsd,
+            });
           }
         } else {
-          results.push({ token, count, volume, holding_usd: holdingUsd, updated: true });
+          results.push({
+            token,
+            updated: true,
+            dailyCount: stats.dailyCount,
+            dailyVolume: stats.dailyVolume,
+            weeklyCount: stats.weeklyCount,
+            weeklyVolume: stats.weeklyVolume,
+            monthlyCount: stats.monthlyCount,
+            monthlyVolume: stats.monthlyVolume,
+            holding_usd: holdingUsd,
+          });
         }
       }
     }
 
-    const updated = results.filter(r => r.updated).length;
+    const updated = results.filter((r) => r.updated).length;
 
     return NextResponse.json({
       success: true,
       wallet: walletAddress,
       chain,
-      hours,
       updated,
       processed: results.length,
       results,
       timestamp: new Date().toISOString(),
     });
-  } catch (e: unknown) { // Satır 216: any → unknown
+  } catch (e: unknown) {
     const error = e instanceof Error ? e.message : 'Unknown error';
-    console.error('[WTS][FATAL]', error);
-    return NextResponse.json({ success: false, error: error ?? 'Unknown error' }, { status: 500 });
+    console.error('[wallet-token-status-mobula][FATAL]', error);
+    return NextResponse.json({ success: false, error }, { status: 500 });
   }
 }
+
+ 

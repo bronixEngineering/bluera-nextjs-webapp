@@ -134,7 +134,9 @@ export default function ProfilePage() {
     staleTime: 30000, // 30 saniye cache
   });
 
-  const totalTrades = walletTokenStatusData?.totalTrades ? Number(walletTokenStatusData.totalTrades) : 0;
+  const dailyTrades = walletTokenStatusData?.dailyTrades ? Number(walletTokenStatusData.dailyTrades) : 0;
+  const weeklyTrades = walletTokenStatusData?.weeklyTrades ? Number(walletTokenStatusData.weeklyTrades) : 0;
+  const monthlyTrades = walletTokenStatusData?.monthlyTrades ? Number(walletTokenStatusData.monthlyTrades) : 0;
 
   // TanStack Query ile wallet-token-status-moralis endpoint'ini çağır (wallet_token_status tablosunu güncellemek için)
   const { } = useQuery({
@@ -346,7 +348,9 @@ export default function ProfilePage() {
             networth={0}
             weeklyVolume={0}
             monthlyVolume={0}
-            totalTrades={totalTrades}
+            dailyTrades={dailyTrades}
+            weeklyTrades={weeklyTrades}
+            monthlyTrades={monthlyTrades}
           />
         </CardContent>
       </Card>

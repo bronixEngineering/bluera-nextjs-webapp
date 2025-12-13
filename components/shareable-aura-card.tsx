@@ -23,7 +23,9 @@ type ShareableAuraCardProps = {
   networth: number;
   weeklyVolume?: number;
   monthlyVolume?: number;
-  totalTrades?: number;
+  dailyTrades?: number;
+  weeklyTrades?: number;
+  monthlyTrades?: number;
 };
 
 export function ShareableAuraCard({
@@ -36,7 +38,9 @@ export function ShareableAuraCard({
   networth,
   weeklyVolume,
   monthlyVolume,
-  totalTrades = 0,
+  dailyTrades = 0,
+  weeklyTrades = 0,
+  monthlyTrades = 0,
 }: ShareableAuraCardProps) {
   // Bu satırları kaldır: isGenratingAuraCard, isAuraCardGenerated
   const [isGenerating, setIsGenerating] = React.useState(false);
@@ -109,7 +113,9 @@ export function ShareableAuraCard({
   const networthState = n(walletStatusData?.net_worth) ?? networth;
   const weeklyVolumeState = n(walletStatusData?.volume_weekly) ?? weeklyVolume;
   const monthlyVolumeState = n(walletStatusData?.volume_monthly) ?? monthlyVolume;
-  const totalTradesState = n(walletTokenStatusData?.totalTrades) ?? (totalTrades || 0);
+  const dailyTradesState = n(walletTokenStatusData?.dailyTrades) ?? dailyTrades;
+  const weeklyTradesState = n(walletTokenStatusData?.weeklyTrades) ?? weeklyTrades;
+  const monthlyTradesState = n(walletTokenStatusData?.monthlyTrades) ?? monthlyTrades;
 
   // handleGenerateAuraCard fonksiyonunu tamamen kaldır (satır 141-169)
 
@@ -312,8 +318,7 @@ export function ShareableAuraCard({
       drawStatBox(statsStartX + statBoxWidth + statSpacing, statsY, "Weekly Vol", fmtMoney(weeklyVolumeState ?? 0));
       drawStatBox(statsStartX + (statBoxWidth + statSpacing) * 2, statsY, "Monthly Vol", fmtMoney(monthlyVolumeState ?? 0));
 
-      // Row 2 (Net Worth / Total Trades / Avg Trade Size)
-      const avgTrade = totalTradesState > 0 ? (allTimeVolumeState ?? 0) / totalTradesState : 0;
+      // Row 2 (Net Worth / Trades)
       drawStatBox(
         statsStartX + (statBoxWidth + statSpacing) * 2,
         statsY + statBoxHeight + statSpacing,
@@ -323,14 +328,14 @@ export function ShareableAuraCard({
       drawStatBox(
         statsStartX,
         statsY + (statBoxHeight + statSpacing),
-        "Total Trades",
-        `${totalTradesState}`
+        "Daily Trades",
+        `${dailyTradesState ?? 0}`
       );
       drawStatBox(
         statsStartX + statBoxWidth + statSpacing,
         statsY + (statBoxHeight + statSpacing),
-        "Avg Trade Size",
-        fmtMoney(avgTrade)
+        "Weekly Trades",
+        `${weeklyTradesState ?? 0}`
       );
 
       const chartY = statsY + (statBoxHeight + statSpacing) * 3 + 18;
@@ -605,8 +610,16 @@ export function ShareableAuraCard({
           </div>
 
           <div className="text-center p-2 rounded-lg bg-background/50 border border-border">
-            <p className="text-[10px] text-muted-foreground mb-0.5">Total Trades</p>
-            <p className="font-bold text-xs">{totalTradesState}</p>
+            <p className="text-[10px] text-muted-foreground mb-0.5">Daily Trades</p>
+            <p className="font-bold text-xs">{dailyTradesState ?? 0}</p>
+          </div>
+          <div className="text-center p-2 rounded-lg bg-background/50 border border-border">
+            <p className="text-[10px] text-muted-foreground mb-0.5">Weekly Trades</p>
+            <p className="font-bold text-xs">{weeklyTradesState ?? 0}</p>
+          </div>
+          <div className="text-center p-2 rounded-lg bg-background/50 border border-border">
+            <p className="text-[10px] text-muted-foreground mb-0.5">Monthly Trades</p>
+            <p className="font-bold text-xs">{monthlyTradesState ?? 0}</p>
           </div>
         </div>
       </div>
