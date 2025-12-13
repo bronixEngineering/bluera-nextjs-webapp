@@ -615,17 +615,30 @@ export function ShareableAuraCard({
       const json = await res.json();
       const imageUrl: string | null = json?.image_url ?? null;
 
-      const text = encodeURIComponent(
-        "My Bluera Aura Card is live on Base! 🔮 Check out my onchain aura."
-      );
+      const rawText =
+        "My Bluera Aura Card is live on Base! 🔮 Check out my onchain aura.";
+      const encodedText = encodeURIComponent(rawText);
 
       const urlParam = imageUrl
         ? `&url=${encodeURIComponent(imageUrl)}`
         : "";
 
-      const shareUrl = `https://x.com/intent/tweet?text=${text}${urlParam}`;
+      const shareUrl = `https://x.com/intent/tweet?text=${encodedText}${urlParam}`;
 
-      // Mini App ortamında yeni sekme açmak için sdk aksiyonlarını kullan
+      // 1) Önce sistemin native share sheet'ini dene (X app'i buradan seçilebilir)
+      if (typeof navigator !== "undefined" && navigator.share) {
+        try {
+          await navigator.share({
+            text: rawText,
+            url: imageUrl ?? undefined,
+          });
+          return;
+        } catch {
+          // kullanıcı iptal etmiş olabilir, fallback'e geç
+        }
+      }
+
+      // 2) Mini App ortamında yeni sekme açmak için sdk aksiyonlarını kullan
       const actions: MiniAppActions | undefined = sdk.actions;
 
       if (actions?.openUrl) {
@@ -633,7 +646,7 @@ export function ShareableAuraCard({
       } else if (actions?.openExternalUrl) {
         await actions.openExternalUrl({ url: shareUrl });
       } else {
-        // Fallback: normal tarayıcıda çalışıyorsak
+        // 3) Fallback: normal tarayıcıda çalışıyorsak
         window.open(shareUrl, "_blank");
       }
     } catch (e) {
