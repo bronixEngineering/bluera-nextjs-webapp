@@ -12,6 +12,7 @@ import type { Abi } from "viem";
 import { encodeFunctionData, parseUnits } from "viem";
 import auraAbi from "@/components/ABI/aura_nft_contract_abi";
 import usdcAbi from "@/components/ABI/usdc_contract_abi";
+import { sdk } from "@farcaster/miniapp-sdk";
 
 type ShareableAuraCardProps = {
   username?: string;
@@ -49,6 +50,7 @@ export function ShareableAuraCard({
   // Bu satırları kaldır: isGenratingAuraCard, isAuraCardGenerated
   const [isGenerating, setIsGenerating] = React.useState(false);
   const [isMinting, setIsMinting] = React.useState(false);
+  const [hasMinted, setHasMinted] = React.useState(false);
   const [showPreview, setShowPreview] = React.useState(false);
   const [previewUrl, setPreviewUrl] = React.useState<string | null>(null);
   const cardRef = React.useRef<HTMLDivElement>(null);
@@ -516,12 +518,74 @@ export function ShareableAuraCard({
         ],
       });
 
+      // Mint başarılı, şimdi aura card görselini üretip Supabase Storage'a gönder
+      try {
+        const dataUrl =
+          previewUrl || (await generateImage());
+        if (dataUrl && address) {
+          const uploadRes = await fetch("/api/aura-card-image", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              imageDataUrl: dataUrl,
+              walletAddress: address.toLowerCase(),
+              network: "base",
+            }),
+          });
+
+          if (!uploadRes.ok) {
+            console.error(
+              "[aura-card-image] upload failed:",
+              await uploadRes.text()
+            );
+          }
+        }
+      } catch (e) {
+        console.error("Aura card image upload failed:", e);
+      }
+
+      setHasMinted(true);
       alert("✅ Transaction sent! Check your wallet/notification.");
     } catch (error) {
       console.error("Mint error:", error);
       alert("❌ Failed to mint. Please try again.");
     } finally {
       setIsMinting(false);
+    }
+  };
+
+  const handleShareOnBase = async () => {
+    try {
+      if (!address) {
+        alert("Connect your wallet first.");
+        return;
+      }
+
+      const res = await fetch(
+        `/api/aura-card?wallet=${address}&network=base`
+      );
+      if (!res.ok) {
+        const text = await res.text();
+        console.error("Failed to fetch latest aura_card:", text);
+        alert("Could not load your Aura Card. Try again later.");
+        return;
+      }
+
+      const json = await res.json();
+      const imageUrl: string | null = json?.image_url ?? null;
+
+      const text =
+        "My Bluera Aura Card is live on Base! 🔮 Check out my onchain aura.";
+
+      await sdk.actions.composeCast({
+        text,
+        embeds: imageUrl ? [imageUrl] : [],
+      });
+    } catch (e) {
+      console.error("Share on Base error:", e);
+      alert("Failed to open share composer. Please try again.");
     }
   };
 
@@ -632,12 +696,12 @@ export function ShareableAuraCard({
 
       {/* Actions Row */}
       {showActions && (
-        <div className="flex justify-center gap-3">
+        <div className="flex flex-col items-center gap-3">
           <Button
             onClick={handleMint}
             disabled={isMinting}
             size="lg"
-            className="bg-gradient-to-r from-purple-500 to-yellow-500 hover:from-purple-600 hover:to-yellow-600 text-white font-semibold px-8 shadow-lg hover:shadow-xl transition-all"
+            className="bg-gradient-to-r from-purple-500 to-yellow-500 hover:from-purple-600 hover:to-yellow-600 text-white font-semibold px-8 shadow-lg hover:shadow-xl transition-all w-full"
           >
             {isMinting ? (
               <>
@@ -651,6 +715,16 @@ export function ShareableAuraCard({
               </>
             )}
           </Button>
+
+          {mode === "modal" && hasMinted && (
+            <Button
+              onClick={handleShareOnBase}
+              size="lg"
+              className="bg-muted text-foreground hover:bg-muted/80 font-semibold px-8 w-full"
+            >
+              Share on Base
+            </Button>
+          )}
         </div>
       )}
 

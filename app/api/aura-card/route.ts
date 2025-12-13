@@ -14,16 +14,24 @@ export async function GET(req: NextRequest) {
 
     const { data, error } = await supabase
       .from("aura_card")
-      .select("id")
+      .select("id, image_url, holder_tag")
       .eq("wallet_address", wallet.toLowerCase())
       .eq("network", network)
       .order("created_at", { ascending: false })
       .limit(1);
 
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-    if (!data || data.length === 0) return NextResponse.json({ error: "Not found" }, { status: 404 });
+    if (error)
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    if (!data || data.length === 0)
+      return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-    return NextResponse.json({ id: data[0].id });
+    const row = data[0];
+
+    return NextResponse.json({
+      id: row.id,
+      image_url: row.image_url ?? null,
+      holder_tag: row.holder_tag ?? null,
+    });
   } catch (e: any) {
     return NextResponse.json({ error: e?.message || "Unknown error" }, { status: 500 });
   }
