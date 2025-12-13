@@ -1,5 +1,4 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-// app/api/wallet-token-status-moralis/route.ts
 import { NextResponse } from 'next/server';
 import { createClient as createSupabaseClient } from '@/utils/supabase/server';
 

@@ -26,6 +26,8 @@ type ShareableAuraCardProps = {
   dailyTrades?: number;
   weeklyTrades?: number;
   monthlyTrades?: number;
+  showActions?: boolean;
+  mode?: "inline" | "modal";
 };
 
 export function ShareableAuraCard({
@@ -41,6 +43,8 @@ export function ShareableAuraCard({
   dailyTrades = 0,
   weeklyTrades = 0,
   monthlyTrades = 0,
+  showActions = true,
+  mode = "inline",
 }: ShareableAuraCardProps) {
   // Bu satırları kaldır: isGenratingAuraCard, isAuraCardGenerated
   const [isGenerating, setIsGenerating] = React.useState(false);
@@ -627,48 +631,31 @@ export function ShareableAuraCard({
       {/* Generate Button'u kaldır (satır 702-721) */}
 
       {/* Actions Row */}
-      <div className="flex justify-center gap-3">
-        <Button
-          onClick={handleMint}
-          disabled={isMinting}
-          size="lg"
-          className="bg-gradient-to-r from-purple-500 to-yellow-500 hover:from-purple-600 hover:to-yellow-600 text-white font-semibold px-8 shadow-lg hover:shadow-xl transition-all"
-        >
-          {isMinting ? (
-            <>
-              <div className="h-5 w-5 animate-spin rounded-full border-b-2 border-white mr-2" />
-              Minting...
-            </>
-          ) : (
-            <>
-              <Sparkles className="h-5 w-5 mr-2" />
-              Mint Aura NFT
-            </>
-          )}
-        </Button>
-
-        <Button
-          onClick={handlePreview}
-          disabled={isGenerating}
-          size="lg"
-          className="bg-gradient-to-r from-purple-500 to-yellow-500 hover:from-purple-600 hover:to-yellow-600 text-white font-semibold px-8 shadow-lg hover:shadow-xl transition-all"
-        >
-          {isGenerating ? (
-            <>
-              <div className="h-5 w-5 animate-spin rounded-full border-b-2 border-white mr-2" />
-              Generating...
-            </>
-          ) : (
-            <>
-              <Download className="h-5 w-5 mr-2" />
-              Share Your Aura
-            </>
-          )}
-        </Button>
-      </div>
+      {showActions && (
+        <div className="flex justify-center gap-3">
+          <Button
+            onClick={handleMint}
+            disabled={isMinting}
+            size="lg"
+            className="bg-gradient-to-r from-purple-500 to-yellow-500 hover:from-purple-600 hover:to-yellow-600 text-white font-semibold px-8 shadow-lg hover:shadow-xl transition-all"
+          >
+            {isMinting ? (
+              <>
+                <div className="h-5 w-5 animate-spin rounded-full border-b-2 border-white mr-2" />
+                Minting...
+              </>
+            ) : (
+              <>
+                <Sparkles className="h-5 w-5 mr-2" />
+                Mint Aura NFT
+              </>
+            )}
+          </Button>
+        </div>
+      )}
 
       {/* Preview Modal */}
-      {showPreview && previewUrl && (
+      {mode === "inline" && showPreview && previewUrl && (
         <div
           className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4"
           onClick={() => setShowPreview(false)}

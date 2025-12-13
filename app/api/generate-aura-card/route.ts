@@ -9,36 +9,99 @@ function toNum(v: unknown): number {
 
 type Holding = { usd: number; symbol?: string | null };
 
-async function getWalletHoldings(baseUrl: string, headers: Record<string, string>, walletAddress: string, chain: string) {
-  // Moralis: /wallets/{address}/tokens (cursor'lı)
-  const map = new Map<string, Holding>();
-  let cursor: string | null = null;
-  let pages = 0;
-
-  do {
-    const url = new URL(`${baseUrl}/wallets/${walletAddress}/tokens`);
-    url.searchParams.set('chain', chain);
-    url.searchParams.set('limit', '100');
-    if (cursor) url.searchParams.set('cursor', cursor);
-
-    const resp = await fetch(url.toString(), { headers });
-    if (!resp.ok) break;
-
-    const json: { result?: Array<{ token_address?: string; usd_value?: number | string; symbol?: string; cursor?: string }>; cursor?: string } = await resp.json().catch(() => ({}));
-    const arr = Array.isArray(json?.result) ? json.result : [];
-
-    for (const t of arr) {
-      const addr = String(t?.token_address || '').toLowerCase();
-      if (!addr) continue;
-      const usd = toNum(t?.usd_value ?? 0);
-      const sym = t?.symbol ? String(t.symbol) : undefined;
-      const prev = map.get(addr)?.usd ?? 0;
-      if (usd > prev) map.set(addr, { usd, symbol: sym });
+// Mobula /wallet/portfolio response tipini sadeleştirilmiş haliyle tanımlıyoruz
+type MobulaPortfolioAsset = {
+  asset?: {
+    symbol?: string | null;
+  };
+  price?: number | string | null;
+  cross_chain_balances?: Record<
+    string,
+    {
+      address?: string | null;
+      balance?: number | string | null;
+      balanceRaw?: string | null;
+      chainId?: number | null;
     }
+  >;
+};
 
-    cursor = json?.cursor ? String(json.cursor) : null;
-    pages += 1;
-  } while (cursor && pages < 5);
+// ❗ Eski getWalletHoldings (Moralis /tokens veya Mobula /transactions kullanan) fonksiyonu komple sil
+// ve yerine bunu koy:
+async function getWalletHoldings(walletAddress: string): Promise<Map<string, Holding>> {
+  const apiKey = process.env.MOBULA_API_KEY;
+  if (!apiKey) {
+    console.error('❌ [generate-aura-card] MOBULA_API_KEY not set');
+    return new Map();
+  }
+
+  const url = new URL('https://api.mobula.io/api/1/wallet/portfolio');
+  url.searchParams.set('wallet', walletAddress);
+
+  let resp: Response;
+  try {
+    resp = await fetch(url.toString(), {
+      headers: { Authorization: `Bearer ${apiKey}` },
+    });
+  } catch (err) {
+    console.error('❌ [generate-aura-card] Portfolio network error:', err);
+    return new Map();
+  }
+
+  if (!resp.ok) {
+    console.error(
+      '❌ [generate-aura-card] Portfolio API error:',
+      resp.status,
+      await resp.text()
+    );
+    return new Map();
+  }
+
+  type MobulaPortfolioResponse = {
+    data?: {
+      assets?: MobulaPortfolioAsset[];
+    };
+  };
+
+  const json: MobulaPortfolioResponse = await resp
+    .json()
+    .catch(() => ({} as MobulaPortfolioResponse));
+
+  const assets: MobulaPortfolioAsset[] = Array.isArray(json.data?.assets)
+    ? json.data!.assets!
+    : [];
+
+  const map = new Map<string, Holding>();
+
+  for (const a of assets) {
+    const price = toNum(a?.price); // token USD fiyatı
+    if (price <= 0) continue;
+
+    const sym = a?.asset?.symbol ?? null;
+    const ccBalances = a?.cross_chain_balances;
+    if (!ccBalances || typeof ccBalances !== 'object') continue;
+
+    // Her chain için contract address + balance
+    for (const entry of Object.values(ccBalances) as Array<{
+      address?: string | null;
+      balance?: number | string | null;
+    }>) {
+      const addr = String(entry?.address || '').toLowerCase();
+      if (!addr) continue;
+
+      const balance = toNum(entry?.balance ?? 0);
+      if (balance <= 0) continue;
+
+      const usd = price * balance;
+      if (usd <= 0) continue;
+
+      const prev = map.get(addr)?.usd ?? 0;
+      // Eski Moralis sürümündeki gibi: en büyük USD exposure'ı tut
+      if (usd > prev) {
+        map.set(addr, { usd, symbol: sym });
+      }
+    }
+  }
 
   return map;
 }
@@ -53,18 +116,10 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: false, error: 'Invalid walletAddress' }, { status: 400 });
     }
 
-    const apiKey = process.env.MORALIS_API_KEY;
-    if (!apiKey) {
-      return NextResponse.json({ success: false, error: 'MORALIS_API_KEY not set' }, { status: 500 });
-    }
-
-    const headers = { accept: 'application/json', 'X-API-Key': apiKey };
-    const baseUrl = 'https://deep-index.moralis.io/api/v2.2';
-    // Değiştir: getSupabaseServerClient() yerine createSupabaseClient()
     const supabase = await createSupabaseClient();
 
-    // 1) Holdings (whitelisted tokenler için balance bazlı holder etiketi)
-    const holdings = await getWalletHoldings(baseUrl, headers, walletAddress, chain);
+    // 1) Holdings (whitelisted tokenler için balance bazlı holder etiketi) - Mobula portfolio
+    const holdings = await getWalletHoldings(walletAddress);
 
     // 2) Whitelist (token_address [+ token_symbol] varsa)
     let whitelistRows: Array<{ token_address: string; token_symbol?: string | null }> | null = null;

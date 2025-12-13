@@ -31,6 +31,8 @@ export default function ProfilePage() {
   const [isLoading, setIsLoading] = useState(true);
 
   const { address, isConnecting } = useAccount();
+  const [isGeneratingAura, setIsGeneratingAura] = useState(false);
+  const [showAuraModal, setShowAuraModal] = useState(false);
 
   // TanStack Query ile holder tag endpoint'ini çağır
   const { data: holderTagData } = useQuery({
@@ -140,11 +142,11 @@ export default function ProfilePage() {
 
   // TanStack Query ile wallet-token-status-moralis endpoint'ini çağır (wallet_token_status tablosunu güncellemek için)
   const { } = useQuery({
-    queryKey: ['wallet-token-status-moralis', address],
+    queryKey: ['wallet-token-status-mobula', address],
     queryFn: async () => {
       if (!address) return null;
 
-      const response = await fetch('/api/wallet-token-status-moralis', {
+      const response = await fetch('/api/wallet-token-status-mobula', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -225,12 +227,10 @@ export default function ProfilePage() {
     staleTime: 300000, // 5 dakika cache (bu endpoint ağır işlem yapıyor)
   });
 
-  // Yeni useQuery: generate-aura-card endpoint'ini çağır
-  const { } = useQuery({
-    queryKey: ['generate-aura-card', address],
-    queryFn: async () => {
-      if (!address) return null;
-      
+  async function handleGenerateAuraCard() {
+    if (!address || isConnecting) return;
+    try {
+      setIsGeneratingAura(true);
       const response = await fetch('/api/generate-aura-card', {
         method: 'POST',
         headers: {
@@ -259,12 +259,15 @@ export default function ProfilePage() {
         throw new Error(`API returned non-JSON: ${response.status}`);
       }
 
-      return response.json();
-    },
-    enabled: !!address && !isConnecting, // Address var ve bağlanma tamamlandıysa çağır
-    refetchOnWindowFocus: false, // Window focus'ta tekrar çağırma (ağır işlem)
-    staleTime: 300000, // 5 dakika cache (bu endpoint ağır işlem yapıyor)
-  });
+      await response.json();
+      setShowAuraModal(true);
+    } catch (err) {
+      console.error('Failed to generate aura card', err);
+      alert('Failed to generate aura card. Please try again.');
+    } finally {
+      setIsGeneratingAura(false);
+    }
+  }
 
   // SDK context yükleme - useEffect kalmalı (side effect)
   useEffect(() => {
@@ -338,7 +341,7 @@ export default function ProfilePage() {
             Share your unique trading personality with the world
           </CardDescription>
         </CardHeader>
-        <CardContent className="border-none bg-transparent">
+        <CardContent className="border-none bg-transparent space-y-4">
           <ShareableAuraCard
             username={user?.username || mockUser.username}
             fid={user?.fid || mockUser.fid}
@@ -352,7 +355,17 @@ export default function ProfilePage() {
             dailyTrades={dailyTrades}
             weeklyTrades={weeklyTrades}
             monthlyTrades={monthlyTrades}
+            showActions={false}
           />
+          <div className="flex justify-center">
+            <button
+              onClick={handleGenerateAuraCard}
+              disabled={!address || isConnecting || isGeneratingAura}
+              className="inline-flex items-center justify-center rounded-full bg-gradient-to-r from-purple-500 to-yellow-500 px-6 py-2 text-sm font-semibold text-white shadow-md hover:shadow-lg disabled:opacity-60 disabled:cursor-not-allowed transition-all"
+            >
+              {isGeneratingAura ? 'Generating...' : 'Generate Your Aura Card'}
+            </button>
+          </div>
         </CardContent>
       </Card>
 
@@ -375,7 +388,7 @@ export default function ProfilePage() {
       </Card>
 
       {/* Trading Activity Chart Placeholder */}
-          <Card>
+      <Card>
         <CardHeader>
           <CardTitle>Trading Activity</CardTitle>
           <CardDescription>
@@ -391,6 +404,35 @@ export default function ProfilePage() {
           </div>
         </CardContent>
       </Card>
+
+      {showAuraModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 px-4"
+          onClick={() => setShowAuraModal(false)}
+        >
+          <div
+            className="bg-background rounded-2xl p-4 max-w-md w-full"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <ShareableAuraCard
+              username={user?.username || mockUser.username}
+              fid={user?.fid || mockUser.fid}
+              pfpUrl={user?.pfpUrl || mockUser.avatar}
+              holderTag={holderTag || ""}
+              traderTag={dailyVolumeReal > 1000000 ? "Whale Trader" : ""}
+              allTimeVolume={dailyVolumeReal}
+              networth={0}
+              weeklyVolume={0}
+              monthlyVolume={0}
+              dailyTrades={dailyTrades}
+              weeklyTrades={weeklyTrades}
+              monthlyTrades={monthlyTrades}
+              showActions={true}
+              mode="modal"
+            />
+          </div>
+        </div>
+      )}
 
     </div>
   );
