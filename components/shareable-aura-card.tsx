@@ -589,6 +589,44 @@ export function ShareableAuraCard({
     }
   };
 
+  const handleShareOnX = async () => {
+    try {
+      if (!address) {
+        alert("Connect your wallet first.");
+        return;
+      }
+
+      const res = await fetch(
+        `/api/aura-card?wallet=${address}&network=base`
+      );
+      if (!res.ok) {
+        console.error(
+          "Failed to fetch latest aura_card:",
+          await res.text()
+        );
+        alert("Could not load your Aura Card. Try again later.");
+        return;
+      }
+
+      const json = await res.json();
+      const imageUrl: string | null = json?.image_url ?? null;
+
+      const text = encodeURIComponent(
+        "My Bluera Aura Card is live on Base! 🔮 Check out my onchain aura."
+      );
+
+      const urlParam = imageUrl
+        ? `&url=${encodeURIComponent(imageUrl)}`
+        : "";
+
+      const shareUrl = `https://x.com/intent/tweet?text=${text}${urlParam}`;
+      window.open(shareUrl, "_blank");
+    } catch (e) {
+      console.error("Share on X error:", e);
+      alert("Failed to open X share dialog. Please try again.");
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Just the content, no card wrapper */}
@@ -696,34 +734,45 @@ export function ShareableAuraCard({
 
       {/* Actions Row */}
       {showActions && (
-        <div className="flex flex-col items-center gap-3">
-          <Button
-            onClick={handleMint}
-            disabled={isMinting}
-            size="lg"
-            className="bg-gradient-to-r from-purple-500 to-yellow-500 hover:from-purple-600 hover:to-yellow-600 text-white font-semibold px-8 shadow-lg hover:shadow-xl transition-all w-full"
-          >
-            {isMinting ? (
-              <>
-                <div className="h-5 w-5 animate-spin rounded-full border-b-2 border-white mr-2" />
-                Minting...
-              </>
-            ) : (
-              <>
-                <Sparkles className="h-5 w-5 mr-2" />
-                Mint Aura NFT
-              </>
-            )}
-          </Button>
-
-          {mode === "modal" && hasMinted && (
+        <div className="flex flex-col items-center gap-3 w-full">
+          {!hasMinted ? (
             <Button
-              onClick={handleShareOnBase}
+              onClick={handleMint}
+              disabled={isMinting}
               size="lg"
-              className="bg-muted text-foreground hover:bg-muted/80 font-semibold px-8 w-full"
+              className="bg-gradient-to-r from-purple-500 to-yellow-500 hover:from-purple-600 hover:to-yellow-600 text-white font-semibold px-8 shadow-lg hover:shadow-xl transition-all w-full"
             >
-              Share on Base
+              {isMinting ? (
+                <>
+                  <div className="h-5 w-5 animate-spin rounded-full border-b-2 border-white mr-2" />
+                  Minting...
+                </>
+              ) : (
+                <>
+                  <Sparkles className="h-5 w-5 mr-2" />
+                  Mint Aura NFT
+                </>
+              )}
             </Button>
+          ) : (
+            mode === "modal" && (
+              <div className="flex flex-col gap-2 w-full">
+                <Button
+                  onClick={handleShareOnBase}
+                  size="lg"
+                  className="bg-gradient-to-r from-purple-500 to-yellow-500 hover:from-purple-600 hover:to-yellow-600 text-white font-semibold px-8 shadow-lg hover:shadow-xl transition-all w-full"
+                >
+                  Share on Base
+                </Button>
+                <Button
+                  onClick={handleShareOnX}
+                  size="lg"
+                  className="bg-gradient-to-r from-purple-500 to-yellow-500 hover:from-purple-600 hover:to-yellow-600 text-white font-semibold px-8 shadow-lg hover:shadow-xl transition-all w-full"
+                >
+                  Share on X
+                </Button>
+              </div>
+            )
           )}
         </div>
       )}
