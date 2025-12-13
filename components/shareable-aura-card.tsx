@@ -14,6 +14,10 @@ import auraAbi from "@/components/ABI/aura_nft_contract_abi";
 import usdcAbi from "@/components/ABI/usdc_contract_abi";
 import { sdk } from "@farcaster/miniapp-sdk";
 
+type MiniAppActions = typeof sdk.actions & {
+  openExternalUrl?: (opts: { url: string }) => Promise<void> | void;
+};
+
 type ShareableAuraCardProps = {
   username?: string;
   fid?: number;
@@ -620,7 +624,18 @@ export function ShareableAuraCard({
         : "";
 
       const shareUrl = `https://x.com/intent/tweet?text=${text}${urlParam}`;
-      window.open(shareUrl, "_blank");
+
+      // Mini App ortamında yeni sekme açmak için sdk aksiyonlarını kullan
+      const actions: MiniAppActions | undefined = sdk.actions;
+
+      if (actions?.openUrl) {
+        await actions.openUrl({ url: shareUrl });
+      } else if (actions?.openExternalUrl) {
+        await actions.openExternalUrl({ url: shareUrl });
+      } else {
+        // Fallback: normal tarayıcıda çalışıyorsak
+        window.open(shareUrl, "_blank");
+      }
     } catch (e) {
       console.error("Share on X error:", e);
       alert("Failed to open X share dialog. Please try again.");
