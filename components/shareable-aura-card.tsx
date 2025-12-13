@@ -104,7 +104,8 @@ export function ShareableAuraCard({
 
   // API'den gelen verileri kullan, yoksa prop'ları kullan
   const n = (v: unknown) => (v == null ? undefined : Number(v));
-  const allTimeVolumeState = n(walletStatusData?.all_time_volume) ?? allTimeVolume;
+  // Artık burada da günlük volume'ü birincil metric olarak kullanıyoruz
+  const allTimeVolumeState = n(walletStatusData?.volume_daily) ?? allTimeVolume;
   const networthState = n(walletStatusData?.net_worth) ?? networth;
   const weeklyVolumeState = n(walletStatusData?.volume_weekly) ?? weeklyVolume;
   const monthlyVolumeState = n(walletStatusData?.volume_monthly) ?? monthlyVolume;
@@ -307,7 +308,7 @@ export function ShareableAuraCard({
       };
 
       // Row 1
-      drawStatBox(statsStartX, statsY, "All-Time Vol", fmtMoney(allTimeVolumeState ?? 0));
+      drawStatBox(statsStartX, statsY, "Daily Vol", fmtMoney(allTimeVolumeState ?? 0));
       drawStatBox(statsStartX + statBoxWidth + statSpacing, statsY, "Weekly Vol", fmtMoney(weeklyVolumeState ?? 0));
       drawStatBox(statsStartX + (statBoxWidth + statSpacing) * 2, statsY, "Monthly Vol", fmtMoney(monthlyVolumeState ?? 0));
 
@@ -586,7 +587,7 @@ export function ShareableAuraCard({
         {/* Stats Grid */}
         <div className="grid grid-cols-3 gap-2 mt-6">
           <div className="text-center p-2 rounded-lg bg-background/50 border border-border">
-            <p className="text-[10px] text-muted-foreground mb-0.5">All-Time Vol</p>
+            <p className="text-[10px] text-muted-foreground mb-0.5">Daily Vol</p>
             <p className="font-bold text-xs">{fmtMoneyOrNA(allTimeVolumeState)}</p>
           </div>
           <div className="text-center p-2 rounded-lg bg-background/50 border border-border">

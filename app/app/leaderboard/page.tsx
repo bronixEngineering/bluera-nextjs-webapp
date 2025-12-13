@@ -63,7 +63,7 @@ async function getLeaderboardData() {
     const { data: walletsData, error: walletsError } = await supabase
       .from('wallets_status')
       .select('*')
-      .order('all_time_volume', { ascending: false })
+      .order('volume_daily', { ascending: false })
       .limit(100);
     
     if (walletsError) {

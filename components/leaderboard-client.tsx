@@ -152,7 +152,8 @@ export function LeaderboardClient({ initialData, error }: LeaderboardClientProps
   const getTabData = () => {
     switch (activeTab) {
       case 'allTimeVolume':
-        return sortData(initialData, 'all_time_volume');
+        // Artık günlük volume'e göre sıralıyoruz
+        return sortData(initialData, 'volume_daily');
       case 'weeklyVolume':
         return sortData(initialData, 'volume_weekly');
       case 'monthlyVolume':
@@ -160,14 +161,15 @@ export function LeaderboardClient({ initialData, error }: LeaderboardClientProps
       case 'netWorth':
         return sortData(initialData, 'net_worth');
       default:
-        return sortData(initialData, 'all_time_volume');
+        return sortData(initialData, 'volume_daily');
     }
   };
 
   const getValueForTab = (wallet: WalletStats) => {
     switch (activeTab) {
       case 'allTimeVolume':
-        return formatValue(wallet.all_time_volume);
+        // Kartta da günlük volume göster
+        return formatValue(wallet.volume_daily);
       case 'weeklyVolume':
         return formatValue(wallet.volume_weekly);
       case 'monthlyVolume':
@@ -175,7 +177,7 @@ export function LeaderboardClient({ initialData, error }: LeaderboardClientProps
       case 'netWorth':
         return formatValue(wallet.net_worth);
       default:
-        return formatValue(wallet.all_time_volume);
+        return formatValue(wallet.volume_daily);
     }
   };
 
@@ -221,7 +223,7 @@ export function LeaderboardClient({ initialData, error }: LeaderboardClientProps
           }`}
         >
           <Trophy className="h-3.5 w-3.5" />
-          All-Time
+          Daily Vol
         </button>
         <button
           onClick={() => setActiveTab('weeklyVolume')}

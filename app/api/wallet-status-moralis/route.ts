@@ -232,7 +232,7 @@ export async function POST(request: Request) {
     const volume_weekly = Array.from(buckets.week.values()).reduce((a, b) => a + b, 0);
     const volume_monthly = Array.from(buckets.month.values()).reduce((a, b) => a + b, 0);
 
-    // 5) Net worth Moralis'ten, all_time_volume şimdilik 0
+    // 5) Net worth Moralis'ten
     const moralisKey = process.env.MORALIS_API_KEY;
     if (!moralisKey) {
       console.error('❌ [wallet-status-moralis] MORALIS_API_KEY not set');
@@ -250,7 +250,6 @@ export async function POST(request: Request) {
       walletAddress,
       chain
     );
-    const all_time_volume = 0;
 
     const dbWallet = walletAddress.toLowerCase();
 
@@ -259,7 +258,6 @@ export async function POST(request: Request) {
       volume_weekly,
       volume_monthly,
       net_worth,
-      all_time_volume,
       fid,
     };
 
@@ -283,7 +281,6 @@ export async function POST(request: Request) {
       volume_daily,
       volume_weekly,
       volume_monthly,
-      all_time_volume,
       db: upErr ? { success: false, error: upErr.message } : { success: true, error: null },
       timestamp: new Date().toISOString(),
     });

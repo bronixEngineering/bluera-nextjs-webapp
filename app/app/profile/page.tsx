@@ -99,7 +99,8 @@ export default function ProfilePage() {
     staleTime: 30000, // 30 saniye cache
   });
 
-  const allTimeVolumeReal = walletStatusData?.all_time_volume ? Number(walletStatusData.all_time_volume) : 0;
+  // Aura card için artık günlük volume kullan (all_time yerine volume_daily)
+  const dailyVolumeReal = walletStatusData?.volume_daily ? Number(walletStatusData.volume_daily) : 0;
 
   // TanStack Query ile wallet-token-status endpoint'ini çağır
   const { data: walletTokenStatusData } = useQuery({
@@ -340,8 +341,8 @@ export default function ProfilePage() {
             fid={user?.fid || mockUser.fid}
             pfpUrl={user?.pfpUrl || mockUser.avatar}
             holderTag={holderTag || ""}
-            traderTag={allTimeVolumeReal > 1000000 ? "Whale Trader" : ""}
-            allTimeVolume={allTimeVolumeReal}
+            traderTag={dailyVolumeReal > 1000000 ? "Whale Trader" : ""}
+            allTimeVolume={dailyVolumeReal}
             networth={0}
             weeklyVolume={0}
             monthlyVolume={0}
