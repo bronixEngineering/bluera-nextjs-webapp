@@ -342,11 +342,9 @@ export default function ProfilePage() {
             holderTag={holderTag || ""}
             traderTag={allTimeVolumeReal > 1000000 ? "Whale Trader" : ""}
             allTimeVolume={allTimeVolumeReal}
-            pnl={0}
             networth={0}
             weeklyVolume={0}
             monthlyVolume={0}
-            weeklyPnl={0}
             totalTrades={totalTrades}
           />
         </CardContent>

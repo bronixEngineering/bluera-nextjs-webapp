@@ -134,8 +134,7 @@ export const mockUserStats: UserStats = {
   totalVolume: 125000,
   favoriteCoin: 'ETH',
   tradingAura: 87,
-  totalTxCount: 156,
-  pnl: 12.5
+  totalTxCount: 156
 };
 
 // Add current user to leaderboard at position 25

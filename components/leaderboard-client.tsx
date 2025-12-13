@@ -11,11 +11,9 @@ interface WalletStats {
   wallet_address: string;
   volume_monthly: number | null;
   net_worth: number | null;
-  weekly_pnl: number | null;
   fid: string | null;
   volume_daily: number | null;
   volume_weekly: number | null;
-  monthly_pnl: number | null;
   all_time_volume: number | null;
   user_name: string | null; // Yeni eklenen
 }
@@ -159,10 +157,6 @@ export function LeaderboardClient({ initialData, error }: LeaderboardClientProps
         return sortData(initialData, 'volume_weekly');
       case 'monthlyVolume':
         return sortData(initialData, 'volume_monthly');
-      case 'weeklyPnl':
-        return sortData(initialData, 'weekly_pnl');
-      case 'monthlyPnl':
-        return sortData(initialData, 'monthly_pnl');
       case 'netWorth':
         return sortData(initialData, 'net_worth');
       default:
@@ -178,10 +172,6 @@ export function LeaderboardClient({ initialData, error }: LeaderboardClientProps
         return formatValue(wallet.volume_weekly);
       case 'monthlyVolume':
         return formatValue(wallet.volume_monthly);
-      case 'weeklyPnl':
-        return formatValue(wallet.weekly_pnl);
-      case 'monthlyPnl':
-        return formatValue(wallet.monthly_pnl);
       case 'netWorth':
         return formatValue(wallet.net_worth);
       default:
@@ -256,28 +246,6 @@ export function LeaderboardClient({ initialData, error }: LeaderboardClientProps
           Monthly Vol
         </button>
         <button
-          onClick={() => setActiveTab('weeklyPnl')}
-          className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all whitespace-nowrap flex items-center gap-1.5 ${
-            activeTab === 'weeklyPnl'
-              ? 'bg-gradient-to-r from-green-500 to-emerald-500 text-white shadow-md'
-              : 'bg-muted hover:bg-muted/80'
-          }`}
-        >
-          <TrendingUp className="h-3.5 w-3.5" />
-          Weekly PnL
-        </button>
-        <button
-          onClick={() => setActiveTab('monthlyPnl')}
-          className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all whitespace-nowrap flex items-center gap-1.5 ${
-            activeTab === 'monthlyPnl'
-              ? 'bg-gradient-to-r from-teal-500 to-cyan-500 text-white shadow-md'
-              : 'bg-muted hover:bg-muted/80'
-          }`}
-        >
-          <BarChart3 className="h-3.5 w-3.5" />
-          Monthly PnL
-        </button>
-        <button
           onClick={() => setActiveTab('netWorth')}
           className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all whitespace-nowrap flex items-center gap-1.5 ${
             activeTab === 'netWorth'
@@ -297,8 +265,6 @@ export function LeaderboardClient({ initialData, error }: LeaderboardClientProps
             <div className="divide-y">
               {sortedData.map((wallet, index) => {
                 const currentValue = getValueForTab(wallet);
-                const isPnlTab = activeTab === 'weeklyPnl' || activeTab === 'monthlyPnl';
-                const pnlValue = activeTab === 'weeklyPnl' ? wallet.weekly_pnl : wallet.monthly_pnl;
                 
                 return (
                   <div
@@ -348,11 +314,7 @@ export function LeaderboardClient({ initialData, error }: LeaderboardClientProps
                     
                     {/* Value */}
                     <div className="text-right flex-shrink-0 ml-2">
-                      <div className={`text-sm font-bold ${
-                        isPnlTab && pnlValue !== null && pnlValue !== 0 
-                          ? (pnlValue >= 0 ? 'text-green-500' : 'text-red-500') 
-                          : ''
-                      }`}>
+                      <div className="text-sm font-bold">
                         {currentValue}
                       </div>
                     </div>
@@ -372,7 +334,7 @@ export function LeaderboardClient({ initialData, error }: LeaderboardClientProps
       </Card>
 
       {/* Statistics */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Total Traders */}
         <div className="group relative overflow-hidden rounded-2xl border bg-gradient-to-br from-blue-500/5 to-transparent p-5 hover:shadow-xl hover:shadow-blue-500/10 transition-all duration-300">
           <div className="absolute top-0 right-0 w-24 h-24 bg-blue-500/10 rounded-full blur-2xl group-hover:bg-blue-500/20 transition-all" />
@@ -388,42 +350,6 @@ export function LeaderboardClient({ initialData, error }: LeaderboardClientProps
             </div>
             <div className="text-3xl font-bold bg-gradient-to-r from-blue-500 to-cyan-500 bg-clip-text text-transparent">
               {initialData.length}
-            </div>
-          </div>
-        </div>
-
-        {/* Profitable Traders */}
-        <div className="group relative overflow-hidden rounded-2xl border bg-gradient-to-br from-green-500/5 to-transparent p-5 hover:shadow-xl hover:shadow-green-500/10 transition-all duration-300">
-          <div className="absolute top-0 right-0 w-24 h-24 bg-green-500/10 rounded-full blur-2xl group-hover:bg-green-500/20 transition-all" />
-          <div className="absolute bottom-0 left-0 w-16 h-16 bg-green-500/5 rounded-full blur-xl" />
-          <div className="relative">
-            <div className="flex items-center gap-3 mb-3">
-              <div className="p-2 rounded-xl bg-green-500/10 group-hover:bg-green-500/20 transition-colors">
-                <svg className="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-                </svg>
-              </div>
-              <div className="text-sm font-medium text-muted-foreground">Profitable</div>
-            </div>
-            <div className="text-3xl font-bold bg-gradient-to-r from-green-500 to-emerald-500 bg-clip-text text-transparent">
-              {(() => {
-                const profitableCount = initialData.filter(w => 
-                  (w.weekly_pnl && w.weekly_pnl > 0) || 
-                  (w.monthly_pnl && w.monthly_pnl > 0)
-                ).length;
-                // const _percentage = initialData.length > 0 ? Math.round((profitableCount / initialData.length) * 100) : 0;
-                return `${profitableCount}`;
-              })()}
-            </div>
-            <div className="text-xs text-muted-foreground mt-1">
-              {(() => {
-                const profitableCount = initialData.filter(w => 
-                  (w.weekly_pnl && w.weekly_pnl > 0) || 
-                  (w.monthly_pnl && w.monthly_pnl > 0)
-                ).length;
-                const percentage = initialData.length > 0 ? Math.round((profitableCount / initialData.length) * 100) : 0;
-                return `${percentage}% of all traders`;
-              })()}
             </div>
           </div>
         </div>

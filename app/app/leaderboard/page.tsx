@@ -8,13 +8,10 @@ type WalletStatusRow = {
   wallet_address: string;
   volume_monthly: number | null;
   net_worth: number | null;
-  weekly_pnl: number | null;
   fid: string | null;
   volume_daily: number | null;
   volume_weekly: number | null;
-  monthly_pnl: number | null;
   all_time_volume: number | null;
-  all_time_pnl: number | null;
 };
 
 function sumNullable(a: number | null | undefined, b: number | null | undefined): number {
@@ -49,11 +46,8 @@ function aggregateWalletsByUser(rows: WalletStatusRow[] | null | undefined): Wal
         volume_daily:    sumNullable(existing.volume_daily,    row.volume_daily),
         volume_weekly:   sumNullable(existing.volume_weekly,   row.volume_weekly),
         volume_monthly:  sumNullable(existing.volume_monthly,  row.volume_monthly),
-        weekly_pnl:      sumNullable(existing.weekly_pnl,      row.weekly_pnl),
-        monthly_pnl:     sumNullable(existing.monthly_pnl,     row.monthly_pnl),
         net_worth:       sumNullable(existing.net_worth,       row.net_worth),
         all_time_volume: sumNullable(existing.all_time_volume, row.all_time_volume),
-        all_time_pnl:    sumNullable(existing.all_time_pnl,    row.all_time_pnl),
       });
     }
   }

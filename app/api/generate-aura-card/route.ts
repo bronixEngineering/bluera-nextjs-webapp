@@ -63,7 +63,7 @@ export async function POST(request: Request) {
     // Değiştir: getSupabaseServerClient() yerine createSupabaseClient()
     const supabase = await createSupabaseClient();
 
-    // 1) Holdings (whitelisted tokenler için balance/pnl etiketi)
+    // 1) Holdings (whitelisted tokenler için balance bazlı holder etiketi)
     const holdings = await getWalletHoldings(baseUrl, headers, walletAddress, chain);
 
     // 2) Whitelist (token_address [+ token_symbol] varsa)

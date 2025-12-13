@@ -48,5 +48,4 @@ export interface UserStats {
   favoriteCoin: string;
   tradingAura: number;
   totalTxCount: number;
-  pnl: number;
 }

@@ -14,7 +14,7 @@ export async function GET(req: NextRequest) {
     const { data, error } = await supabase
       .from("wallets_status")
       .select(
-        "volume_monthly, net_worth, weekly_pnl, volume_daily, volume_weekly, monthly_pnl, all_time_volume"
+        "volume_monthly, net_worth, volume_daily, volume_weekly, all_time_volume"
       )
       .eq("wallet_address", wallet.toLowerCase())
       .limit(1)

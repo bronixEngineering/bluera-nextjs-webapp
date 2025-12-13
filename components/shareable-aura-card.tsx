@@ -20,12 +20,10 @@ type ShareableAuraCardProps = {
   holderTag: string;
   traderTag: string;
   allTimeVolume: number;
-  pnl: number;
   networth: number;
   weeklyVolume?: number;
   monthlyVolume?: number;
   totalTrades?: number;
-  weeklyPnl?: number;
 };
 
 export function ShareableAuraCard({
@@ -35,12 +33,10 @@ export function ShareableAuraCard({
   holderTag,
   traderTag,
   allTimeVolume,
-  pnl,
   networth,
   weeklyVolume,
   monthlyVolume,
   totalTrades = 0,
-  weeklyPnl,
 }: ShareableAuraCardProps) {
   // Bu satırları kaldır: isGenratingAuraCard, isAuraCardGenerated
   const [isGenerating, setIsGenerating] = React.useState(false);
@@ -112,8 +108,6 @@ export function ShareableAuraCard({
   const networthState = n(walletStatusData?.net_worth) ?? networth;
   const weeklyVolumeState = n(walletStatusData?.volume_weekly) ?? weeklyVolume;
   const monthlyVolumeState = n(walletStatusData?.volume_monthly) ?? monthlyVolume;
-  const weeklyPnlState = n(walletStatusData?.weekly_pnl) ?? weeklyPnl;
-  const pnlState = n(walletStatusData?.monthly_pnl) ?? pnl;
   const totalTradesState = n(walletTokenStatusData?.totalTrades) ?? (totalTrades || 0);
 
   // handleGenerateAuraCard fonksiyonunu tamamen kaldır (satır 141-169)
@@ -317,34 +311,25 @@ export function ShareableAuraCard({
       drawStatBox(statsStartX + statBoxWidth + statSpacing, statsY, "Weekly Vol", fmtMoney(weeklyVolumeState ?? 0));
       drawStatBox(statsStartX + (statBoxWidth + statSpacing) * 2, statsY, "Monthly Vol", fmtMoney(monthlyVolumeState ?? 0));
 
-      // Row 2
-      drawStatBox(
-        statsStartX,
-        statsY + statBoxHeight + statSpacing,
-        "Monthly PnL",
-        `${(pnlState ?? 0) >= 0 ? "+" : "-"}${fmtMoney(Math.abs(pnlState ?? 0))}`,
-        (pnlState ?? 0) >= 0 ? "#22c55e" : "#ef4444"
-      );
-      drawStatBox(
-        statsStartX + statBoxWidth + statSpacing,
-        statsY + statBoxHeight + statSpacing,
-        "Weekly PnL",
-        `${(weeklyPnlState ?? 0) >= 0 ? "+" : "-"}${fmtMoney(Math.abs(weeklyPnlState ?? 0))}`,
-        (weeklyPnlState ?? 0) >= 0 ? "#22c55e" : "#ef4444"
-      );
+      // Row 2 (Net Worth / Total Trades / Avg Trade Size)
+      const avgTrade = totalTradesState > 0 ? (allTimeVolumeState ?? 0) / totalTradesState : 0;
       drawStatBox(
         statsStartX + (statBoxWidth + statSpacing) * 2,
         statsY + statBoxHeight + statSpacing,
         "Net Worth",
         fmtMoney(networthState ?? 0)
       );
-
-      // Row 3
       drawStatBox(
         statsStartX,
-        statsY + (statBoxHeight + statSpacing) * 2,
+        statsY + (statBoxHeight + statSpacing),
         "Total Trades",
         `${totalTradesState}`
+      );
+      drawStatBox(
+        statsStartX + statBoxWidth + statSpacing,
+        statsY + (statBoxHeight + statSpacing),
+        "Avg Trade Size",
+        fmtMoney(avgTrade)
       );
 
       const chartY = statsY + (statBoxHeight + statSpacing) * 3 + 18;
@@ -611,30 +596,6 @@ export function ShareableAuraCard({
           <div className="text-center p-2 rounded-lg bg-background/50 border border-border">
             <p className="text-[10px] text-muted-foreground mb-0.5">Monthly Vol</p>
             <p className="font-bold text-xs">{fmtMoneyOrNA(monthlyVolumeState)}</p>
-          </div>
-
-          <div className="text-center p-2 rounded-lg bg-background/50 border border-border">
-            <p className="text-[10px] text-muted-foreground mb-0.5">Monthly PnL</p>
-            <p
-              className={`font-bold text-xs ${
-                (pnlState ?? 0) >= 0 ? "text-green-500" : "text-red-500"
-              }`}
-            >
-              {(pnlState ?? 0) >= 0 ? "+" : "-"}
-              {fmtMoney(Math.abs(pnlState ?? 0))}
-            </p>
-          </div>
-
-          <div className="text-center p-2 rounded-lg bg-background/50 border border-border">
-            <p className="text-[10px] text-muted-foreground mb-0.5">Weekly PnL</p>
-            <p
-              className={`font-bold text-xs ${
-                (weeklyPnlState ?? 0) >= 0 ? "text-green-500" : "text-red-500"
-              }`}
-            >
-              {(weeklyPnlState ?? 0) >= 0 ? "+" : "-"}
-              {fmtMoney(Math.abs(weeklyPnlState ?? 0))}
-            </p>
           </div>
 
           <div className="text-center p-2 rounded-lg bg-background/50 border border-border">
