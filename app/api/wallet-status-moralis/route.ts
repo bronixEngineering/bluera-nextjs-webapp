@@ -1,10 +1,11 @@
+// app/api/wallet-status-moralis/route.ts
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { NextResponse } from 'next/server';
-// Değiştir: getSupabaseServerClient yerine createClient kullan
 import { createClient as createSupabaseClient } from '@/utils/supabase/server';
 
+// ... existing helper types ...
 type VolumeBuckets = {
-  day: Map<string, number>;    
+  day: Map<string, number>;
   week: Map<string, number>;
   month: Map<string, number>;
 };
@@ -24,17 +25,13 @@ function parseUsd(v: any): number {
   return Number.isFinite(n) ? Math.abs(n) : 0;
 }
 
-async function getAllTimeTradeVolumeUsd(baseUrl: string, headers: Record<string, string>, walletAddress: string, chain: string) {
-  const url = `${baseUrl}/wallets/${walletAddress}/profitability/summary?chain=${chain}`;
-  const resp = await fetch(url, { headers });
-  if (!resp.ok) return 0;
-  const json = await resp.json().catch(() => ({}));
-  const v = json?.total_trade_volume ?? 0;
-  const n = typeof v === 'string' ? parseFloat(v) : Number(v);
-  return Number.isFinite(n) ? Math.abs(n) : 0;
-}
-
-async function getNetWorthUsd(baseUrl: string, headers: Record<string, string>, walletAddress: string, chain: string) {
+// ✅ Moralis net worth helper'ı (önceki implementasyondan)
+async function getNetWorthUsd(
+  baseUrl: string,
+  headers: Record<string, string>,
+  walletAddress: string,
+  chain: string
+) {
   const url = new URL(`${baseUrl}/wallets/${walletAddress}/net-worth`);
   url.searchParams.append('chains[]', chain);
   const resp = await fetch(url.toString(), { headers });
@@ -45,9 +42,95 @@ async function getNetWorthUsd(baseUrl: string, headers: Record<string, string>, 
   if (Number.isFinite(totalNum) && totalNum > 0) return totalNum;
   const chains = Array.isArray(json?.chains) ? json.chains : [];
   return chains.reduce((acc: number, c: any) => {
-    const v = typeof c?.networth_usd === 'string' ? parseFloat(c.networth_usd) : Number(c?.networth_usd ?? 0);
+    const v =
+      typeof c?.networth_usd === 'string'
+        ? parseFloat(c.networth_usd)
+        : Number(c?.networth_usd ?? 0);
     return acc + (Number.isFinite(v) ? v : 0);
   }, 0);
+}
+
+// ✅ Mobula transaction tipi
+type MobulaTx = {
+  timestamp?: number;
+  asset?: {
+    contract?: string | null;
+    symbol?: string | null;
+    name?: string | null;
+  };
+  hash?: string;
+  amount_usd?: number | string | null;
+  blockchain?: string | null;
+  type?: string | null;
+};
+
+/**
+ * ✅ Belirli bir cüzdan için Mobula üzerinden son 30 günlük tüm işlemleri çeker.
+ *  - blockchains parametresi ile zinciri filtreler (örn: 'base')
+ *  - limit/offset ile sayfalar
+ */
+async function fetchMobulaTransactions(
+  walletAddress: string,
+  chain: string,
+  from: Date,
+  to: Date,
+  maxPages = 10,
+  pageSize = 500
+): Promise<MobulaTx[]> {
+  const apiKey = process.env.MOBULA_API_KEY;
+  if (!apiKey) {
+    console.error('❌ [wallet-status-mobula] MOBULA_API_KEY not set');
+    return [];
+  }
+
+  const baseUrl = 'https://api.mobula.io/api/1/wallet/transactions';
+  const headers = { Authorization: `Bearer ${apiKey}` };
+
+  const fromMs = from.getTime().toString();
+  const toMs = to.getTime().toString();
+
+  const all: MobulaTx[] = [];
+  let offset = 0;
+  let page = 0;
+
+  while (page < maxPages) {
+    const url = new URL(baseUrl);
+    url.searchParams.set('wallet', walletAddress);
+    url.searchParams.set('from', fromMs);
+    url.searchParams.set('to', toMs);
+    url.searchParams.set('limit', String(pageSize));
+    url.searchParams.set('offset', String(offset));
+    url.searchParams.set('order', 'desc');
+    url.searchParams.set('blockchains', chain); // örn: 'base'
+
+    let resp: Response;
+    try {
+      resp = await fetch(url.toString(), { headers });
+    } catch (err) {
+      console.error('❌ [wallet-status-mobula] Network error:', err);
+      break;
+    }
+
+    if (!resp.ok) {
+      console.error('❌ [wallet-status-mobula] API error:', resp.status, await resp.text());
+      break;
+    }
+
+    const json: any = await resp.json().catch(() => ({}));
+    const txs: MobulaTx[] = Array.isArray(json?.data?.transactions)
+      ? json.data.transactions
+      : [];
+
+    if (txs.length === 0) break;
+
+    all.push(...txs);
+
+    if (txs.length < pageSize) break;
+    offset += pageSize;
+    page += 1;
+  }
+
+  return all;
 }
 
 export async function POST(request: Request) {
@@ -55,9 +138,12 @@ export async function POST(request: Request) {
     const body = await request.json().catch(() => ({}));
     const walletAddress = String(body?.walletAddress || '').trim();
     const chain = String(body?.chain || 'base');
-    const fid = body?.fid ? String(body.fid) : undefined;
-    
-    // Limit pages and tokens to reduce API I/O and improve latency
+    // fid artık zorunlu: SDK'den gelmesini bekliyoruz, null/boş olmamalı
+    const rawFid = body?.fid;
+    const fid = typeof rawFid === 'string'
+      ? rawFid.trim()
+      : String(rawFid ?? '').trim();
+
     const maxPages = Number.isFinite(body?.maxPages)
       ? Math.max(1, Math.min(100, Number(body.maxPages)))
       : 100;
@@ -66,38 +152,44 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: false, error: 'Invalid walletAddress' }, { status: 400 });
     }
 
-    const apiKey = process.env.MORALIS_API_KEY;
-    if (!apiKey) {
-      console.error('❌ [wallet-status-moralis] MORALIS_API_KEY not set');
-      return NextResponse.json({ success: false, error: 'MORALIS_API_KEY not set' }, { status: 500 });
+    if (!fid) {
+      return NextResponse.json({ success: false, error: 'fid is required' }, { status: 400 });
     }
-    
-    const headers = { 'X-API-Key': apiKey, accept: 'application/json' };
-    const baseUrl = 'https://deep-index.moralis.io/api/v2.2';
-    // Değiştir: getSupabaseServerClient() yerine createSupabaseClient()
+
     const supabase = await createSupabaseClient();
 
-    // Load tokens to filter one-by-one
+    // 1) Whitelisted token adreslerini çek
     const { data: wl, error: wlErr } = await supabase
       .from('whitelisted_tokens')
       .select('token_address');
-    
+
     if (wlErr) {
-      console.error('❌ [wallet-status-moralis] Failed to load whitelisted tokens:', wlErr);
-      return NextResponse.json({ success: false, error: `Failed to load tokens: ${wlErr.message}` }, { status: 500 });
+      console.error('❌ [wallet-status-mobula] Failed to load whitelisted tokens:', wlErr);
+      return NextResponse.json(
+        { success: false, error: `Failed to load tokens: ${wlErr.message}` },
+        { status: 500 }
+      );
     }
 
-    const tokenAddressesAll: string[] = (wl || [])
+    const tokenAddresses: string[] = (wl || [])
       .map((r: any) => String(r?.token_address || '').toLowerCase())
       .filter(Boolean);
-    const tokenAddresses: string[] = tokenAddressesAll;
 
     if (tokenAddresses.length === 0) {
-      console.warn('⚠️ [wallet-status-moralis] No whitelisted tokens found');
-      return NextResponse.json({ success: true, wallet: walletAddress, message: 'No whitelisted tokens', volume_daily: 0, volume_weekly: 0, volume_monthly: 0 });
+      console.warn('⚠️ [wallet-status-mobula] No whitelisted tokens found');
+      return NextResponse.json({
+        success: true,
+        wallet: walletAddress,
+        message: 'No whitelisted tokens',
+        volume_daily: 0,
+        volume_weekly: 0,
+        volume_monthly: 0,
+      });
     }
 
-    // Setup time windows
+    const whitelistSet = new Set(tokenAddresses);
+
+    // 2) Zaman pencereleri
     const now = new Date();
     const from30d = fromDaysAgo(30);
     const from7d = fromDaysAgo(7);
@@ -109,82 +201,56 @@ export async function POST(request: Request) {
       month: new Map(),
     };
 
-    let totalSwapsProcessed = 0;
-    let totalTokensProcessed = 0;
+    // 3) Mobula'dan son 30 günlük tüm işlemleri çek
+    const maxMobulaPages = Math.min(maxPages, 20); // güvenli limit
+    const txs = await fetchMobulaTransactions(walletAddress, chain, from30d, now, maxMobulaPages);
 
-    // Fetch monthly range ONCE per token, then bucket by timestamp for day/week/month.
-    for (const token of tokenAddresses) {
-      totalTokensProcessed++;
-      const url = new URL(`${baseUrl}/wallets/${walletAddress}/swaps`);
-      url.searchParams.set('chain', chain);
-      url.searchParams.set('tokenAddress', token);
-      url.searchParams.set('order', 'DESC');
-      url.searchParams.set('from_date', from30d.toISOString());
+    // 4) whitelist'e göre filtrele + daily/weekly/monthly volume hesapla
+    for (const tx of txs) {
+      const ts = typeof tx.timestamp === 'number' ? tx.timestamp : NaN;
+      if (!Number.isFinite(ts)) continue;
+      if (ts < from30d.getTime() || ts > now.getTime()) continue;
 
-      let cursor: string | null = null;
-      let pages = 0;
-      let tokenSwapsCount = 0;
+      const contract = String(tx.asset?.contract || '').toLowerCase();
+      if (!contract || !whitelistSet.has(contract)) continue;
 
-      while (pages < maxPages) {
-        const pageUrl = new URL(url.toString());
-        if (cursor) pageUrl.searchParams.set('cursor', cursor);
+      const usd = parseUsd(tx.amount_usd ?? 0);
+      if (usd <= 0) continue;
 
-        let resp: Response;
-        try {
-          resp = await fetch(pageUrl.toString(), { headers });
-        } catch (error) {
-          console.error(`❌ [wallet-status-moralis] Network error for token ${token}:`, error);
-          break;
-        }
-        
-        if (!resp.ok) {
-          console.warn(`⚠️ [wallet-status-moralis] API error for token ${token}:`, resp.status, resp.statusText);
-          break;
-        }
+      const hash = String(tx.hash || '');
+      if (!hash) continue;
 
-        let json: any;
-        try {
-          json = await resp.json();
-        } catch (error) {
-          console.error(`❌ [wallet-status-moralis] JSON parse error for token ${token}:`, error);
-          break;
-        }
-
-        const arr: any[] = Array.isArray(json?.result) ? json.result : [];
-        if (arr.length === 0) break;
-
-        tokenSwapsCount += arr.length;
-
-        for (const s of arr) {
-          const ts = new Date(String(s?.blockTimestamp || s?.block_timestamp || now)).getTime();
-          if (!Number.isFinite(ts) || ts < from30d.getTime() || ts > now.getTime()) continue;
-
-          const usd = parseUsd(s?.totalValueUsd ?? s?.value_usd ?? 0);
-          if (usd <= 0) continue;
-
-          const hash = String(s?.transactionHash || s?.hash || '');
-          if (!hash) continue;
-
-          addToBucket(buckets.month, hash, usd);
-          if (ts >= from7d.getTime()) addToBucket(buckets.week, hash, usd);
-          if (ts >= from1d.getTime()) addToBucket(buckets.day, hash, usd);
-        }
-
-        cursor = json?.cursor ? String(json.cursor) : null;
-        pages += 1;
-        if (!cursor) break;
-      }
-      
-      totalSwapsProcessed += tokenSwapsCount;
+      // Monthly (30d)
+      addToBucket(buckets.month, hash, usd);
+      // Weekly (7d)
+      if (ts >= from7d.getTime()) addToBucket(buckets.week, hash, usd);
+      // Daily (1d)
+      if (ts >= from1d.getTime()) addToBucket(buckets.day, hash, usd);
     }
-
 
     const volume_daily = Array.from(buckets.day.values()).reduce((a, b) => a + b, 0);
     const volume_weekly = Array.from(buckets.week.values()).reduce((a, b) => a + b, 0);
     const volume_monthly = Array.from(buckets.month.values()).reduce((a, b) => a + b, 0);
-    
-    const net_worth = await getNetWorthUsd(baseUrl, headers, walletAddress, chain);
-    const all_time_volume = await getAllTimeTradeVolumeUsd(baseUrl, headers, walletAddress, chain);
+
+    // 5) Net worth Moralis'ten, all_time_volume şimdilik 0
+    const moralisKey = process.env.MORALIS_API_KEY;
+    if (!moralisKey) {
+      console.error('❌ [wallet-status-moralis] MORALIS_API_KEY not set');
+      return NextResponse.json(
+        { success: false, error: 'MORALIS_API_KEY not set' },
+        { status: 500 }
+      );
+    }
+    const moralisHeaders = { 'X-API-Key': moralisKey, accept: 'application/json' };
+    const moralisBaseUrl = 'https://deep-index.moralis.io/api/v2.2';
+
+    const net_worth = await getNetWorthUsd(
+      moralisBaseUrl,
+      moralisHeaders,
+      walletAddress,
+      chain
+    );
+    const all_time_volume = 0;
 
     const dbWallet = walletAddress.toLowerCase();
 
@@ -194,29 +260,18 @@ export async function POST(request: Request) {
       volume_monthly,
       net_worth,
       all_time_volume,
+      fid,
     };
-    if (fid) updateFields.fid = fid;
-    
-    const { data: upsertData, error: upErr } = await supabase
+
+    const { error: upErr } = await supabase
       .from('wallets_status')
-      .upsert(
-        { wallet_address: dbWallet, ...updateFields },
-        { onConflict: 'wallet_address' }
-      )
-      .select();
+      .upsert({ wallet_address: dbWallet, ...updateFields }, { onConflict: 'wallet_address' });
 
     if (upErr) {
-      console.error('❌ [wallet-status-moralis] Database upsert error:', {
-        error: upErr.message,
-        code: upErr.code,
-        details: upErr.details,
-        hint: upErr.hint
-      });
+      console.error('❌ [wallet-status-mobula] Database upsert error:', upErr);
     }
 
-    const db = upErr ? { success: false, error: upErr.message } : { success: true, error: null };
-    
-    const response = {
+    return NextResponse.json({
       success: true,
       wallet: walletAddress,
       chain,
@@ -229,17 +284,14 @@ export async function POST(request: Request) {
       volume_weekly,
       volume_monthly,
       all_time_volume,
-      db,
+      db: upErr ? { success: false, error: upErr.message } : { success: true, error: null },
       timestamp: new Date().toISOString(),
-    };
-        
-    return NextResponse.json(response);
-  } catch (e: any) {
-    console.error('❌ [wallet-status-moralis] Fatal error:', {
-      error: e?.message,
-      stack: e?.stack,
-      name: e?.name
     });
-    return NextResponse.json({ success: false, error: e?.message ?? 'Unknown error' }, { status: 500 });
+  } catch (e: any) {
+    console.error('❌ [wallet-status-mobula] Fatal error:', e);
+    return NextResponse.json(
+      { success: false, error: e?.message ?? 'Unknown error' },
+      { status: 500 }
+    );
   }
 }
