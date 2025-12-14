@@ -72,7 +72,8 @@ export function ShareableAuraCard({
   const { sendCallsAsync } = useSendCalls();
   const { data: callsStatusData, status: waitCallsStatus } = useWaitForCallsStatus({
     id: pendingCallsId ?? undefined,
-    query: { enabled: !!pendingCallsId, refetchInterval: 1000 },
+    pollingInterval: 1000,
+    query: { enabled: !!pendingCallsId },
   });
   const AURA_NFT_ADDRESS = "0x7A4Fdf55F2236E12137B6F85e5ecCa6F7F78E8C6";
   const USDC_ADDRESS = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";
@@ -531,15 +532,26 @@ export function ShareableAuraCard({
     if (!pendingCallsId || !isConfirmingMint) return;
     if (waitCallsStatus !== "success") return;
 
-    // Some wagmi connectors return a call status payload with `status: 'PENDING' | 'CONFIRMED'`.
-    // We gate on CONFIRMED when available, otherwise treat successful query as confirmed.
+    // Some wagmi connectors return a call status payload with a `status` field.
+    // We've seen variants like: 'PENDING' | 'CONFIRMED' | 'FAILED' and also lowercase / 'success'.
     const callBundleStatus = (() => {
       if (!callsStatusData || typeof callsStatusData !== "object") return undefined;
       if (!("status" in callsStatusData)) return undefined;
       const s = (callsStatusData as { status?: unknown }).status;
       return typeof s === "string" ? s : undefined;
     })();
-    if (callBundleStatus && callBundleStatus !== "CONFIRMED") return;
+    if (callBundleStatus) {
+      const normalized = callBundleStatus.toUpperCase();
+      if (normalized === "PENDING") return;
+      if (normalized === "FAILED" || normalized === "ERROR") {
+        setIsConfirmingMint(false);
+        setPendingCallsId(null);
+        alert("❌ Mint transaction failed. Please try again.");
+        return;
+      }
+      // Treat CONFIRMED / SUCCESS as ok; anything else falls through.
+      if (normalized !== "CONFIRMED" && normalized !== "SUCCESS") return;
+    }
 
     const callsReceipts = (() => {
       if (!callsStatusData || typeof callsStatusData !== "object") return undefined;
