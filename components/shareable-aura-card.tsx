@@ -6,7 +6,14 @@ import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Download, Sparkles } from "lucide-react";
 import Image from "next/image";
-import { useAccount, useConnect, useSwitchChain, useChainId, useSendCalls } from "wagmi";
+import {
+  useAccount,
+  useConnect,
+  useSwitchChain,
+  useChainId,
+  useSendCalls,
+  useWaitForCallsStatus,
+} from "wagmi";
 import { base } from "wagmi/chains";
 import type { Abi } from "viem";
 import { encodeFunctionData, parseUnits } from "viem";
@@ -51,6 +58,8 @@ export function ShareableAuraCard({
   const [isGenerating, setIsGenerating] = React.useState(false);
   const [isMinting, setIsMinting] = React.useState(false);
   const [hasMinted, setHasMinted] = React.useState(false);
+  const [pendingCallsId, setPendingCallsId] = React.useState<string | null>(null);
+  const [isConfirmingMint, setIsConfirmingMint] = React.useState(false);
   const [showPreview, setShowPreview] = React.useState(false);
   const [previewUrl, setPreviewUrl] = React.useState<string | null>(null);
   const cardRef = React.useRef<HTMLDivElement>(null);
@@ -61,6 +70,10 @@ export function ShareableAuraCard({
   const chainId = useChainId();
   const { switchChainAsync } = useSwitchChain();
   const { sendCalls } = useSendCalls();
+  const { data: callsStatusData, status: waitCallsStatus } = useWaitForCallsStatus({
+    id: pendingCallsId ?? undefined,
+    query: { enabled: !!pendingCallsId },
+  });
   const AURA_NFT_ADDRESS = "0x7A4Fdf55F2236E12137B6F85e5ecCa6F7F78E8C6";
   const USDC_ADDRESS = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";
 
@@ -474,6 +487,65 @@ export function ShareableAuraCard({
     }
   };
 
+  const uploadAuraCardImage = React.useCallback(async () => {
+    try {
+      if (!address) return;
+
+      const dataUrl = previewUrl || (await generateImage());
+      if (!dataUrl) return;
+
+      const uploadRes = await fetch("/api/aura-card-image", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          imageDataUrl: dataUrl,
+          walletAddress: address.toLowerCase(),
+          network: "base",
+        }),
+      });
+
+      if (!uploadRes.ok) {
+        console.error("[aura-card-image] upload failed:", await uploadRes.text());
+      }
+    } catch (e) {
+      console.error("Aura card image upload failed:", e);
+    }
+  }, [address, previewUrl]);
+
+  React.useEffect(() => {
+    if (!pendingCallsId || !isConfirmingMint) return;
+    if (waitCallsStatus !== "success") return;
+
+    // Some wagmi connectors return a call status payload with `status: 'PENDING' | 'CONFIRMED'`.
+    // We gate on CONFIRMED when available, otherwise treat successful query as confirmed.
+    const callBundleStatus = (callsStatusData as any)?.status as string | undefined;
+    if (callBundleStatus && callBundleStatus !== "CONFIRMED") return;
+
+    const callsReceipts = (callsStatusData as any)?.receipts as any[] | undefined;
+    const allSuccess =
+      !callsReceipts ||
+      callsReceipts.length === 0 ||
+      callsReceipts.every((r: any) => r?.status === "success" || r?.status === 1);
+
+    if (!allSuccess) {
+      setIsConfirmingMint(false);
+      setPendingCallsId(null);
+      alert("❌ Mint transaction reverted. Please try again.");
+      return;
+    }
+
+    // Only after confirmation + success we consider it minted.
+    (async () => {
+      await uploadAuraCardImage();
+      setHasMinted(true);
+      setIsConfirmingMint(false);
+      setPendingCallsId(null);
+      alert("✅ Mint confirmed! You can now share on Base.");
+    })();
+  }, [callsStatusData, isConfirmingMint, pendingCallsId, uploadAuraCardImage, waitCallsStatus]);
+
   const handleMint = async () => {
     try {
       setIsMinting(true);
@@ -496,7 +568,7 @@ export function ShareableAuraCard({
       const { id: auraCardId } = await latestRes.json();
 
       const amount = parseUnits("10", 4);
-      await sendCalls({
+      const result: any = await sendCalls({
         chainId: base.id,
         calls: [
           {
@@ -518,36 +590,14 @@ export function ShareableAuraCard({
         ],
       });
 
-      // Mint başarılı, şimdi aura card görselini üretip Supabase Storage'a gönder
-      try {
-        const dataUrl =
-          previewUrl || (await generateImage());
-        if (dataUrl && address) {
-          const uploadRes = await fetch("/api/aura-card-image", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              imageDataUrl: dataUrl,
-              walletAddress: address.toLowerCase(),
-              network: "base",
-            }),
-          });
-
-          if (!uploadRes.ok) {
-            console.error(
-              "[aura-card-image] upload failed:",
-              await uploadRes.text()
-            );
-          }
-        }
-      } catch (e) {
-        console.error("Aura card image upload failed:", e);
+      // Wait for confirmation before enabling share.
+      const id = result?.id as string | undefined;
+      if (!id) {
+        throw new Error("Missing calls id from sendCalls");
       }
-
-      setHasMinted(true);
-      alert("✅ Transaction sent! Check your wallet/notification.");
+      setPendingCallsId(id);
+      setIsConfirmingMint(true);
+      alert("⏳ Transaction sent. Waiting for confirmation...");
     } catch (error) {
       console.error("Mint error:", error);
       alert("❌ Failed to mint. Please try again.");
@@ -678,10 +728,12 @@ export function ShareableAuraCard({
             <p className="font-bold text-xs">{fmtMoneyOrNA(monthlyVolumeState)}</p>
           </div>
 
-          <div className="text-center p-2 rounded-lg bg-background/50 border border-border">
-            <p className="text-[10px] text-muted-foreground mb-0.5">Net Worth</p>
-            <p className="font-bold text-xs">{fmtMoneyOrNA(networthState)}</p>
-          </div>
+          {mode !== "modal" && (
+            <div className="text-center p-2 rounded-lg bg-background/50 border border-border">
+              <p className="text-[10px] text-muted-foreground mb-0.5">Net Worth</p>
+              <p className="font-bold text-xs">{fmtMoneyOrNA(networthState)}</p>
+            </div>
+          )}
 
           <div className="text-center p-2 rounded-lg bg-background/50 border border-border">
             <p className="text-[10px] text-muted-foreground mb-0.5">Daily Trades</p>
@@ -706,14 +758,14 @@ export function ShareableAuraCard({
           {!hasMinted ? (
             <Button
               onClick={handleMint}
-              disabled={isMinting}
+              disabled={isMinting || isConfirmingMint}
               size="lg"
               className="bg-gradient-to-r from-purple-500 to-yellow-500 hover:from-purple-600 hover:to-yellow-600 text-white font-semibold px-8 shadow-lg hover:shadow-xl transition-all w-full"
             >
-              {isMinting ? (
+              {isMinting || isConfirmingMint ? (
                 <>
                   <div className="h-5 w-5 animate-spin rounded-full border-b-2 border-white mr-2" />
-                  Minting...
+                  {isMinting ? "Minting..." : "Confirming..."}
                 </>
               ) : (
                 <>
