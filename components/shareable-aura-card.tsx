@@ -14,10 +14,6 @@ import auraAbi from "@/components/ABI/aura_nft_contract_abi";
 import usdcAbi from "@/components/ABI/usdc_contract_abi";
 import { sdk } from "@farcaster/miniapp-sdk";
 
-type MiniAppActions = typeof sdk.actions & {
-  openExternalUrl?: (opts: { url: string }) => Promise<void> | void;
-};
-
 type ShareableAuraCardProps = {
   username?: string;
   fid?: number;
@@ -332,8 +328,8 @@ export function ShareableAuraCard({
       drawStatBox(
         statsStartX + (statBoxWidth + statSpacing) * 2,
         statsY + statBoxHeight + statSpacing,
-        "Net Worth",
-        fmtMoney(networthState ?? 0)
+        "Monthly Trades",
+        `${monthlyTradesState ?? 0}`
       );
       drawStatBox(
         statsStartX,
@@ -599,68 +595,6 @@ export function ShareableAuraCard({
     }
   };
 
-  const handleShareOnX = async () => {
-    try {
-      if (!address) {
-        alert("Connect your wallet first.");
-        return;
-      }
-
-      const res = await fetch(
-        `/api/aura-card?wallet=${address}&network=base`
-      );
-      if (!res.ok) {
-        console.error(
-          "Failed to fetch latest aura_card:",
-          await res.text()
-        );
-        alert("Could not load your Aura Card. Try again later.");
-        return;
-      }
-
-      const json = await res.json();
-      const imageUrl: string | null = json?.image_url ?? null;
-
-      const rawText =
-        "My Bluera Aura Card is live on Base! 🔮 Check out my onchain aura.";
-      const encodedText = encodeURIComponent(rawText);
-
-      const urlParam = imageUrl
-        ? `&url=${encodeURIComponent(imageUrl)}`
-        : "";
-
-      const shareUrl = `https://x.com/intent/tweet?text=${encodedText}${urlParam}`;
-
-      // 1) Önce sistemin native share sheet'ini dene (X app'i buradan seçilebilir)
-      if (typeof navigator !== "undefined" && navigator.share) {
-        try {
-          await navigator.share({
-            text: rawText,
-            url: imageUrl ?? undefined,
-          });
-          return;
-        } catch {
-          // kullanıcı iptal etmiş olabilir, fallback'e geç
-        }
-      }
-
-      // 2) Mini App ortamında yeni sekme açmak için sdk aksiyonlarını kullan
-      const actions: MiniAppActions | undefined = sdk.actions;
-
-      if (actions?.openUrl) {
-        await actions.openUrl({ url: shareUrl });
-      } else if (actions?.openExternalUrl) {
-        await actions.openExternalUrl({ url: shareUrl });
-      } else {
-        // 3) Fallback: normal tarayıcıda çalışıyorsak
-        window.open(shareUrl, "_blank");
-      }
-    } catch (e) {
-      console.error("Share on X error:", e);
-      alert("Failed to open X share dialog. Please try again.");
-    }
-  };
-
   return (
     <div className="space-y-6">
       {/* Just the content, no card wrapper */}
@@ -797,13 +731,6 @@ export function ShareableAuraCard({
                   className="bg-gradient-to-r from-purple-500 to-yellow-500 hover:from-purple-600 hover:to-yellow-600 text-white font-semibold px-8 shadow-lg hover:shadow-xl transition-all w-full"
                 >
                   Share on Base
-                </Button>
-                <Button
-                  onClick={handleShareOnX}
-                  size="lg"
-                  className="bg-gradient-to-r from-purple-500 to-yellow-500 hover:from-purple-600 hover:to-yellow-600 text-white font-semibold px-8 shadow-lg hover:shadow-xl transition-all w-full"
-                >
-                  Share on X
                 </Button>
               </div>
             )
