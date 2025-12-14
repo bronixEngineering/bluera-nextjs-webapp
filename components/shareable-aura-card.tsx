@@ -78,17 +78,17 @@ export function ShareableAuraCard({
   const USDC_ADDRESS = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";
 
   // Para formatlayıcı: $X.X, $X.XK, $X.XM
-  const fmtMoney = (v: number) => {
+  const fmtMoney = React.useCallback((v: number) => {
     const n = Math.abs(Number(v) || 0);
     if (n < 1000) return `$${n.toFixed(1)}`;
     if (n < 1_000_000) return `$${(n / 1000).toFixed(1)}K`;
     return `$${(n / 1_000_000).toFixed(1)}M`;
-  };
+  }, []);
 
-  const fmtMoneyOrNA = (v: number | undefined | null) => {
+  const fmtMoneyOrNA = React.useCallback((v: number | undefined | null) => {
     if (v == null) return "N/A";
     return fmtMoney(v);
-  };
+  }, [fmtMoney]);
 
   // TanStack Query ile wallet-status endpoint'ini her zaman wallet address ile çağır
   const { data: walletStatusData } = useQuery({
@@ -138,7 +138,7 @@ export function ShareableAuraCard({
 
   // handleGenerateAuraCard fonksiyonunu tamamen kaldır (satır 141-169)
 
-  const generateImage = async () => {
+  const generateImage = React.useCallback(async () => {
     try {
       const canvas = document.createElement("canvas");
       const ctx = canvas.getContext("2d");
@@ -410,7 +410,20 @@ export function ShareableAuraCard({
       console.error("Image generation failed:", error);
       return null;
     }
-  };
+  }, [
+    allTimeVolumeState,
+    dailyTradesState,
+    fid,
+    fmtMoney,
+    holderTag,
+    monthlyTradesState,
+    monthlyVolumeState,
+    pfpUrl,
+    traderTag,
+    username,
+    weeklyTradesState,
+    weeklyVolumeState,
+  ]);
 
   const handlePreview = async () => {
     setIsGenerating(true);
@@ -512,7 +525,7 @@ export function ShareableAuraCard({
     } catch (e) {
       console.error("Aura card image upload failed:", e);
     }
-  }, [address, previewUrl]);
+  }, [address, generateImage, previewUrl]);
 
   React.useEffect(() => {
     if (!pendingCallsId || !isConfirmingMint) return;
@@ -520,14 +533,29 @@ export function ShareableAuraCard({
 
     // Some wagmi connectors return a call status payload with `status: 'PENDING' | 'CONFIRMED'`.
     // We gate on CONFIRMED when available, otherwise treat successful query as confirmed.
-    const callBundleStatus = (callsStatusData as any)?.status as string | undefined;
+    const callBundleStatus = (() => {
+      if (!callsStatusData || typeof callsStatusData !== "object") return undefined;
+      if (!("status" in callsStatusData)) return undefined;
+      const s = (callsStatusData as { status?: unknown }).status;
+      return typeof s === "string" ? s : undefined;
+    })();
     if (callBundleStatus && callBundleStatus !== "CONFIRMED") return;
 
-    const callsReceipts = (callsStatusData as any)?.receipts as any[] | undefined;
+    const callsReceipts = (() => {
+      if (!callsStatusData || typeof callsStatusData !== "object") return undefined;
+      if (!("receipts" in callsStatusData)) return undefined;
+      const r = (callsStatusData as { receipts?: unknown }).receipts;
+      return Array.isArray(r) ? (r as unknown[]) : undefined;
+    })();
     const allSuccess =
       !callsReceipts ||
       callsReceipts.length === 0 ||
-      callsReceipts.every((r: any) => r?.status === "success" || r?.status === 1);
+      callsReceipts.every((r) => {
+        if (!r || typeof r !== "object") return true;
+        if (!("status" in r)) return true;
+        const s = (r as { status?: unknown }).status;
+        return s === "success" || s === 1;
+      });
 
     if (!allSuccess) {
       setIsConfirmingMint(false);
@@ -568,7 +596,7 @@ export function ShareableAuraCard({
       const { id: auraCardId } = await latestRes.json();
 
       const amount = parseUnits("10", 4);
-      const result: any = await sendCalls({
+      const result = await sendCalls({
         chainId: base.id,
         calls: [
           {
@@ -591,7 +619,13 @@ export function ShareableAuraCard({
       });
 
       // Wait for confirmation before enabling share.
-      const id = result?.id as string | undefined;
+      const id = (() => {
+        const maybe = result as unknown;
+        if (!maybe || typeof maybe !== "object") return undefined;
+        if (!("id" in maybe)) return undefined;
+        const v = (maybe as { id?: unknown }).id;
+        return typeof v === "string" ? v : undefined;
+      })();
       if (!id) {
         throw new Error("Missing calls id from sendCalls");
       }
