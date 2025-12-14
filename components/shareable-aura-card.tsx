@@ -678,8 +678,9 @@ export function ShareableAuraCard({
         "https://bluera.vercel.app";
       const shareUrl = `${appUrl}/aura/${address.toLowerCase()}`;
 
-      const text =
-        "My Bluera Aura Card is live on Base! 🔮 Check out my onchain aura.";
+      const text = `My onchain aura is officially live on @bluera.farcaster.eth 🔮
+
+      Curious what yours looks like?`
 
       await sdk.actions.composeCast({
         text,
