@@ -577,15 +577,21 @@ export function ShareableAuraCard({
         return;
       }
 
-      const json = await res.json();
-      const imageUrl: string | null = json?.image_url ?? null;
+      // We still fetch to ensure the aura card exists (and is uploaded),
+      // but we share a dedicated URL that includes `fc:frame` meta tags.
+      await res.json();
+
+      const appUrl =
+        (typeof window !== "undefined" && window.location?.origin) ||
+        "https://bluera.vercel.app";
+      const shareUrl = `${appUrl}/aura/${address.toLowerCase()}`;
 
       const text =
         "My Bluera Aura Card is live on Base! 🔮 Check out my onchain aura.";
 
       await sdk.actions.composeCast({
         text,
-        embeds: imageUrl ? [imageUrl] : [],
+        embeds: [shareUrl],
       });
     } catch (e) {
       console.error("Share on Base error:", e);
