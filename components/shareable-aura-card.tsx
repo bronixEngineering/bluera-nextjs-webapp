@@ -69,10 +69,10 @@ export function ShareableAuraCard({
   const { connect, connectors } = useConnect();
   const chainId = useChainId();
   const { switchChainAsync } = useSwitchChain();
-  const { sendCalls } = useSendCalls();
+  const { sendCallsAsync } = useSendCalls();
   const { data: callsStatusData, status: waitCallsStatus } = useWaitForCallsStatus({
     id: pendingCallsId ?? undefined,
-    query: { enabled: !!pendingCallsId },
+    query: { enabled: !!pendingCallsId, refetchInterval: 1000 },
   });
   const AURA_NFT_ADDRESS = "0x7A4Fdf55F2236E12137B6F85e5ecCa6F7F78E8C6";
   const USDC_ADDRESS = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";
@@ -596,7 +596,7 @@ export function ShareableAuraCard({
       const { id: auraCardId } = await latestRes.json();
 
       const amount = parseUnits("10", 4);
-      const result = await sendCalls({
+      const result = await sendCallsAsync({
         chainId: base.id,
         calls: [
           {
