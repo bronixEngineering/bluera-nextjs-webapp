@@ -368,43 +368,7 @@ export default function ProfilePage() {
           </div>
         </CardContent>
       </Card>
-
-      {/* Favorite Coin */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Award className="h-5 w-5" />
-            Favorite Coin
-          </CardTitle>
-          <CardDescription>
-            Your most traded cryptocurrency this month
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="py-10">
-        <div className="text-center text-muted-foreground">
-          Coming soon
-        </div>
-      </CardContent>
-      </Card>
-
-      {/* Trading Activity Chart Placeholder */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Trading Activity</CardTitle>
-          <CardDescription>
-            Your trading patterns over the last 30 days
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="h-48 bg-muted/20 rounded-lg flex items-center justify-center">
-            <div className="text-center text-muted-foreground">
-              <Activity className="h-12 w-12 mx-auto mb-2 opacity-50" />
-              <p>Coming soon</p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
+      
       {showAuraModal && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 px-4"

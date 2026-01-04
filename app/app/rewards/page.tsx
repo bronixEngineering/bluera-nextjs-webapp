@@ -535,56 +535,6 @@ export default function RewardsPage() {
           </CardContent>
         </Card>
       )}
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <Card className="opacity-50">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Trophy className="h-5 w-5" />
-              Trading Streaks
-            </CardTitle>
-            <CardDescription>
-              Complete daily trading tasks to build streaks
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-sm">Daily Trade</span>
-                <Badge variant="secondary">Coming Soon</Badge>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm">Weekly Goal</span>
-                <Badge variant="secondary">Coming Soon</Badge>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="opacity-50">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Star className="h-5 w-5" />
-              Achievement Badges
-            </CardTitle>
-            <CardDescription>
-              Unlock special badges for trading milestones
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-sm">First Trade</span>
-                <Badge variant="secondary">Coming Soon</Badge>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm">Volume Master</span>
-                <Badge variant="secondary">Coming Soon</Badge>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
     </div>
   );
 }
