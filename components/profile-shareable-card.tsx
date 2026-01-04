@@ -597,7 +597,7 @@ export function ProfileShareableCard({
           </div>
 
           {/* Favorite Coins */}
-          <div className="relative z-10 mb-5 grid grid-cols-1 gap-3 sm:mb-6 sm:grid-cols-2 sm:gap-4">
+          <div className="relative z-10 mb-5 grid grid-cols-2 gap-3 sm:mb-6 sm:gap-4">
             {/* Fav Coin by Volume (always keep slot) */}
             <div
               className="overflow-hidden rounded-2xl border p-4 backdrop-blur-sm sm:p-5"
@@ -616,7 +616,7 @@ export function ProfileShareableCard({
                     FAV BY VOLUME
                   </p>
                   <p
-                    className="mb-1 text-xl font-semibold bg-clip-text text-transparent sm:text-2xl"
+                    className="mb-1 text-lg font-semibold bg-clip-text text-transparent sm:text-2xl truncate max-w-[11ch]"
                     style={{
                       backgroundImage:
                         "linear-gradient(90deg, #a5f3fc 0%, #bfdbfe 100%)",
@@ -624,14 +624,14 @@ export function ProfileShareableCard({
                   >
                     {stats.favCoinByVolume?.symbol ?? "$—"}
                   </p>
-                  <p className="text-sm text-white/60 sm:text-base">
+                  <p className="text-xs text-white/60 sm:text-base">
                     {formatMoney(stats.favCoinByVolume?.volume ?? 0)}
                   </p>
                 </div>
 
                 {stats.favCoinByVolume?.imageUrl ? (
                   <div
-                    className="relative size-9 overflow-hidden rounded-full border sm:size-10"
+                    className="relative size-9 shrink-0 overflow-hidden rounded-full border sm:size-10"
                     style={{
                       borderColor: "rgba(34, 211, 238, 0.3)",
                       backgroundColor: "rgba(34, 211, 238, 0.1)",
@@ -667,7 +667,7 @@ export function ProfileShareableCard({
                     FAV BY TRADES
                   </p>
                   <p
-                    className="mb-1 text-xl font-semibold bg-clip-text text-transparent sm:text-2xl"
+                    className="mb-1 text-lg font-semibold bg-clip-text text-transparent sm:text-2xl truncate max-w-[11ch]"
                     style={{
                       backgroundImage:
                         "linear-gradient(90deg, #a7f3d0 0%, #a5f3fc 100%)",
@@ -675,14 +675,14 @@ export function ProfileShareableCard({
                   >
                     {stats.favCoinByTrades?.symbol ?? "$—"}
                   </p>
-                  <p className="text-sm text-white/60 sm:text-base">
+                  <p className="text-xs text-white/60 sm:text-base">
                     {formatTradesCount(stats.favCoinByTrades?.trades ?? 0)} trades
                   </p>
                 </div>
 
                 {stats.favCoinByTrades?.imageUrl ? (
                   <div
-                    className="relative size-9 overflow-hidden rounded-full border sm:size-10"
+                    className="relative size-9 shrink-0 overflow-hidden rounded-full border sm:size-10"
                     style={{
                       borderColor: "rgba(16, 185, 129, 0.3)",
                       backgroundColor: "rgba(16, 185, 129, 0.1)",
