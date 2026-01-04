@@ -477,7 +477,7 @@ export default function RewardsPage() {
       <div className="space-y-1">
         <h1 className="text-xl font-bold">Rewards</h1>
         <p className="text-sm text-muted-foreground">
-          Complete tasks and earn rewards for your trading achievements
+        If your mindshare is above 0.001%, congrats — you’ve unlocked claimable rewards.
         </p>
       </div>
 
