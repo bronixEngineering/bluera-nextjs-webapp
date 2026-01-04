@@ -25,8 +25,8 @@ export default function OnboardingPage() {
           const hasCompleted = localStorage.getItem(`onboarding_completed_v3_${userFid}`);
           
           if (hasCompleted) {
-            // User already completed onboarding, redirect to app
-            router.push("/app");
+            // User already completed onboarding, redirect to profile by default
+            router.push("/app/profile");
             return;
           }
         }
@@ -51,8 +51,8 @@ export default function OnboardingPage() {
   }, [router]);
 
   const handleComplete = () => {
-    // Redirect to app page after onboarding
-    router.push("/app");
+    // Redirect to profile page after onboarding
+    router.push("/app/profile");
   };
 
   if (isChecking) {
