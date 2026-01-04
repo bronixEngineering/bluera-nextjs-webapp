@@ -527,10 +527,7 @@ export default function RewardsPage() {
         <Card className="border-dashed">
           <CardContent className="flex flex-col items-center justify-center py-12 space-y-4">
             <div className="text-center space-y-2">
-              <h3 className="text-lg font-semibold">There is nothing to show here</h3>
-              <p className="text-sm text-muted-foreground">
-                Rewards system is coming soon. Complete trading tasks to earn points and unlock exclusive rewards.
-              </p>
+              <h3 className="text-lg font-semibold">Be more active on Base to claim rewards</h3>
             </div>
           </CardContent>
         </Card>
