@@ -103,7 +103,6 @@ export function ProfileShareableCard({
   mode = "profile",
   className,
 }: ProfileShareableCardProps) {
-  const cardRef = React.useRef<HTMLDivElement>(null);
   const [generatedOn, setGeneratedOn] = React.useState<string | null>(null);
 
   React.useEffect(() => {
@@ -482,24 +481,9 @@ export function ProfileShareableCard({
     return canvas.toDataURL("image/png");
   }, [avatarUrl, generatedOn, stats, tags, userId, userName]);
 
-  const downloadCard = React.useCallback(async () => {
-    if (!cardRef.current) return;
-    try {
-      const dataUrl = await generatePngDataUrl();
-      if (!dataUrl) return;
-      const link = document.createElement("a");
-      link.download = `bluera-aura-card-${Date.now()}.png`;
-      link.href = dataUrl;
-      link.click();
-    } catch (error) {
-      console.error("Error downloading card:", error);
-    }
-  }, [generatePngDataUrl]);
-
   return (
-    <div className={cn("w-full", className)}>
+    <div className={cn("w-full max-w-2xl mx-auto", className)}>
       <div
-        ref={cardRef}
         className={cn(
           "relative w-full overflow-hidden",
           mode === "profile"
@@ -518,7 +502,7 @@ export function ProfileShareableCard({
         <div
           className={cn(
             "relative backdrop-blur-xl",
-            mode === "profile" ? "p-6 md:p-8" : "rounded-[22px] p-8"
+            mode === "profile" ? "p-4 sm:p-6 md:p-8" : "rounded-[22px] p-8"
           )}
           style={
             mode === "profile"
@@ -533,7 +517,7 @@ export function ProfileShareableCard({
           }
         >
           {/* Header */}
-          <div className="relative z-10 mb-8 flex items-center gap-6">
+          <div className="relative z-10 mb-6 flex flex-col items-start gap-4 sm:mb-8 sm:flex-row sm:items-center sm:gap-6">
             {/* Avatar */}
             <div className="relative">
               <div
@@ -544,7 +528,7 @@ export function ProfileShareableCard({
                 }}
               />
               <div
-                className="relative size-24 overflow-hidden rounded-full border-4"
+                className="relative size-16 overflow-hidden rounded-full border-4 sm:size-20 md:size-24"
                 style={{
                   borderColor: "rgba(31, 41, 55, 1)",
                   backgroundImage:
@@ -568,7 +552,7 @@ export function ProfileShareableCard({
                         "linear-gradient(135deg, #7c3aed 0%, #db2777 100%)",
                     }}
                   >
-                    <span className="text-xl font-semibold text-white">
+                    <span className="text-lg font-semibold text-white sm:text-xl">
                       {userName.charAt(0).toUpperCase()}
                     </span>
                   </div>
@@ -579,7 +563,7 @@ export function ProfileShareableCard({
             {/* User details */}
             <div className="flex-1">
               <h2
-                className="mb-1 text-3xl font-semibold bg-clip-text text-transparent"
+                className="mb-1 text-2xl font-semibold bg-clip-text text-transparent sm:text-3xl"
                 style={{
                   backgroundImage:
                     "linear-gradient(90deg, #d8b4fe 0%, #f9a8d4 45%, #93c5fd 100%)",
@@ -587,7 +571,7 @@ export function ProfileShareableCard({
               >
                 {userName}
               </h2>
-              <p className="text-white/60">FID {userId}</p>
+              <p className="text-sm text-white/60 sm:text-base">FID {userId}</p>
 
               {tags.length > 0 && (
                 <div className="mt-2 flex flex-wrap items-center gap-2">
@@ -598,7 +582,7 @@ export function ProfileShareableCard({
                       <div
                         key={`${t.kind}:${t.label}`}
                         className={cn(
-                          "flex items-center gap-1 rounded-full px-3 py-1 text-sm backdrop-blur-sm"
+                          "flex items-center gap-1 rounded-full px-3 py-1 text-xs backdrop-blur-sm sm:text-sm"
                         )}
                         style={s.style}
                       >
@@ -613,10 +597,10 @@ export function ProfileShareableCard({
           </div>
 
           {/* Favorite Coins */}
-          <div className="relative z-10 mb-6 grid grid-cols-1 gap-4 md:grid-cols-2">
+          <div className="relative z-10 mb-5 grid grid-cols-1 gap-3 sm:mb-6 sm:grid-cols-2 sm:gap-4">
             {/* Fav Coin by Volume (always keep slot) */}
             <div
-              className="overflow-hidden rounded-2xl border p-5 backdrop-blur-sm"
+              className="overflow-hidden rounded-2xl border p-4 backdrop-blur-sm sm:p-5"
               style={{
                 borderColor: "rgba(34, 211, 238, 0.3)",
                 backgroundImage:
@@ -632,7 +616,7 @@ export function ProfileShareableCard({
                     FAV BY VOLUME
                   </p>
                   <p
-                    className="mb-1 text-2xl font-semibold bg-clip-text text-transparent"
+                    className="mb-1 text-xl font-semibold bg-clip-text text-transparent sm:text-2xl"
                     style={{
                       backgroundImage:
                         "linear-gradient(90deg, #a5f3fc 0%, #bfdbfe 100%)",
@@ -640,14 +624,14 @@ export function ProfileShareableCard({
                   >
                     {stats.favCoinByVolume?.symbol ?? "$—"}
                   </p>
-                  <p className="text-white/60">
+                  <p className="text-sm text-white/60 sm:text-base">
                     {formatMoney(stats.favCoinByVolume?.volume ?? 0)}
                   </p>
                 </div>
 
                 {stats.favCoinByVolume?.imageUrl ? (
                   <div
-                    className="relative size-10 overflow-hidden rounded-full border"
+                    className="relative size-9 overflow-hidden rounded-full border sm:size-10"
                     style={{
                       borderColor: "rgba(34, 211, 238, 0.3)",
                       backgroundColor: "rgba(34, 211, 238, 0.1)",
@@ -667,7 +651,7 @@ export function ProfileShareableCard({
 
             {/* Fav Coin by Trades (always keep slot) */}
             <div
-              className="overflow-hidden rounded-2xl border p-5 backdrop-blur-sm"
+              className="overflow-hidden rounded-2xl border p-4 backdrop-blur-sm sm:p-5"
               style={{
                 borderColor: "rgba(16, 185, 129, 0.3)",
                 backgroundImage:
@@ -683,7 +667,7 @@ export function ProfileShareableCard({
                     FAV BY TRADES
                   </p>
                   <p
-                    className="mb-1 text-2xl font-semibold bg-clip-text text-transparent"
+                    className="mb-1 text-xl font-semibold bg-clip-text text-transparent sm:text-2xl"
                     style={{
                       backgroundImage:
                         "linear-gradient(90deg, #a7f3d0 0%, #a5f3fc 100%)",
@@ -691,14 +675,14 @@ export function ProfileShareableCard({
                   >
                     {stats.favCoinByTrades?.symbol ?? "$—"}
                   </p>
-                  <p className="text-white/60">
+                  <p className="text-sm text-white/60 sm:text-base">
                     {formatTradesCount(stats.favCoinByTrades?.trades ?? 0)} trades
                   </p>
                 </div>
 
                 {stats.favCoinByTrades?.imageUrl ? (
                   <div
-                    className="relative size-10 overflow-hidden rounded-full border"
+                    className="relative size-9 overflow-hidden rounded-full border sm:size-10"
                     style={{
                       borderColor: "rgba(16, 185, 129, 0.3)",
                       backgroundColor: "rgba(16, 185, 129, 0.1)",
@@ -718,10 +702,10 @@ export function ProfileShareableCard({
           </div>
 
           {/* Stats Grid */}
-          <div className="relative z-10 grid grid-cols-1 gap-4 md:grid-cols-3">
+          <div className="relative z-10 grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4">
             {/* Daily */}
             <div
-              className="relative overflow-hidden rounded-2xl border p-6 backdrop-blur-sm"
+              className="relative overflow-hidden rounded-2xl border p-4 sm:p-6 backdrop-blur-sm"
               style={{
                 borderColor: "rgba(168, 85, 247, 0.3)",
                 backgroundImage:
@@ -739,11 +723,11 @@ export function ProfileShareableCard({
                 >
                   DAILY
                 </p>
-                <div className="mt-4 space-y-2">
+                <div className="mt-3 space-y-2">
                   <div>
                     <p className="mb-1 text-white/60">Volume</p>
                     <p
-                      className="text-2xl font-semibold bg-clip-text text-transparent"
+                      className="text-xl font-semibold bg-clip-text text-transparent sm:text-2xl"
                       style={{
                         backgroundImage:
                           "linear-gradient(90deg, #e9d5ff 0%, #fbcfe8 100%)",
@@ -752,7 +736,7 @@ export function ProfileShareableCard({
                       {formatMoney(stats.daily.volume)}
                     </p>
                   </div>
-                  <p className="text-white/60">
+                  <p className="text-sm text-white/60 sm:text-base">
                     {formatTradesCount(stats.daily.trades)} trades
                   </p>
                 </div>
@@ -761,7 +745,7 @@ export function ProfileShareableCard({
 
             {/* Weekly */}
             <div
-              className="relative overflow-hidden rounded-2xl border p-6 backdrop-blur-sm"
+              className="relative overflow-hidden rounded-2xl border p-4 sm:p-6 backdrop-blur-sm"
               style={{
                 borderColor: "rgba(236, 72, 153, 0.3)",
                 backgroundImage:
@@ -779,11 +763,11 @@ export function ProfileShareableCard({
                 >
                   WEEKLY
                 </p>
-                <div className="mt-4 space-y-2">
+                <div className="mt-3 space-y-2">
                   <div>
                     <p className="mb-1 text-white/60">Volume</p>
                     <p
-                      className="text-2xl font-semibold bg-clip-text text-transparent"
+                      className="text-xl font-semibold bg-clip-text text-transparent sm:text-2xl"
                       style={{
                         backgroundImage:
                           "linear-gradient(90deg, #fbcfe8 0%, #bfdbfe 100%)",
@@ -792,7 +776,7 @@ export function ProfileShareableCard({
                       {formatMoney(stats.weekly.volume)}
                     </p>
                   </div>
-                  <p className="text-white/60">
+                  <p className="text-sm text-white/60 sm:text-base">
                     {formatTradesCount(stats.weekly.trades)} trades
                   </p>
                 </div>
@@ -801,7 +785,7 @@ export function ProfileShareableCard({
 
             {/* Monthly */}
             <div
-              className="relative overflow-hidden rounded-2xl border p-6 backdrop-blur-sm"
+              className="relative overflow-hidden rounded-2xl border p-4 sm:p-6 backdrop-blur-sm col-span-2 sm:col-span-1"
               style={{
                 borderColor: "rgba(59, 130, 246, 0.3)",
                 backgroundImage:
@@ -819,11 +803,11 @@ export function ProfileShareableCard({
                 >
                   MONTHLY
                 </p>
-                <div className="mt-4 space-y-2">
+                <div className="mt-3 space-y-2">
                   <div>
                     <p className="mb-1 text-white/60">Volume</p>
                     <p
-                      className="text-2xl font-semibold bg-clip-text text-transparent"
+                      className="text-xl font-semibold bg-clip-text text-transparent sm:text-2xl"
                       style={{
                         backgroundImage:
                           "linear-gradient(90deg, #bfdbfe 0%, #e9d5ff 100%)",
@@ -832,7 +816,7 @@ export function ProfileShareableCard({
                       {formatMoney(stats.monthly.volume)}
                     </p>
                   </div>
-                  <p className="text-white/60">
+                  <p className="text-sm text-white/60 sm:text-base">
                     {formatTradesCount(stats.monthly.trades)} trades
                   </p>
                 </div>
