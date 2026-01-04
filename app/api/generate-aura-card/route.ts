@@ -209,10 +209,49 @@ export async function POST(request: Request) {
     // Boş string kontrolü: Eğer bestTicker boş string ise null yap
     const holderTagValue = bestTicker && bestTicker.trim() !== '' ? bestTicker.trim() : null;
 
+    // 3.5) Compute trader flags from existing Supabase tables
+    // - whale_trader: volume_daily >= 100,000
+    // - active_base_trader: dailyTrades > 0
+    const volumeDaily = await (async () => {
+      try {
+        const { data } = await supabase
+          .from("wallets_status")
+          .select("volume_daily")
+          .eq("wallet_address", dbWallet)
+          .limit(1)
+          .single();
+        const v = Number((data as { volume_daily?: unknown } | null)?.volume_daily ?? 0);
+        return Number.isFinite(v) ? v : 0;
+      } catch {
+        return 0;
+      }
+    })();
+
+    const dailyTrades = await (async () => {
+      try {
+        const { data } = await supabase
+          .from("wallet_token_status")
+          .select("token_transfer_count_daily")
+          .eq("wallet_address", dbWallet);
+        const rows = Array.isArray(data) ? (data as Array<{ token_transfer_count_daily?: unknown }>) : [];
+        return rows.reduce((sum, row) => {
+          const n = Number(row?.token_transfer_count_daily ?? 0);
+          return sum + (Number.isFinite(n) ? n : 0);
+        }, 0);
+      } catch {
+        return 0;
+      }
+    })();
+
+    const whaleTrader = volumeDaily >= 100_000;
+    const activeBaseTrader = dailyTrades > 0;
+
     // 4) aura_card insert (HER çağrıda yeni satır)
     const insertData = {
       wallet_address: dbWallet,
       holder_tag: holderTagValue,
+      whale_trader: whaleTrader,
+      active_base_trader: activeBaseTrader,
       // network, created_at, minted: DB default
     };
 

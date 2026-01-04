@@ -27,6 +27,7 @@ type ShareableAuraCardProps = {
   pfpUrl?: string;
   holderTag: string;
   traderTag: string;
+  activeTraderTag?: string;
   allTimeVolume: number;
   networth: number;
   weeklyVolume?: number;
@@ -44,6 +45,7 @@ export function ShareableAuraCard({
   pfpUrl,
   holderTag,
   traderTag,
+  activeTraderTag,
   allTimeVolume,
   networth,
   weeklyVolume,
@@ -266,37 +268,58 @@ export function ShareableAuraCard({
       const tagsX = width - 240;
       const tagsY = pfpY + 10;
 
-      ctx.fillStyle = "rgba(168, 85, 247, 0.15)";
-      ctx.strokeStyle = "rgba(168, 85, 247, 0.3)";
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      if (typeof ctx.roundRect === 'function') {
-        ctx.roundRect(tagsX, tagsY, tagWidth, tagHeight, 18);
-      } else {
-        console.error("roundRect is not supported in this context");
-      }
-      ctx.fill();
-      ctx.stroke();
+      // Tags (up to 3): Holder / Whale Trader / Active Base Trader
+      const tagItems = [
+        holderTag
+          ? {
+              text: holderTag,
+              fill: "rgba(168, 85, 247, 0.15)",
+              stroke: "rgba(168, 85, 247, 0.3)",
+              textColor: "#c084fc",
+            }
+          : null,
+        traderTag
+          ? {
+              text: traderTag,
+              fill: "rgba(234, 179, 8, 0.15)",
+              stroke: "rgba(234, 179, 8, 0.3)",
+              textColor: "#facc15",
+            }
+          : null,
+        activeTraderTag
+          ? {
+              text: activeTraderTag,
+              fill: "rgba(59, 130, 246, 0.15)",
+              stroke: "rgba(59, 130, 246, 0.3)",
+              textColor: "#60a5fa",
+            }
+          : null,
+      ].filter(Boolean) as Array<{
+        text: string;
+        fill: string;
+        stroke: string;
+        textColor: string;
+      }>;
 
-      ctx.fillStyle = "#c084fc";
       ctx.font = 'bold 14px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
       ctx.textAlign = "center";
-      ctx.fillText(holderTag, tagsX + tagWidth / 2, tagsY + 22);
 
-      ctx.fillStyle = "rgba(234, 179, 8, 0.15)";
-      ctx.strokeStyle = "rgba(234, 179, 8, 0.3)";
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      if (typeof ctx.roundRect === 'function') {
-        ctx.roundRect(tagsX, tagsY + tagHeight + tagSpacing, tagWidth, tagHeight, 18);
-      } else {
-        console.error("roundRect is not supported in this context");
-      }
-      ctx.fill();
-      ctx.stroke();
-
-      ctx.fillStyle = "#facc15";
-      ctx.fillText(traderTag, tagsX + tagWidth / 2, tagsY + tagHeight + tagSpacing + 22);
+      tagItems.forEach((t, idx) => {
+        const y = tagsY + idx * (tagHeight + tagSpacing);
+        ctx.fillStyle = t.fill;
+        ctx.strokeStyle = t.stroke;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        if (typeof ctx.roundRect === "function") {
+          ctx.roundRect(tagsX, y, tagWidth, tagHeight, 18);
+        } else {
+          ctx.rect(tagsX, y, tagWidth, tagHeight);
+        }
+        ctx.fill();
+        ctx.stroke();
+        ctx.fillStyle = t.textColor;
+        ctx.fillText(t.text, tagsX + tagWidth / 2, y + 22);
+      });
 
       const statsY = 370;
       const statBoxWidth = 250;
@@ -414,6 +437,7 @@ export function ShareableAuraCard({
   }, [
     allTimeVolumeState,
     dailyTradesState,
+    activeTraderTag,
     fid,
     fmtMoney,
     holderTag,
@@ -744,7 +768,7 @@ export function ShareableAuraCard({
         </div>
 
         {/* Tags */}
-        {(holderTag || traderTag) && (
+      {(holderTag || traderTag || activeTraderTag) && (
           <div className="flex flex-wrap gap-2 justify-center mb-6">
             {holderTag && (
               <span className="px-3 py-1 rounded-full bg-purple-500/10 border border-purple-400/20 text-xs font-medium">
@@ -756,6 +780,11 @@ export function ShareableAuraCard({
                 {traderTag}
               </span>
             )}
+          {activeTraderTag && (
+            <span className="px-3 py-1 rounded-full bg-blue-500/10 border border-blue-400/20 text-xs font-medium">
+              {activeTraderTag}
+            </span>
+          )}
           </div>
         )}
 

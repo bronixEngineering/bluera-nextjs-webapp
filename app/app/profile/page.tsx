@@ -347,7 +347,8 @@ export default function ProfilePage() {
             fid={user?.fid || mockUser.fid}
             pfpUrl={user?.pfpUrl || mockUser.avatar}
             holderTag={holderTag || ""}
-            traderTag={dailyVolumeReal > 1000000 ? "Whale Trader" : ""}
+            traderTag={dailyVolumeReal > 100000 ? "Whale Trader" : ""}
+            activeTraderTag={dailyTrades > 0 ? "Active Base Trader" : ""}
             allTimeVolume={dailyVolumeReal}
             networth={0}
             weeklyVolume={0}
@@ -383,7 +384,8 @@ export default function ProfilePage() {
               fid={user?.fid || mockUser.fid}
               pfpUrl={user?.pfpUrl || mockUser.avatar}
               holderTag={holderTag || ""}
-              traderTag={dailyVolumeReal > 1000000 ? "Whale Trader" : ""}
+              traderTag={dailyVolumeReal > 100000 ? "Whale Trader" : ""}
+              activeTraderTag={dailyTrades > 0 ? "Active Base Trader" : ""}
               allTimeVolume={dailyVolumeReal}
               networth={0}
               weeklyVolume={0}
