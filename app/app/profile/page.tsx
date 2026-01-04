@@ -382,7 +382,7 @@ export default function ProfilePage() {
   };
 
   return (
-    <div className="py-6 space-y-6">
+    <div className="py-6 space-y-4">
       {!isInMiniApp ? (
         <Card className="border-dashed">
           <CardHeader className="text-center">
@@ -411,14 +411,24 @@ export default function ProfilePage() {
         mode="profile"
       />
 
-      <div className="flex justify-center">
-        <button
-          onClick={handleGenerateAuraCard}
-          disabled={!address || isConnecting || isGeneratingAura}
-          className="inline-flex items-center justify-center rounded-full bg-gradient-to-r from-purple-500 to-yellow-500 px-6 py-2 text-sm font-semibold text-white shadow-md hover:shadow-lg disabled:opacity-60 disabled:cursor-not-allowed transition-all"
-        >
-          {isGeneratingAura ? "Generating..." : "Generate Your Aura Card"}
-        </button>
+      {/* Sticky CTA above bottom tab bar (mobile) */}
+      <div className="sticky bottom-24 z-30 pt-2">
+        <div className="mx-auto w-full max-w-2xl px-2 sm:px-0">
+          <button
+            onClick={handleGenerateAuraCard}
+            disabled={!address || isConnecting || isGeneratingAura}
+            className="w-full inline-flex items-center justify-center rounded-2xl px-5 py-3 text-sm font-semibold text-white shadow-lg disabled:opacity-60 disabled:cursor-not-allowed transition-all border border-white/10 backdrop-blur-md"
+            style={{
+              backgroundImage:
+                "linear-gradient(90deg, rgba(79,70,229,0.95) 0%, rgba(124,58,237,0.95) 45%, rgba(219,39,119,0.95) 100%)",
+              boxShadow:
+                "0 14px 40px rgba(124,58,237,0.25), 0 10px 30px rgba(219,39,119,0.18)",
+              paddingBottom: "calc(0.75rem + env(safe-area-inset-bottom))",
+            }}
+          >
+            {isGeneratingAura ? "Generating..." : "Generate Your Aura Card"}
+          </button>
+        </div>
       </div>
       
       {showAuraModal && (
