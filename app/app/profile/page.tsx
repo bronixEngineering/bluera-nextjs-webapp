@@ -12,13 +12,26 @@ import {
 } from "@/components/ui/card";
 import { mockUser } from "@/lib/mock-data";
 import {
-  Activity,
-  Award,
   LogIn,
 } from "lucide-react";
 import { ShareableAuraCard } from "@/components/shareable-aura-card";
+import { ProfileShareableCard, type StatsData, type ProfileTag } from "@/components/profile-shareable-card";
 import { useAccount } from "wagmi";
 
+type FavTokensResponse = {
+  favByVolume: null | {
+    token_address: string;
+    symbol: string | null;
+    image_url: string | null;
+    volume: number;
+  };
+  favByTrades: null | {
+    token_address: string;
+    symbol: string | null;
+    image_url: string | null;
+    trades: number;
+  };
+};
 
 export default function ProfilePage() {
   const [user, setUser] = useState<{
@@ -103,6 +116,8 @@ export default function ProfilePage() {
 
   // Aura card için artık günlük volume kullan (all_time yerine volume_daily)
   const dailyVolumeReal = walletStatusData?.volume_daily ? Number(walletStatusData.volume_daily) : 0;
+  const weeklyVolumeReal = walletStatusData?.volume_weekly ? Number(walletStatusData.volume_weekly) : 0;
+  const monthlyVolumeReal = walletStatusData?.volume_monthly ? Number(walletStatusData.volume_monthly) : 0;
 
   // TanStack Query ile wallet-token-status endpoint'ini çağır
   const { data: walletTokenStatusData } = useQuery({
@@ -139,6 +154,22 @@ export default function ProfilePage() {
   const dailyTrades = walletTokenStatusData?.dailyTrades ? Number(walletTokenStatusData.dailyTrades) : 0;
   const weeklyTrades = walletTokenStatusData?.weeklyTrades ? Number(walletTokenStatusData.weeklyTrades) : 0;
   const monthlyTrades = walletTokenStatusData?.monthlyTrades ? Number(walletTokenStatusData.monthlyTrades) : 0;
+
+  const { data: favTokensData } = useQuery({
+    queryKey: ["fav-tokens", address?.toLowerCase()],
+    queryFn: async () => {
+      if (!address) return null;
+      const wallet = address.toLowerCase();
+      const response = await fetch(`/api/fav-tokens?wallet=${encodeURIComponent(wallet)}`);
+      if (!response.ok) return null;
+      const contentType = response.headers.get("content-type");
+      if (!contentType?.includes("application/json")) return null;
+      return (await response.json()) as FavTokensResponse;
+    },
+    enabled: !!address,
+    refetchOnWindowFocus: true,
+    staleTime: 30000,
+  });
 
   // TanStack Query ile wallet-token-status-moralis endpoint'ini çağır (wallet_token_status tablosunu güncellemek için)
   const { } = useQuery({
@@ -294,29 +325,6 @@ export default function ProfilePage() {
 
 
   // Show message if not in Mini App
-  if (!isInMiniApp && !isLoading) {
-    return (
-      <div className="py-6">
-        <Card className="max-w-md mx-auto">
-          <CardHeader className="text-center">
-            <CardTitle className="flex items-center justify-center gap-2">
-              <LogIn className="h-5 w-5" />
-              Open in Base App
-            </CardTitle>
-            <CardDescription>
-              Please open this app in Base or Farcaster client to see your profile.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="text-center">
-            <p className="text-sm text-muted-foreground">
-              This mini app needs to be opened from within Base or Farcaster to access your profile data.
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
   // Show loading state
   if (isLoading) {
     return (
@@ -331,44 +339,87 @@ export default function ProfilePage() {
     );
   }
 
+  const displayUser = user ?? {
+    fid: mockUser.fid,
+    username: mockUser.username,
+    pfpUrl: mockUser.avatar,
+  };
+
+  const toDollarSymbol = (ticker: string | null | undefined) => {
+    const t = (ticker || "").trim();
+    if (!t) return null;
+    return t.startsWith("$") ? t : `$${t}`;
+  };
+
+  const favByVolume = favTokensData?.favByVolume
+    ? {
+        symbol: toDollarSymbol(favTokensData.favByVolume.symbol) ?? "$N/A",
+        volume: Number(favTokensData.favByVolume.volume || 0),
+        imageUrl: favTokensData.favByVolume.image_url,
+      }
+    : null;
+
+  const favByTrades = favTokensData?.favByTrades
+    ? {
+        symbol: toDollarSymbol(favTokensData.favByTrades.symbol) ?? "$N/A",
+        trades: Number(favTokensData.favByTrades.trades || 0),
+        imageUrl: favTokensData.favByTrades.image_url,
+      }
+    : null;
+
+  const tags: ProfileTag[] = [
+    holderTag ? { kind: "holder", label: holderTag } : null,
+    dailyVolumeReal >= 100_000 ? { kind: "whale", label: "Whale Trader" } : null,
+    dailyTrades > 0 ? { kind: "active", label: "Active Base Trader" } : null,
+  ].filter(Boolean) as ProfileTag[];
+
+  const stats: StatsData = {
+    daily: { volume: dailyVolumeReal, trades: dailyTrades },
+    weekly: { volume: weeklyVolumeReal, trades: weeklyTrades },
+    monthly: { volume: monthlyVolumeReal, trades: monthlyTrades },
+    favCoinByVolume: favByVolume,
+    favCoinByTrades: favByTrades,
+  };
+
   return (
-    <div className="py-6 space-y-8">
-      {/* Trading Aura Visualization - Shareable */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-center">Your Onchain Aura</CardTitle>
-          <CardDescription className="text-center">
-            Share your unique trading personality with the world
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="border-none bg-transparent space-y-4">
-          <ShareableAuraCard
-            username={user?.username || mockUser.username}
-            fid={user?.fid || mockUser.fid}
-            pfpUrl={user?.pfpUrl || mockUser.avatar}
-            holderTag={holderTag || ""}
-            traderTag={dailyVolumeReal > 100000 ? "Whale Trader" : ""}
-            activeTraderTag={dailyTrades > 0 ? "Active Base Trader" : ""}
-            allTimeVolume={dailyVolumeReal}
-            networth={0}
-            weeklyVolume={0}
-            monthlyVolume={0}
-            dailyTrades={dailyTrades}
-            weeklyTrades={weeklyTrades}
-            monthlyTrades={monthlyTrades}
-            showActions={false}
-          />
-          <div className="flex justify-center">
-            <button
-              onClick={handleGenerateAuraCard}
-              disabled={!address || isConnecting || isGeneratingAura}
-              className="inline-flex items-center justify-center rounded-full bg-gradient-to-r from-purple-500 to-yellow-500 px-6 py-2 text-sm font-semibold text-white shadow-md hover:shadow-lg disabled:opacity-60 disabled:cursor-not-allowed transition-all"
-            >
-              {isGeneratingAura ? 'Generating...' : 'Generate Your Aura Card'}
-            </button>
-          </div>
-        </CardContent>
-      </Card>
+    <div className="py-6 space-y-6">
+      {!isInMiniApp ? (
+        <Card className="border-dashed">
+          <CardHeader className="text-center">
+            <CardTitle className="flex items-center justify-center gap-2">
+              <LogIn className="h-5 w-5" />
+              Open in Base App
+            </CardTitle>
+            <CardDescription>
+              For the full experience, open this inside Base or Farcaster.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="text-center">
+            <p className="text-sm text-muted-foreground">
+              You can still preview the new card UI here; wallet-connected data may be limited.
+            </p>
+          </CardContent>
+        </Card>
+      ) : null}
+
+      <ProfileShareableCard
+        stats={stats}
+        userName={displayUser.username || mockUser.username}
+        userId={`#${displayUser.fid || mockUser.fid}`}
+        avatarUrl={displayUser.pfpUrl || mockUser.avatar}
+        tags={tags}
+        mode="profile"
+      />
+
+      <div className="flex justify-center">
+        <button
+          onClick={handleGenerateAuraCard}
+          disabled={!address || isConnecting || isGeneratingAura}
+          className="inline-flex items-center justify-center rounded-full bg-gradient-to-r from-purple-500 to-yellow-500 px-6 py-2 text-sm font-semibold text-white shadow-md hover:shadow-lg disabled:opacity-60 disabled:cursor-not-allowed transition-all"
+        >
+          {isGeneratingAura ? "Generating..." : "Generate Your Aura Card"}
+        </button>
+      </div>
       
       {showAuraModal && (
         <div
@@ -380,16 +431,16 @@ export default function ProfilePage() {
             onClick={(e) => e.stopPropagation()}
           >
             <ShareableAuraCard
-              username={user?.username || mockUser.username}
-              fid={user?.fid || mockUser.fid}
-              pfpUrl={user?.pfpUrl || mockUser.avatar}
+              username={displayUser.username || mockUser.username}
+              fid={displayUser.fid || mockUser.fid}
+              pfpUrl={displayUser.pfpUrl || mockUser.avatar}
               holderTag={holderTag || ""}
               traderTag={dailyVolumeReal > 100000 ? "Whale Trader" : ""}
               activeTraderTag={dailyTrades > 0 ? "Active Base Trader" : ""}
               allTimeVolume={dailyVolumeReal}
               networth={0}
-              weeklyVolume={0}
-              monthlyVolume={0}
+              weeklyVolume={weeklyVolumeReal}
+              monthlyVolume={monthlyVolumeReal}
               dailyTrades={dailyTrades}
               weeklyTrades={weeklyTrades}
               monthlyTrades={monthlyTrades}
