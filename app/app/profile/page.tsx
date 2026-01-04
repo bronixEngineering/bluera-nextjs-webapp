@@ -420,9 +420,9 @@ export default function ProfilePage() {
             className="w-full inline-flex items-center justify-center rounded-2xl px-5 py-3 text-sm font-semibold text-white shadow-lg disabled:opacity-60 disabled:cursor-not-allowed transition-all border border-white/10 backdrop-blur-md"
             style={{
               backgroundImage:
-                "linear-gradient(90deg, rgba(79,70,229,0.95) 0%, rgba(124,58,237,0.95) 45%, rgba(219,39,119,0.95) 100%)",
+                "linear-gradient(90deg, rgba(6,182,212,0.95) 0%, rgba(59,130,246,0.95) 45%, rgba(139,92,246,0.95) 100%)",
               boxShadow:
-                "0 14px 40px rgba(124,58,237,0.25), 0 10px 30px rgba(219,39,119,0.18)",
+                "0 14px 40px rgba(6,182,212,0.18), 0 10px 30px rgba(59,130,246,0.18)",
               paddingBottom: "calc(0.75rem + env(safe-area-inset-bottom))",
             }}
           >

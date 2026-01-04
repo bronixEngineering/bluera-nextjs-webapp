@@ -486,9 +486,7 @@ export function ProfileShareableCard({
       <div
         className={cn(
           "relative w-full overflow-hidden",
-          mode === "profile"
-            ? "rounded-2xl border border-white/10 bg-black/20"
-            : "rounded-3xl p-[2px] shadow-2xl"
+          mode === "profile" ? "" : "rounded-3xl p-[2px] shadow-2xl"
         )}
         style={
           mode === "profile"
@@ -501,15 +499,14 @@ export function ProfileShareableCard({
       >
         <div
           className={cn(
-            "relative backdrop-blur-xl",
-            mode === "profile" ? "p-4 sm:p-6 md:p-8" : "rounded-[22px] p-8"
+            "relative",
+            mode === "profile"
+              ? "p-4 sm:p-6 md:p-8"
+              : "rounded-[22px] p-8 backdrop-blur-xl"
           )}
           style={
             mode === "profile"
-              ? {
-                  backgroundImage:
-                    "linear-gradient(135deg, rgba(17,24,39,0.92) 0%, rgba(17,24,39,0.86) 55%, rgba(17,24,39,0.92) 100%)",
-                }
+              ? undefined
               : {
                   backgroundImage:
                     "linear-gradient(135deg, rgba(17,24,39,1) 0%, rgba(17,24,39,0.96) 55%, rgba(17,24,39,1) 100%)",
