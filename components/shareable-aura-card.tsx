@@ -37,6 +37,11 @@ type ShareableAuraCardProps = {
   monthlyTrades?: number;
   showActions?: boolean;
   mode?: "inline" | "modal";
+  /**
+   * When false, renders only the actions section (e.g. Mint/Share buttons).
+   * Useful when embedding actions under a different card UI.
+   */
+  showCard?: boolean;
 };
 
 export function ShareableAuraCard({
@@ -55,6 +60,7 @@ export function ShareableAuraCard({
   monthlyTrades = 0,
   showActions = true,
   mode = "inline",
+  showCard = true,
 }: ShareableAuraCardProps) {
   // Bu satırları kaldır: isGenratingAuraCard, isAuraCardGenerated
   const [isGenerating, setIsGenerating] = React.useState(false);
@@ -717,113 +723,135 @@ export function ShareableAuraCard({
 
   return (
     <div className="space-y-6">
-      {/* Just the content, no card wrapper */}
-      <div
-        ref={cardRef}
-        className="mx-auto"
-        style={{ maxWidth: "500px" }}
-      >
-        {/* Bluera Logo Header */}
-        <div className="flex items-center justify-center gap-3 mb-6">
-          <Image
-            src="/original.webp"
-            alt="Bluera Logo"
-            width={40}
-            height={40}
-            className="rounded-lg"
-            unoptimized
-          />
-          <div className="text-center">
-            <h2 className="text-2xl font-bold bg-gradient-to-r from-purple-400 to-yellow-400 bg-clip-text text-transparent">
-              BLUERA
-            </h2>
-            <p className="text-xs text-muted-foreground">Aura Card</p>
-          </div>
-        </div>
-
-        {/* Header with Profile */}
-        <div className="flex items-center gap-4 mb-4">
-          <div className="w-16 h-16 rounded-full border-2 border-purple-400 overflow-hidden bg-muted relative">
-            {pfpUrl ? (
+      {showCard && (
+        <>
+          {/* Just the content, no card wrapper */}
+          <div ref={cardRef} className="mx-auto" style={{ maxWidth: "500px" }}>
+            {/* Bluera Logo Header */}
+            <div className="flex items-center justify-center gap-3 mb-6">
               <Image
-                src={pfpUrl}
-                alt="Profile"
-                fill
-                className="object-cover"
+                src="/original.webp"
+                alt="Bluera Logo"
+                width={40}
+                height={40}
+                className="rounded-lg"
                 unoptimized
-                priority
               />
-            ) : (
-              <div className="w-full h-full flex items-center justify-center">
-                <div className="w-8 h-8 rounded-full bg-purple-400/20" />
+              <div className="text-center">
+                <h2 className="text-2xl font-bold bg-gradient-to-r from-purple-400 to-yellow-400 bg-clip-text text-transparent">
+                  BLUERA
+                </h2>
+                <p className="text-xs text-muted-foreground">Aura Card</p>
+              </div>
+            </div>
+
+            {/* Header with Profile */}
+            <div className="flex items-center gap-4 mb-4">
+              <div className="w-16 h-16 rounded-full border-2 border-purple-400 overflow-hidden bg-muted relative">
+                {pfpUrl ? (
+                  <Image
+                    src={pfpUrl}
+                    alt="Profile"
+                    fill
+                    className="object-cover"
+                    unoptimized
+                    priority
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center">
+                    <div className="w-8 h-8 rounded-full bg-purple-400/20" />
+                  </div>
+                )}
+              </div>
+              <div className="flex-1">
+                <h3 className="font-bold text-lg">{username || "Trader"}</h3>
+                <p className="text-xs text-muted-foreground">
+                  FID #{fid || "11222"}
+                </p>
+              </div>
+            </div>
+
+            {/* Tags */}
+            {(holderTag || traderTag || activeTraderTag) && (
+              <div className="flex flex-wrap gap-2 justify-center mb-6">
+                {holderTag && (
+                  <span className="px-3 py-1 rounded-full bg-purple-500/10 border border-purple-400/20 text-xs font-medium">
+                    {holderTag}
+                  </span>
+                )}
+                {traderTag && (
+                  <span className="px-3 py-1 rounded-full bg-yellow-500/10 border border-yellow-400/20 text-xs font-medium">
+                    {traderTag}
+                  </span>
+                )}
+                {activeTraderTag && (
+                  <span className="px-3 py-1 rounded-full bg-blue-500/10 border border-blue-400/20 text-xs font-medium">
+                    {activeTraderTag}
+                  </span>
+                )}
               </div>
             )}
-          </div>
-          <div className="flex-1">
-            <h3 className="font-bold text-lg">{username || "Trader"}</h3>
-            <p className="text-xs text-muted-foreground">
-              FID #{fid || "11222"}
-            </p>
-          </div>
-        </div>
 
-        {/* Tags */}
-      {(holderTag || traderTag || activeTraderTag) && (
-          <div className="flex flex-wrap gap-2 justify-center mb-6">
-            {holderTag && (
-              <span className="px-3 py-1 rounded-full bg-purple-500/10 border border-purple-400/20 text-xs font-medium">
-                {holderTag}
-              </span>
-            )}
-            {traderTag && (
-              <span className="px-3 py-1 rounded-full bg-yellow-500/10 border border-yellow-400/20 text-xs font-medium">
-                {traderTag}
-              </span>
-            )}
-          {activeTraderTag && (
-            <span className="px-3 py-1 rounded-full bg-blue-500/10 border border-blue-400/20 text-xs font-medium">
-              {activeTraderTag}
-            </span>
-          )}
-          </div>
-        )}
+            {/* Stats Grid */}
+            <div className="grid grid-cols-3 gap-2 mt-6">
+              <div className="text-center p-2 rounded-lg bg-background/50 border border-border">
+                <p className="text-[10px] text-muted-foreground mb-0.5">
+                  Daily Vol
+                </p>
+                <p className="font-bold text-xs">
+                  {fmtMoneyOrNA(allTimeVolumeState)}
+                </p>
+              </div>
+              <div className="text-center p-2 rounded-lg bg-background/50 border border-border">
+                <p className="text-[10px] text-muted-foreground mb-0.5">
+                  Weekly Vol
+                </p>
+                <p className="font-bold text-xs">
+                  {fmtMoneyOrNA(weeklyVolumeState)}
+                </p>
+              </div>
+              <div className="text-center p-2 rounded-lg bg-background/50 border border-border">
+                <p className="text-[10px] text-muted-foreground mb-0.5">
+                  Monthly Vol
+                </p>
+                <p className="font-bold text-xs">
+                  {fmtMoneyOrNA(monthlyVolumeState)}
+                </p>
+              </div>
 
-        {/* Stats Grid */}
-        <div className="grid grid-cols-3 gap-2 mt-6">
-          <div className="text-center p-2 rounded-lg bg-background/50 border border-border">
-            <p className="text-[10px] text-muted-foreground mb-0.5">Daily Vol</p>
-            <p className="font-bold text-xs">{fmtMoneyOrNA(allTimeVolumeState)}</p>
-          </div>
-          <div className="text-center p-2 rounded-lg bg-background/50 border border-border">
-            <p className="text-[10px] text-muted-foreground mb-0.5">Weekly Vol</p>
-            <p className="font-bold text-xs">{fmtMoneyOrNA(weeklyVolumeState)}</p>
-          </div>
-          <div className="text-center p-2 rounded-lg bg-background/50 border border-border">
-            <p className="text-[10px] text-muted-foreground mb-0.5">Monthly Vol</p>
-            <p className="font-bold text-xs">{fmtMoneyOrNA(monthlyVolumeState)}</p>
-          </div>
+              {mode !== "modal" && (
+                <div className="text-center p-2 rounded-lg bg-background/50 border border-border">
+                  <p className="text-[10px] text-muted-foreground mb-0.5">
+                    Net Worth
+                  </p>
+                  <p className="font-bold text-xs">
+                    {fmtMoneyOrNA(networthState)}
+                  </p>
+                </div>
+              )}
 
-          {mode !== "modal" && (
-            <div className="text-center p-2 rounded-lg bg-background/50 border border-border">
-              <p className="text-[10px] text-muted-foreground mb-0.5">Net Worth</p>
-              <p className="font-bold text-xs">{fmtMoneyOrNA(networthState)}</p>
+              <div className="text-center p-2 rounded-lg bg-background/50 border border-border">
+                <p className="text-[10px] text-muted-foreground mb-0.5">
+                  Daily Trades
+                </p>
+                <p className="font-bold text-xs">{dailyTradesState ?? 0}</p>
+              </div>
+              <div className="text-center p-2 rounded-lg bg-background/50 border border-border">
+                <p className="text-[10px] text-muted-foreground mb-0.5">
+                  Weekly Trades
+                </p>
+                <p className="font-bold text-xs">{weeklyTradesState ?? 0}</p>
+              </div>
+              <div className="text-center p-2 rounded-lg bg-background/50 border border-border">
+                <p className="text-[10px] text-muted-foreground mb-0.5">
+                  Monthly Trades
+                </p>
+                <p className="font-bold text-xs">{monthlyTradesState ?? 0}</p>
+              </div>
             </div>
-          )}
-
-          <div className="text-center p-2 rounded-lg bg-background/50 border border-border">
-            <p className="text-[10px] text-muted-foreground mb-0.5">Daily Trades</p>
-            <p className="font-bold text-xs">{dailyTradesState ?? 0}</p>
           </div>
-          <div className="text-center p-2 rounded-lg bg-background/50 border border-border">
-            <p className="text-[10px] text-muted-foreground mb-0.5">Weekly Trades</p>
-            <p className="font-bold text-xs">{weeklyTradesState ?? 0}</p>
-          </div>
-          <div className="text-center p-2 rounded-lg bg-background/50 border border-border">
-            <p className="text-[10px] text-muted-foreground mb-0.5">Monthly Trades</p>
-            <p className="font-bold text-xs">{monthlyTradesState ?? 0}</p>
-          </div>
-        </div>
-      </div>
+        </>
+      )}
 
       {/* Generate Button'u kaldır (satır 702-721) */}
 

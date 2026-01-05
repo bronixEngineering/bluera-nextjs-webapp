@@ -440,23 +440,37 @@ export default function ProfilePage() {
             className="bg-background rounded-2xl p-4 max-w-md w-full"
             onClick={(e) => e.stopPropagation()}
           >
-            <ShareableAuraCard
-              username={displayUser.username || mockUser.username}
-              fid={displayUser.fid || mockUser.fid}
-              pfpUrl={displayUser.pfpUrl || mockUser.avatar}
-              holderTag={holderTag || ""}
-              traderTag={dailyVolumeReal > 100000 ? "Whale Trader" : ""}
-              activeTraderTag={dailyTrades > 0 ? "Active Base Trader" : ""}
-              allTimeVolume={dailyVolumeReal}
-              networth={0}
-              weeklyVolume={weeklyVolumeReal}
-              monthlyVolume={monthlyVolumeReal}
-              dailyTrades={dailyTrades}
-              weeklyTrades={weeklyTrades}
-              monthlyTrades={monthlyTrades}
-              showActions={true}
-              mode="modal"
-            />
+            <div className="space-y-4">
+              {/* Share card preview should match the Profile design */}
+              <ProfileShareableCard
+                stats={stats}
+                userName={displayUser.username || mockUser.username}
+                userId={`#${displayUser.fid || mockUser.fid}`}
+                avatarUrl={displayUser.pfpUrl || mockUser.avatar}
+                tags={tags}
+                mode="profile"
+              />
+
+              {/* Keep existing mint/share actions underneath */}
+              <ShareableAuraCard
+                username={displayUser.username || mockUser.username}
+                fid={displayUser.fid || mockUser.fid}
+                pfpUrl={displayUser.pfpUrl || mockUser.avatar}
+                holderTag={holderTag || ""}
+                traderTag={dailyVolumeReal > 100000 ? "Whale Trader" : ""}
+                activeTraderTag={dailyTrades > 0 ? "Active Base Trader" : ""}
+                allTimeVolume={dailyVolumeReal}
+                networth={0}
+                weeklyVolume={weeklyVolumeReal}
+                monthlyVolume={monthlyVolumeReal}
+                dailyTrades={dailyTrades}
+                weeklyTrades={weeklyTrades}
+                monthlyTrades={monthlyTrades}
+                showActions={true}
+                showCard={false}
+                mode="modal"
+              />
+            </div>
           </div>
         </div>
       )}
