@@ -6,6 +6,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Download, Sparkles } from "lucide-react";
 import Image from "next/image";
+import html2canvas from "html2canvas";
 import {
   useAccount,
   useConnect,
@@ -42,6 +43,12 @@ type ShareableAuraCardProps = {
    * Useful when embedding actions under a different card UI.
    */
   showCard?: boolean;
+  /**
+   * Optional external ref to a card DOM element. If provided, image generation
+   * will capture this node via html2canvas so the uploaded/share image matches
+   * the actual UI shown to the user.
+   */
+  externalCardRef?: React.RefObject<HTMLElement | null>;
 };
 
 export function ShareableAuraCard({
@@ -61,6 +68,7 @@ export function ShareableAuraCard({
   showActions = true,
   mode = "inline",
   showCard = true,
+  externalCardRef,
 }: ShareableAuraCardProps) {
   // Bu satırları kaldır: isGenratingAuraCard, isAuraCardGenerated
   const [isGenerating, setIsGenerating] = React.useState(false);
@@ -149,6 +157,18 @@ export function ShareableAuraCard({
 
   const generateImage = React.useCallback(async () => {
     try {
+      // Prefer capturing the actual rendered card if an external ref is provided.
+      const captureNode = externalCardRef?.current;
+      if (captureNode) {
+        const canvas = await html2canvas(captureNode, {
+          backgroundColor: null,
+          scale: 2,
+          useCORS: true,
+          allowTaint: true,
+        });
+        return canvas.toDataURL("image/png");
+      }
+
       const canvas = document.createElement("canvas");
       const ctx = canvas.getContext("2d");
       if (!ctx) return null;
@@ -443,6 +463,7 @@ export function ShareableAuraCard({
   }, [
     allTimeVolumeState,
     dailyTradesState,
+    externalCardRef,
     activeTraderTag,
     fid,
     fmtMoney,

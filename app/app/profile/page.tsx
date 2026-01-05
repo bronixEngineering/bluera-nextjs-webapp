@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { sdk } from "@farcaster/miniapp-sdk";
 import {
@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { ShareableAuraCard } from "@/components/shareable-aura-card";
 import { ProfileShareableCard, type StatsData, type ProfileTag } from "@/components/profile-shareable-card";
+import { ShareableTradingCard } from "@/components/shareable-trading-card";
 import { useAccount } from "wagmi";
 
 type FavTokensResponse = {
@@ -46,6 +47,7 @@ export default function ProfilePage() {
   const { address, isConnecting } = useAccount();
   const [isGeneratingAura, setIsGeneratingAura] = useState(false);
   const [showAuraModal, setShowAuraModal] = useState(false);
+  const shareCardRef = React.useRef<HTMLDivElement>(null);
 
   // TanStack Query ile holder tag endpoint'ini çağır
   const { data: holderTagData } = useQuery({
@@ -437,18 +439,18 @@ export default function ProfilePage() {
           onClick={() => setShowAuraModal(false)}
         >
           <div
-            className="bg-background rounded-2xl p-4 max-w-md w-full"
+            className="max-h-[88vh] w-full max-w-[560px] overflow-y-auto rounded-2xl bg-transparent p-0"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="space-y-4">
-              {/* Share card preview should match the Profile design */}
-              <ProfileShareableCard
+            <div className="space-y-4 rounded-2xl bg-background p-4">
+              {/* Share card style (compact gradient-border) */}
+              <ShareableTradingCard
+                ref={shareCardRef}
                 stats={stats}
                 userName={displayUser.username || mockUser.username}
                 userId={`#${displayUser.fid || mockUser.fid}`}
                 avatarUrl={displayUser.pfpUrl || mockUser.avatar}
                 tags={tags}
-                mode="profile"
               />
 
               {/* Keep existing mint/share actions underneath */}
@@ -468,6 +470,7 @@ export default function ProfilePage() {
                 monthlyTrades={monthlyTrades}
                 showActions={true}
                 showCard={false}
+                externalCardRef={shareCardRef}
                 mode="modal"
               />
             </div>
