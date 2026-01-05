@@ -7,17 +7,46 @@ export const dynamic = 'force-dynamic';
 interface HeatmapToken {
   token_address: string;
   symbol: string;
-  volume: number;
-  swaps: number;
-  change24h: number;
+  liquidityUsd: number;
+  volume24h: number;
+  swaps24h: number;
+  priceUsd: number;
+  volumeChangePct24h: number;
+  swapsChangePct24h: number;
+  priceChangePct24h: number;
   image_url?: string;
   token_type?: string;
-  color: string;
+}
+
+function toNum(v: unknown): number {
+  const n = typeof v === "string" ? parseFloat(v) : Number(v);
+  return Number.isFinite(n) ? n : 0;
+}
+
+function normalizePct(v: unknown): number {
+  const n = toNum(v);
+  return Math.abs(n) <= 1.5 ? n * 100 : n;
+}
+
+function extractPriceChangePct24h(ppc: unknown): number {
+  if (!ppc) return 0;
+  if (typeof ppc === "object") {
+    const obj = ppc as Record<string, unknown>;
+    const candidates = ["24h", "h24", "day", "1d", "24H", "h_24", "percent_24h"];
+    for (const k of candidates) {
+      if (k in obj) return normalizePct(obj[k]);
+    }
+    for (const v of Object.values(obj)) {
+      const n = toNum(v);
+      if (Number.isFinite(n) && n !== 0) return normalizePct(n);
+    }
+    return 0;
+  }
+  return normalizePct(ppc);
 }
 
 async function getHeatmapData(): Promise<{
   data: HeatmapToken[];
-  totalVolume: number;
   error?: string;
 }> {
   try {
@@ -26,73 +55,65 @@ async function getHeatmapData(): Promise<{
     // Fetch whitelisted tokens data
     const { data: tokens, error } = await supabase
       .from("whitelisted_tokens")
-      .select("*")
-      .order("total_volume_24h", { ascending: false })
-      .limit(20); // Limit to top 100 tokens by volume
+      .select(
+        "token_address, token_ticker, token_type, image_url, total_liquidity_usd, total_volume_24h, total_swaps_24h, usd_price, total_volume_changing_rate, total_swap_changing_rate, price_percent_change"
+      )
+      .limit(200);
 
     if (error) {
       console.error("❌ Supabase error:", error);
       return {
         data: [],
-        totalVolume: 0,
         error: "Failed to fetch tokens data",
       };
     }
 
-    // Transform data for heatmap
     const heatmapData: HeatmapToken[] =
-      tokens?.map((token) => ({
-        token_address: token.token_address,
-        symbol: token.token_ticker || "UNKNOWN",
-        volume: token.total_volume_24h || 0,
-        swaps: token.total_swaps_24h || 0,
-        change24h: token.total_volume_changing_rate || 0,
-        image_url: token.image_url, // Use image from database
-        token_type: token.token_type,
-        // Generate color based on volume change
-        color:
-          token.total_volume_changing_rate >= 0
-            ? `hsl(${120 + token.total_volume_changing_rate * 2}, 50%, 35%)` // Green for positive - more muted
-            : `hsl(${
-                0 + Math.abs(token.total_volume_changing_rate * 2)
-              }, 50%, 35%)`, // Red for negative - more muted
+      tokens?.map((t: any) => ({
+        token_address: String(t.token_address),
+        symbol: String(t.token_ticker || "UNKNOWN"),
+        liquidityUsd: toNum(t.total_liquidity_usd),
+        volume24h: toNum(t.total_volume_24h),
+        swaps24h: toNum(t.total_swaps_24h),
+        priceUsd: toNum(t.usd_price),
+        volumeChangePct24h: normalizePct(t.total_volume_changing_rate),
+        swapsChangePct24h: normalizePct(t.total_swap_changing_rate),
+        priceChangePct24h: extractPriceChangePct24h(t.price_percent_change),
+        image_url: t.image_url ?? undefined,
+        token_type: t.token_type ?? undefined,
       })) || [];
 
     // If no data from database, return empty
-    if (heatmapData.length === 0) {
+    const filtered = heatmapData
+      .filter((x) => x.liquidityUsd > 0)
+      .sort((a, b) => b.liquidityUsd - a.liquidityUsd)
+      .slice(0, 20);
+
+    if (filtered.length === 0) {
       return {
         data: [],
-        totalVolume: 0,
         error: "No data available",
       };
     }
 
-    const totalVolume = heatmapData.reduce(
-      (sum, token) => sum + token.volume,
-      0
-    );
-
     return {
-      data: heatmapData,
-      totalVolume,
+      data: filtered,
     };
   } catch (error) {
     console.error("❌ Heatmap data fetch error:", error);
     return {
       data: [],
-      totalVolume: 0,
       error: "Internal server error",
     };
   }
 }
 
 export default async function HeatmapPage() {
-  const { data, totalVolume, error } = await getHeatmapData();
+  const { data, error } = await getHeatmapData();
 
   return (
     <HeatmapClient
       initialData={data}
-      totalVolume={totalVolume}
       isLoading={false}
       error={error || null}
     />

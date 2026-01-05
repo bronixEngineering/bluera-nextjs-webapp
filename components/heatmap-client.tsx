@@ -1,39 +1,41 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { TrendingUp, TrendingDown, RefreshCw, AlertCircle } from "lucide-react";
+import React from "react";
+import { Card, CardContent } from "@/components/ui/card";
+import { RefreshCw, AlertCircle } from "lucide-react";
 import { Treemap, ResponsiveContainer, Tooltip } from "recharts";
 import { useRouter } from "next/navigation";
+
+type HeatmapMetric = "volume" | "swaps" | "price";
 
 interface HeatmapToken {
   token_address: string;
   symbol: string;
-  volume: number;
-  swaps: number;
-  change24h: number;
+  liquidityUsd: number;
+  volume24h: number;
+  swaps24h: number;
+  priceUsd: number;
+  volumeChangePct24h: number;
+  swapsChangePct24h: number;
+  priceChangePct24h: number;
   image_url?: string;
   token_type?: string;
-  color: string;
 }
 
 interface HeatmapClientProps {
   initialData: HeatmapToken[];
-  totalVolume: number;
   isLoading: boolean;
   error: string | null;
 }
 
 export function HeatmapClient({
   initialData,
-  totalVolume: _totalVolume,
   isLoading,
   error,
 }: HeatmapClientProps) {
-  // totalVolume is available but not used in this component
-  void _totalVolume;
   const router = useRouter();
+  const [metric, setMetric] = React.useState<HeatmapMetric>("volume");
 
   const handleRefresh = () => {
     window.location.reload();
@@ -42,39 +44,60 @@ export function HeatmapClient({
   const handleTokenClick = (tokenAddress: string) => {
     router.push(`/app/token/${tokenAddress}`);
   };
-  // Transform data for Recharts Treemap with linear scaling across top 20 tokens
-  const topTokens = [...initialData]
-    .sort((a, b) => b.volume - a.volume)
-    .slice(0, 20);
-  const volumes = topTokens.map((t) => t.volume);
-  const maxVolume = Math.max(...volumes);
-  const minVolume = Math.min(...volumes);
+  const topTokens = React.useMemo(
+    () => [...initialData].sort((a, b) => b.liquidityUsd - a.liquidityUsd).slice(0, 20),
+    [initialData]
+  );
+  const liquidityVals = topTokens.map((t) => t.liquidityUsd);
+  const maxLiq = Math.max(...liquidityVals, 0);
+  const minLiq = Math.min(...liquidityVals, 0);
 
   // Define min/max weight (tile area) for visual balance
   const MIN_WEIGHT = 12;
   const MAX_WEIGHT = 35;
 
   const toWeight = (v: number) => {
-    if (maxVolume === minVolume) return (MIN_WEIGHT + MAX_WEIGHT) / 2;
-    const ratio = (v - minVolume) / (maxVolume - minVolume);
+    if (maxLiq === minLiq) return (MIN_WEIGHT + MAX_WEIGHT) / 2;
+    const ratio = (v - minLiq) / (maxLiq - minLiq);
     return MIN_WEIGHT + ratio * (MAX_WEIGHT - MIN_WEIGHT);
   };
 
-  const treemapData = topTokens.map((token) => ({
-    name: token.symbol,
-    size: toWeight(token.volume),
-    fill: token.color,
-    change24h: token.change24h,
-    volume: token.volume,
-    swaps: token.swaps,
-    token_address: token.token_address,
-    image_url: token.image_url,
-  }));
+  const getChangePct = (t: HeatmapToken) => {
+    if (metric === "volume") return t.volumeChangePct24h;
+    if (metric === "swaps") return t.swapsChangePct24h;
+    return t.priceChangePct24h;
+  };
 
-  const topPerformer = initialData.reduce(
-    (top, token) => (token.change24h > top.change24h ? token : top),
-    initialData[0] || { change24h: 0, symbol: "N/A" }
-  );
+  const colorForChangePct = (changePct: number): string => {
+    if (!Number.isFinite(changePct) || changePct === 0) return "hsl(0, 0%, 45%)";
+    const intensity = Math.min(Math.abs(changePct) / 50, 1);
+    if (changePct > 0) {
+      const hue = 140 + intensity * 20;
+      const saturation = Math.min(60, 30 + intensity * 30);
+      const lightness = Math.max(35, 55 - intensity * 20);
+      return `hsl(${hue}, ${saturation}%, ${lightness}%)`;
+    }
+    const hue = 0;
+    const saturation = Math.min(70, 40 + intensity * 30);
+    const lightness = Math.max(35, 55 - intensity * 20);
+    return `hsl(${hue}, ${saturation}%, ${lightness}%)`;
+  };
+
+  const treemapData = topTokens.map((token) => {
+    const changePct = getChangePct(token);
+    return {
+      name: token.symbol,
+      size: toWeight(token.liquidityUsd),
+      fill: colorForChangePct(changePct),
+      changePct,
+      liquidityUsd: token.liquidityUsd,
+      volume24h: token.volume24h,
+      swaps24h: token.swaps24h,
+      priceUsd: token.priceUsd,
+      token_address: token.token_address,
+      image_url: token.image_url,
+    };
+  });
 
   // Loading state
   if (isLoading) {
@@ -120,6 +143,40 @@ export function HeatmapClient({
 
   return (
     <div className="py-6 space-y-8">
+      {/* Mode selector (Leaderboard style) */}
+      <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide cursor-grab select-none touch-manipulation">
+        <button
+          onClick={() => setMetric("volume")}
+          className={`px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap ${
+            metric === "volume"
+              ? "bg-gradient-to-r from-blue-500 to-cyan-500 text-white shadow-md"
+              : "bg-muted hover:bg-muted/80"
+          }`}
+        >
+          24h Volume %
+        </button>
+        <button
+          onClick={() => setMetric("swaps")}
+          className={`px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap ${
+            metric === "swaps"
+              ? "bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-md"
+              : "bg-muted hover:bg-muted/80"
+          }`}
+        >
+          24h Swaps %
+        </button>
+        <button
+          onClick={() => setMetric("price")}
+          className={`px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap ${
+            metric === "price"
+              ? "bg-gradient-to-r from-yellow-500 to-orange-500 text-white shadow-md"
+              : "bg-muted hover:bg-muted/80"
+          }`}
+        >
+          24h Price %
+        </button>
+      </div>
+
       <Card className="mx-0">
         <CardContent className="p-0">
           <div className="space-y-4 px-6">
@@ -214,9 +271,12 @@ export function HeatmapClient({
                               fontWeight="800"
                               opacity="0.9"
                             >
-                              {coin.volume >= 1000000
-                                ? `$${(coin.volume / 1000000).toFixed(1)}M`
-                                : `$${(coin.volume / 1000).toFixed(0)}K`}
+                              {/* Only show 24h Volume value inside tiles when in Volume mode */}
+                              {metric === "volume"
+                                ? coin.volume24h >= 1000000
+                                  ? `$${(coin.volume24h / 1000000).toFixed(1)}M`
+                                  : `$${(coin.volume24h / 1000).toFixed(0)}K`
+                                : ""}
                             </text>
                             {height > 55 && (
                               <text
@@ -228,10 +288,14 @@ export function HeatmapClient({
                                 fontWeight="700"
                                 opacity="0.85"
                               >
-                                Swaps:{" "}
-                                {coin.swaps >= 1000
-                                  ? `${(coin.swaps / 1000).toFixed(1)}K`
-                                  : coin.swaps?.toString()}
+                                {/* Keep swaps line only in volume mode (optional) */}
+                                {metric === "volume"
+                                  ? `Swaps: ${
+                                      coin.swaps24h >= 1000
+                                        ? `${(coin.swaps24h / 1000).toFixed(1)}K`
+                                        : coin.swaps24h?.toString()
+                                    }`
+                                  : ""}
                               </text>
                             )}
                             <text
@@ -243,8 +307,8 @@ export function HeatmapClient({
                               fontWeight="700"
                               opacity="0.8"
                             >
-                              {coin.change24h > 0 ? "+" : ""}
-                              {coin.change24h.toFixed(3)}%
+                              {coin.changePct > 0 ? "+" : ""}
+                              {coin.changePct.toFixed(2)}%
                             </text>
                           </>
                         )}
@@ -277,27 +341,27 @@ export function HeatmapClient({
                                   {data.name}
                                 </div>
                                 <div className="text-sm text-muted-foreground">
-                                  Trading Volume
+                                  {metric === "volume"
+                                    ? "24h Volume"
+                                    : metric === "swaps"
+                                      ? "24h Swaps"
+                                      : "Price"}
                                 </div>
                               </div>
                             </div>
                             <div className="space-y-2">
                               <div className="flex justify-between items-center">
                                 <span className="text-sm text-muted-foreground">
-                                  Volume:
+                                  Value:
                                 </span>
                                 <span className="font-semibold">
-                                  {data.volume >= 1000000
-                                    ? `$${(data.volume / 1000000).toFixed(1)}M`
-                                    : `$${(data.volume / 1000).toFixed(0)}K`}
-                                </span>
-                              </div>
-                              <div className="flex justify-between items-center">
-                                <span className="text-sm text-muted-foreground">
-                                  Swaps:
-                                </span>
-                                <span className="font-semibold">
-                                  {data.swaps?.toLocaleString() || "N/A"}
+                                  {metric === "volume"
+                                    ? data.volume24h >= 1000000
+                                      ? `$${(data.volume24h / 1000000).toFixed(1)}M`
+                                      : `$${(data.volume24h / 1000).toFixed(0)}K`
+                                    : metric === "swaps"
+                                      ? Number(data.swaps24h || 0).toLocaleString()
+                                      : `$${Number(data.priceUsd || 0).toFixed(4)}`}
                                 </span>
                               </div>
                               <div className="flex justify-between items-center">
@@ -306,18 +370,13 @@ export function HeatmapClient({
                                 </span>
                                 <div
                                   className={`flex items-center gap-1 font-semibold ${
-                                    data.change24h >= 0
+                                    data.changePct >= 0
                                       ? "text-green-600"
                                       : "text-red-600"
                                   }`}
                                 >
-                                  {data.change24h >= 0 ? (
-                                    <TrendingUp className="h-3 w-3" />
-                                  ) : (
-                                    <TrendingDown className="h-3 w-3" />
-                                  )}
-                                  {data.change24h > 0 ? "+" : ""}
-                                  {data.change24h.toFixed(3)}%
+                                  {data.changePct > 0 ? "+" : ""}
+                                  {Number(data.changePct).toFixed(2)}%
                                 </div>
                               </div>
                             </div>
