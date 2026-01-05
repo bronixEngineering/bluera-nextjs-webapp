@@ -83,6 +83,7 @@ export function ShareableAuraCard({
   const [hasMinted, setHasMinted] = React.useState(false);
   const [pendingCallsId, setPendingCallsId] = React.useState<string | null>(null);
   const [isConfirmingMint, setIsConfirmingMint] = React.useState(false);
+  const [isUploadingImage, setIsUploadingImage] = React.useState(false);
   const [showPreview, setShowPreview] = React.useState(false);
   const [previewUrl, setPreviewUrl] = React.useState<string | null>(null);
   const cardRef = React.useRef<HTMLDivElement>(null);
@@ -166,6 +167,8 @@ export function ShareableAuraCard({
 
   // handleGenerateAuraCard fonksiyonunu tamamen kaldır (satır 141-169)
 
+  const sleep = React.useCallback((ms: number) => new Promise((r) => setTimeout(r, ms)), []);
+
   const waitForImages = React.useCallback(async (root: HTMLElement, timeoutMs = 4000) => {
     const imgs = Array.from(root.querySelectorAll("img")) as HTMLImageElement[];
     const pending = imgs.filter((img) => !img.complete);
@@ -209,7 +212,8 @@ export function ShareableAuraCard({
         await waitForImages(captureNode);
         const canvas = await html2canvas(captureNode, {
           backgroundColor: null,
-          scale: 2,
+          // Keep size reasonable for mobile webviews to avoid huge base64 payloads/timeouts.
+          scale: 1.6,
           useCORS: true,
           allowTaint: true,
         });
@@ -608,20 +612,25 @@ export function ShareableAuraCard({
         }
       }
 
+      setIsUploadingImage(true);
       const dataUrl = previewUrl || (await generateImage());
       if (!dataUrl) return;
 
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 25_000);
       const uploadRes = await fetch("/api/aura-card-image", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
+        signal: controller.signal,
         body: JSON.stringify({
           imageDataUrl: dataUrl,
           walletAddress: address.toLowerCase(),
           network: "base",
         }),
       });
+      clearTimeout(timeout);
 
       if (!uploadRes.ok) {
         console.error("[aura-card-image] upload failed:", await uploadRes.text());
@@ -631,8 +640,28 @@ export function ShareableAuraCard({
       await uploadRes.json().catch(() => null);
     } catch (e) {
       console.error("Aura card image upload failed:", e);
+    } finally {
+      setIsUploadingImage(false);
     }
   }, [address, externalCardRef, generateImage, previewUrl, waitForExternalCard]);
+
+  const uploadAuraCardImageWithRetry = React.useCallback(
+    async (attempts = 3) => {
+      for (let i = 0; i < attempts; i++) {
+        try {
+          await uploadAuraCardImage();
+          // If uploadAuraCardImage didn't throw, we consider it done (it logs internally on non-2xx).
+          return true;
+        } catch (e) {
+          console.error("[aura-card-image] retryable failure:", e);
+        }
+        // backoff: 0.8s, 1.6s, 3.2s...
+        await sleep(800 * Math.pow(2, i));
+      }
+      return false;
+    },
+    [sleep, uploadAuraCardImage]
+  );
 
   const interpretCallsStatus = React.useCallback((data: unknown) => {
     const statusStr = (() => {
@@ -667,13 +696,19 @@ export function ShareableAuraCard({
     };
   }, []);
 
-  const finalizeMint = React.useCallback(async () => {
-    await uploadAuraCardImage();
+  const finalizeMint = React.useCallback(() => {
+    // Never block UI state transitions on image generation/upload. In some webviews
+    // html2canvas or the upload request can be slow/hang, which would otherwise
+    // keep the UI stuck in "Confirming...".
     setHasMinted(true);
     setIsConfirmingMint(false);
     setPendingCallsId(null);
+
+    // Upload in background with retries (so /aura/[wallet] preview stays updated).
+    void uploadAuraCardImageWithRetry(3);
+
     alert("✅ Mint confirmed! You can now share on Base.");
-  }, [uploadAuraCardImage]);
+  }, [uploadAuraCardImageWithRetry]);
 
   // Ensure Supabase image_url matches the currently rendered share card.
   // Note: externalCardRef.current might become available after initial render,
@@ -755,7 +790,7 @@ export function ShareableAuraCard({
     }
 
     // Only after confirmation + success we consider it minted.
-    void finalizeMint();
+    finalizeMint();
   }, [
     callsStatusData,
     finalizeMint,
@@ -800,7 +835,7 @@ export function ShareableAuraCard({
         if (normalizedStatus && normalizedStatus !== "CONFIRMED" && normalizedStatus !== "SUCCESS") {
           return;
         }
-        await finalizeMint();
+        finalizeMint();
       } catch {
         // Ignore and let the timeout handle worst-case scenarios.
       }
@@ -910,7 +945,11 @@ export function ShareableAuraCard({
       }
 
       // Ensure Supabase image_url is updated to the latest share-card design before sharing.
-      await uploadAuraCardImage();
+      const ok = await uploadAuraCardImageWithRetry(3);
+      if (!ok) {
+        alert("❌ Failed to upload the latest card image. Please try again.");
+        return;
+      }
 
       const res = await fetch(
         `/api/aura-card?wallet=${address}&network=base`
