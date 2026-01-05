@@ -36,6 +36,7 @@ export function HeatmapClient({
 }: HeatmapClientProps) {
   const router = useRouter();
   const [metric, setMetric] = React.useState<HeatmapMetric>("volume");
+  const TOP_N = 15;
 
   const handleRefresh = () => {
     window.location.reload();
@@ -45,8 +46,8 @@ export function HeatmapClient({
     router.push(`/app/token/${tokenAddress}`);
   };
   const topTokens = React.useMemo(
-    () => [...initialData].sort((a, b) => b.liquidityUsd - a.liquidityUsd).slice(0, 20),
-    [initialData]
+    () => [...initialData].sort((a, b) => b.liquidityUsd - a.liquidityUsd).slice(0, TOP_N),
+    [TOP_N, initialData]
   );
   const liquidityVals = topTokens.map((t) => t.liquidityUsd);
   const maxLiq = Math.max(...liquidityVals, 0);

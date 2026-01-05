@@ -89,7 +89,7 @@ async function getHeatmapData(): Promise<{
     const filtered = heatmapData
       .filter((x) => x.liquidityUsd > 0)
       .sort((a, b) => b.liquidityUsd - a.liquidityUsd)
-      .slice(0, 20);
+      .slice(0, 15);
 
     if (filtered.length === 0) {
       return {
