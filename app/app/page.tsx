@@ -134,8 +134,9 @@ export default async function Home() {
 
   const formatUsdCompact = (value: number) => {
     if (!Number.isFinite(value)) return "$0";
-    if (value >= 1e9) return `$${(value / 1e9).toFixed(2)}B`;
-    if (value >= 1e6) return `$${(value / 1e6).toFixed(2)}M`;
+    // Keep it short so it fits in the stat cards without truncation on mobile.
+    if (value >= 1e9) return `$${(value / 1e9).toFixed(1)}B`;
+    if (value >= 1e6) return `$${(value / 1e6).toFixed(1)}M`;
     if (value >= 1e3) return `$${(value / 1e3).toFixed(0)}K`;
     return `$${value.toFixed(2)}`;
   };
@@ -154,38 +155,38 @@ export default async function Home() {
       <div className="space-y-3">
         <h1 className="text-xl font-bold">Market Overview</h1>
         <div className="grid grid-cols-2 gap-3">
-          <div className="group relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-blue-500/10 via-transparent to-transparent p-4 shadow-xl shadow-blue-500/5">
+          <div className="group relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-blue-500/10 via-transparent to-transparent p-3 shadow-xl shadow-blue-500/5">
             <div className="absolute -left-10 -top-10 h-24 w-24 rounded-full bg-blue-500/15 blur-2xl" />
             <div className="absolute -bottom-10 -right-10 h-24 w-24 rounded-full bg-cyan-500/10 blur-2xl" />
-            <div className="relative flex items-center justify-between gap-3">
+            <div className="relative flex items-center justify-between gap-2">
               <div className="min-w-0">
-                <div className="text-xs font-medium text-muted-foreground">
+                <div className="text-[11px] font-medium text-muted-foreground">
                   Total Volume
                 </div>
-                <div className="mt-1 truncate text-3xl font-bold tracking-tight text-blue-400">
+                <div className="mt-1 text-2xl font-bold tracking-tight text-blue-400 leading-none">
                   {formatUsdCompact(totalVolume24h)}
                 </div>
               </div>
-              <div className="grid h-12 w-12 place-items-center rounded-2xl bg-blue-500/15 ring-1 ring-white/10">
-                <DollarSign className="h-6 w-6 text-blue-400" />
+              <div className="grid h-11 w-11 place-items-center rounded-2xl bg-blue-500/15 ring-1 ring-white/10 shrink-0">
+                <DollarSign className="h-5 w-5 text-blue-400" />
               </div>
             </div>
           </div>
 
-          <div className="group relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-purple-500/10 via-transparent to-transparent p-4 shadow-xl shadow-purple-500/5">
+          <div className="group relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-purple-500/10 via-transparent to-transparent p-3 shadow-xl shadow-purple-500/5">
             <div className="absolute -left-10 -top-10 h-24 w-24 rounded-full bg-purple-500/15 blur-2xl" />
             <div className="absolute -bottom-10 -right-10 h-24 w-24 rounded-full bg-pink-500/10 blur-2xl" />
-            <div className="relative flex items-center justify-between gap-3">
+            <div className="relative flex items-center justify-between gap-2">
               <div className="min-w-0">
-                <div className="text-xs font-medium text-muted-foreground">
+                <div className="text-[11px] font-medium text-muted-foreground">
                   Total Swaps
                 </div>
-                <div className="mt-1 truncate text-3xl font-bold tracking-tight text-purple-400">
+                <div className="mt-1 text-2xl font-bold tracking-tight text-purple-400 leading-none">
                   {formatCountCompact(totalSwaps24h)}
                 </div>
               </div>
-              <div className="grid h-12 w-12 place-items-center rounded-2xl bg-purple-500/15 ring-1 ring-white/10">
-                <Repeat2 className="h-6 w-6 text-purple-400" />
+              <div className="grid h-11 w-11 place-items-center rounded-2xl bg-purple-500/15 ring-1 ring-white/10 shrink-0">
+                <Repeat2 className="h-5 w-5 text-purple-400" />
               </div>
             </div>
           </div>
