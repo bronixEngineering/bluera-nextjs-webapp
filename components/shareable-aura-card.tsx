@@ -616,6 +616,22 @@ export function ShareableAuraCard({
         }
       }
 
+      // Always resolve the latest aura_card id first, then update by id (deterministic).
+      const latestRes = await fetch(
+        `/api/aura-card?wallet=${address}&network=base`,
+        { cache: "no-store" }
+      );
+      if (!latestRes.ok) {
+        const t = await latestRes.text().catch(() => "");
+        console.error("[aura-card-image] could not fetch latest aura_card id:", latestRes.status, t);
+        return { ok: false, error: "Could not fetch latest aura card" };
+      }
+      const latestJson = (await latestRes.json().catch(() => null)) as null | { id?: string };
+      const auraCardId = latestJson?.id;
+      if (!auraCardId) {
+        return { ok: false, error: "Missing aura card id" };
+      }
+
       setIsUploadingImage(true);
       const dataUrl = previewUrl || (await generateImage());
       if (!dataUrl) return { ok: false, error: "Failed to render card image" };
@@ -632,6 +648,7 @@ export function ShareableAuraCard({
           imageDataUrl: dataUrl,
           walletAddress: address.toLowerCase(),
           network: "base",
+          auraCardId,
         }),
       });
       clearTimeout(timeout);

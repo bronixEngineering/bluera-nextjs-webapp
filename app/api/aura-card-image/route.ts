@@ -5,6 +5,7 @@ type UploadBody = {
   imageDataUrl?: string;
   walletAddress?: string;
   network?: string;
+  auraCardId?: string;
 };
 
 export async function POST(req: Request) {
@@ -15,6 +16,7 @@ export async function POST(req: Request) {
     const walletAddress = rawWallet.toLowerCase();
     const network = (body.network || "base").toLowerCase();
     const imageDataUrl = (body.imageDataUrl || "").trim();
+    const auraCardId = (body.auraCardId || "").trim();
 
     if (!walletAddress || !/^0x[a-fA-F0-9]{40}$/.test(walletAddress)) {
       return NextResponse.json(
@@ -62,7 +64,25 @@ export async function POST(req: Request) {
       data: { publicUrl },
     } = supabase.storage.from("aura-card-images").getPublicUrl(fileName);
 
-    // 2) Update latest aura_card row for wallet+network
+    // 2) Update aura_card row
+    // Prefer updating by explicit id to avoid mismatches.
+    const updateTargetId = auraCardId || null;
+
+    if (updateTargetId) {
+      const { error: updErr } = await supabase
+        .from("aura_card")
+        .update({ image_url: publicUrl })
+        .eq("id", updateTargetId);
+
+      if (updErr) {
+        console.error("[aura-card-image] update-by-id error:", updErr);
+        return NextResponse.json({ error: updErr.message }, { status: 500 });
+      }
+
+      return NextResponse.json({ imageUrl: publicUrl, id: updateTargetId });
+    }
+
+    // Fallback: update latest aura_card row for wallet+network
     const { data: rows, error: selErr } = await supabase
       .from("aura_card")
       .select("id")
@@ -73,29 +93,28 @@ export async function POST(req: Request) {
 
     if (selErr) {
       console.error("[aura-card-image] select error:", selErr);
+      return NextResponse.json({ error: selErr.message }, { status: 500 });
+    }
+
+    if (!rows || rows.length === 0) {
       return NextResponse.json(
-        { imageUrl: publicUrl, warning: selErr.message },
-        { status: 200 }
+        { error: "No aura_card row found for wallet/network" },
+        { status: 404 }
       );
     }
 
-    if (rows && rows.length > 0) {
-      const id = rows[0].id as string;
-      const { error: updErr } = await supabase
-        .from("aura_card")
-        .update({ image_url: publicUrl })
-        .eq("id", id);
+    const id = rows[0].id as string;
+    const { error: updErr } = await supabase
+      .from("aura_card")
+      .update({ image_url: publicUrl })
+      .eq("id", id);
 
-      if (updErr) {
-        console.error("[aura-card-image] update error:", updErr);
-        return NextResponse.json(
-          { imageUrl: publicUrl, warning: updErr.message },
-          { status: 200 }
-        );
-      }
+    if (updErr) {
+      console.error("[aura-card-image] update error:", updErr);
+      return NextResponse.json({ error: updErr.message }, { status: 500 });
     }
 
-    return NextResponse.json({ imageUrl: publicUrl });
+    return NextResponse.json({ imageUrl: publicUrl, id });
   } catch (e) {
     const msg = e instanceof Error ? e.message : "Unknown error";
     console.error("[aura-card-image] fatal error:", msg);
