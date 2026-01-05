@@ -99,6 +99,22 @@ export function HeatmapClient({
     };
   });
 
+  const formatUsdCompact = (v: number) => {
+    if (!Number.isFinite(v)) return "$0";
+    if (v >= 1e9) return `$${(v / 1e9).toFixed(1)}B`;
+    if (v >= 1e6) return `$${(v / 1e6).toFixed(1)}M`;
+    if (v >= 1e3) return `$${(v / 1e3).toFixed(0)}K`;
+    return `$${v.toFixed(2)}`;
+  };
+
+  const formatCountCompact = (v: number) => {
+    if (!Number.isFinite(v)) return "0";
+    if (v >= 1e9) return `${(v / 1e9).toFixed(1)}B`;
+    if (v >= 1e6) return `${(v / 1e6).toFixed(1)}M`;
+    if (v >= 1e3) return `${(v / 1e3).toFixed(1)}K`;
+    return `${Math.round(v)}`;
+  };
+
   // Loading state
   if (isLoading) {
     return (
@@ -273,34 +289,16 @@ export function HeatmapClient({
                             >
                               {/* Only show 24h Volume value inside tiles when in Volume mode */}
                               {metric === "volume"
-                                ? coin.volume24h >= 1000000
-                                  ? `$${(coin.volume24h / 1000000).toFixed(1)}M`
-                                  : `$${(coin.volume24h / 1000).toFixed(0)}K`
-                                : ""}
+                                ? formatUsdCompact(Number(coin.volume24h || 0))
+                                : metric === "swaps"
+                                  ? `Swaps: ${formatCountCompact(Number(coin.swaps24h || 0))}`
+                                  : metric === "price"
+                                    ? `$${Number(coin.priceUsd || 0).toFixed(4)}`
+                                    : ""}
                             </text>
-                            {height > 55 && (
-                              <text
-                                x={x + 6}
-                                y={y + 44}
-                                fill="#ffffff"
-                                stroke="none"
-                                fontSize={width < 60 ? "8" : "11"}
-                                fontWeight="700"
-                                opacity="0.85"
-                              >
-                                {/* Keep swaps line only in volume mode (optional) */}
-                                {metric === "volume"
-                                  ? `Swaps: ${
-                                      coin.swaps24h >= 1000
-                                        ? `${(coin.swaps24h / 1000).toFixed(1)}K`
-                                        : coin.swaps24h?.toString()
-                                    }`
-                                  : ""}
-                              </text>
-                            )}
                             <text
                               x={x + 6}
-                              y={y + (height > 55 ? 58 : 46)}
+                              y={y + 46}
                               fill="#ffffff"
                               stroke="none"
                               fontSize={width < 60 ? "7" : "12"}
