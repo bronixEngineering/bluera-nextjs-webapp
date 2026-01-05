@@ -170,7 +170,7 @@ export function HeatmapClient({
               : "bg-muted hover:bg-muted/80"
           }`}
         >
-          24h Volume %
+          24h Volume
         </button>
         <button
           onClick={() => setMetric("swaps")}
@@ -180,7 +180,7 @@ export function HeatmapClient({
               : "bg-muted hover:bg-muted/80"
           }`}
         >
-          24h Swaps %
+          24h Swaps
         </button>
         <button
           onClick={() => setMetric("price")}
@@ -190,7 +190,7 @@ export function HeatmapClient({
               : "bg-muted hover:bg-muted/80"
           }`}
         >
-          24h Price %
+          24h Price
         </button>
       </div>
 
@@ -290,11 +290,11 @@ export function HeatmapClient({
                             >
                               {/* Only show 24h Volume value inside tiles when in Volume mode */}
                               {metric === "volume"
-                                ? formatUsdCompact(Number(coin.volume24h || 0))
+                                ? `Volume: ${formatUsdCompact(Number(coin.volume24h || 0))}`
                                 : metric === "swaps"
                                   ? `Swaps: ${formatCountCompact(Number(coin.swaps24h || 0))}`
                                   : metric === "price"
-                                    ? `$${Number(coin.priceUsd || 0).toFixed(4)}`
+                                    ? `Price: $${Number(coin.priceUsd || 0).toFixed(4)}`
                                     : ""}
                             </text>
                             <text
