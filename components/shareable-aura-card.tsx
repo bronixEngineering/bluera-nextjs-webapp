@@ -212,7 +212,7 @@ export function ShareableAuraCard({
     ]);
   }, []);
 
-  const waitForExternalCard = React.useCallback(async (timeoutMs = 4000) => {
+  const waitForExternalCard = React.useCallback(async (timeoutMs = 15_000) => {
     const start = Date.now();
     while (Date.now() - start < timeoutMs) {
       const node = externalCardRef?.current;
@@ -230,7 +230,9 @@ export function ShareableAuraCard({
       const wantsExternal = !!externalCardRef;
       if (wantsExternal) {
         const captureNode = await waitForExternalCard();
-        if (!captureNode) return null;
+        if (!captureNode) {
+          throw new Error("Card UI not ready (ref is null)");
+        }
         // Ensure token logos / avatar have a chance to load before capture.
         await waitForImages(captureNode);
         const canvas = await withTimeout(
@@ -249,7 +251,7 @@ export function ShareableAuraCard({
 
       const canvas = document.createElement("canvas");
       const ctx = canvas.getContext("2d");
-      if (!ctx) return null;
+      if (!ctx) throw new Error("Canvas context not available");
 
       const width = 1000;
       const height = 1050;
@@ -536,7 +538,9 @@ export function ShareableAuraCard({
       return canvas.toDataURL("image/jpeg", 0.88);
     } catch (error) {
       console.error("Image generation failed:", error);
-      return null;
+      // Propagate a useful error message up to the uploader UI.
+      const msg = error instanceof Error ? error.message : "Unknown image generation error";
+      throw new Error(msg);
     }
   }, [
     allTimeVolumeState,
@@ -662,8 +666,9 @@ export function ShareableAuraCard({
 
       setIsUploadingImage(true);
       setLastUploadError(null);
-      const dataUrl = previewUrl || (await withTimeout(generateImage(), 20_000, "generateImage"));
-      if (!dataUrl) return { ok: false, error: "Failed to render card image" };
+      const dataUrl =
+        previewUrl ||
+        (await withTimeout(generateImage(), 20_000, "generateImage"));
 
       // Convert data URL -> Blob, then send as multipart to avoid huge base64 JSON bodies.
       const blob = dataUrlToBlob(dataUrl);
