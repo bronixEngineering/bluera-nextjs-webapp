@@ -169,6 +169,28 @@ export function ShareableAuraCard({
 
   const sleep = React.useCallback((ms: number) => new Promise((r) => setTimeout(r, ms)), []);
 
+  const withTimeout = React.useCallback(
+    async <T,>(p: Promise<T>, ms: number, label: string) => {
+      return await Promise.race([
+        p,
+        new Promise<T>((_, rej) =>
+          setTimeout(() => rej(new Error(`${label} timed out after ${ms}ms`)), ms)
+        ),
+      ]);
+    },
+    []
+  );
+
+  const dataUrlToBlob = React.useCallback((dataUrl: string) => {
+    const [meta, b64] = dataUrl.split(",");
+    const mime =
+      meta?.match(/^data:(image\/[a-zA-Z0-9.+-]+);base64$/)?.[1] ?? "image/jpeg";
+    const binary = atob(b64 || "");
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+    return new Blob([bytes], { type: mime });
+  }, []);
+
   const waitForImages = React.useCallback(async (root: HTMLElement, timeoutMs = 4000) => {
     const imgs = Array.from(root.querySelectorAll("img")) as HTMLImageElement[];
     const pending = imgs.filter((img) => !img.complete);
@@ -210,13 +232,17 @@ export function ShareableAuraCard({
         if (!captureNode) return null;
         // Ensure token logos / avatar have a chance to load before capture.
         await waitForImages(captureNode);
-        const canvas = await html2canvas(captureNode, {
-          backgroundColor: null,
-          // Keep size reasonable for mobile webviews to avoid huge base64 payloads/timeouts.
-          scale: 1.6,
-          useCORS: true,
-          allowTaint: true,
-        });
+        const canvas = await withTimeout(
+          html2canvas(captureNode, {
+            backgroundColor: null,
+            // Keep size reasonable for mobile webviews to avoid huge base64 payloads/timeouts.
+            scale: 1.6,
+            useCORS: true,
+            allowTaint: true,
+          }),
+          15_000,
+          "html2canvas"
+        );
         return canvas.toDataURL("image/jpeg", 0.88);
       }
 
@@ -517,6 +543,7 @@ export function ShareableAuraCard({
     externalCardRef,
     waitForExternalCard,
     waitForImages,
+    withTimeout,
     activeTraderTag,
     fid,
     fmtMoney,
@@ -633,11 +660,11 @@ export function ShareableAuraCard({
       }
 
       setIsUploadingImage(true);
-      const dataUrl = previewUrl || (await generateImage());
+      const dataUrl = previewUrl || (await withTimeout(generateImage(), 20_000, "generateImage"));
       if (!dataUrl) return { ok: false, error: "Failed to render card image" };
 
       // Convert data URL -> Blob, then send as multipart to avoid huge base64 JSON bodies.
-      const blob = await (await fetch(dataUrl)).blob();
+      const blob = dataUrlToBlob(dataUrl);
 
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 25_000);
@@ -682,7 +709,15 @@ export function ShareableAuraCard({
     } finally {
       setIsUploadingImage(false);
     }
-  }, [address, externalCardRef, generateImage, previewUrl, waitForExternalCard]);
+  }, [
+    address,
+    dataUrlToBlob,
+    externalCardRef,
+    generateImage,
+    previewUrl,
+    waitForExternalCard,
+    withTimeout,
+  ]);
 
   const uploadAuraCardImageWithRetry = React.useCallback(
     async (attempts = 3) => {
