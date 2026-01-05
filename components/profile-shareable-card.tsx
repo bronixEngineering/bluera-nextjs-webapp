@@ -594,7 +594,7 @@ export function ProfileShareableCard({
           </div>
 
           {/* Favorite Coins */}
-          <div className="relative z-10 mb-5 grid grid-cols-2 gap-3 sm:mb-6 sm:gap-4">
+          <div className="relative z-10 mb-3 grid grid-cols-2 gap-3 sm:mb-4 sm:gap-4">
             {/* Fav Coin by Volume (always keep slot) */}
             <div
               className="overflow-hidden rounded-2xl border p-4 backdrop-blur-sm sm:p-5"
