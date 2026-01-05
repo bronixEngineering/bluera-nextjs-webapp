@@ -21,11 +21,21 @@ import { encodeFunctionData, parseUnits } from "viem";
 import auraAbi from "@/components/ABI/aura_nft_contract_abi";
 import usdcAbi from "@/components/ABI/usdc_contract_abi";
 import { sdk } from "@farcaster/miniapp-sdk";
+import type { ProfileTag, StatsData } from "@/components/profile-shareable-card";
 
 type ShareableAuraCardProps = {
   username?: string;
   fid?: number;
   pfpUrl?: string;
+  /**
+   * Optional richer data for the new 1080x1080 share-card canvas renderer
+   * (matches `ShareableTradingCard` UI). When provided, we bypass html2canvas
+   * and deterministically draw the new design via Canvas API for webview stability.
+   */
+  stats?: StatsData;
+  tags?: ProfileTag[];
+  userId?: string; // e.g. "#1148020"
+  avatarUrl?: string | null;
   holderTag: string;
   traderTag: string;
   activeTraderTag?: string;
@@ -38,6 +48,11 @@ type ShareableAuraCardProps = {
   monthlyTrades?: number;
   showActions?: boolean;
   mode?: "inline" | "modal";
+  /**
+   * Controls whether the "Share on Base" button is shown in modal mode.
+   * Useful for flows where you only want Mint (or just want to show image_url debug info).
+   */
+  showShareButton?: boolean;
   /**
    * When false, renders only the actions section (e.g. Mint/Share buttons).
    * Useful when embedding actions under a different card UI.
@@ -61,6 +76,10 @@ export function ShareableAuraCard({
   username,
   fid,
   pfpUrl,
+  stats,
+  tags,
+  userId,
+  avatarUrl,
   holderTag,
   traderTag,
   activeTraderTag,
@@ -73,6 +92,7 @@ export function ShareableAuraCard({
   monthlyTrades = 0,
   showActions = true,
   mode = "inline",
+  showShareButton = true,
   showCard = true,
   externalCardRef,
   autoUploadImage = false,
@@ -225,6 +245,527 @@ export function ShareableAuraCard({
 
   const generateImage = React.useCallback(async () => {
     try {
+      // Preferred deterministic renderer for the new share-card design (1080x1080).
+      // This avoids html2canvas timeouts/parsing issues in Base/Farcaster webviews.
+      const maybeStats = stats;
+      if (maybeStats) {
+        const canvas = document.createElement("canvas");
+        const ctx = canvas.getContext("2d");
+        if (!ctx) throw new Error("Canvas context not available");
+
+        const W = 1080;
+        const H = 1080;
+        canvas.width = W;
+        canvas.height = H;
+
+        const roundRectPath = (
+          c: CanvasRenderingContext2D,
+          x: number,
+          y: number,
+          w: number,
+          h: number,
+          r: number
+        ) => {
+          const rr = Math.max(0, Math.min(r, Math.min(w, h) / 2));
+          c.beginPath();
+          c.moveTo(x + rr, y);
+          c.lineTo(x + w - rr, y);
+          c.quadraticCurveTo(x + w, y, x + w, y + rr);
+          c.lineTo(x + w, y + h - rr);
+          c.quadraticCurveTo(x + w, y + h, x + w - rr, y + h);
+          c.lineTo(x + rr, y + h);
+          c.quadraticCurveTo(x, y + h, x, y + h - rr);
+          c.lineTo(x, y + rr);
+          c.quadraticCurveTo(x, y, x + rr, y);
+          c.closePath();
+        };
+
+        const fillRoundRect = (
+          c: CanvasRenderingContext2D,
+          x: number,
+          y: number,
+          w: number,
+          h: number,
+          r: number,
+          fill: string
+        ) => {
+          roundRectPath(c, x, y, w, h, r);
+          c.fillStyle = fill;
+          c.fill();
+        };
+
+        const strokeRoundRect = (
+          c: CanvasRenderingContext2D,
+          x: number,
+          y: number,
+          w: number,
+          h: number,
+          r: number,
+          stroke: string,
+          lineWidth = 2
+        ) => {
+          roundRectPath(c, x, y, w, h, r);
+          c.strokeStyle = stroke;
+          c.lineWidth = lineWidth;
+          c.stroke();
+        };
+
+        const ellipsize = (text: string, maxWidth: number) => {
+          if (ctx.measureText(text).width <= maxWidth) return text;
+          const ellipsis = "…";
+          let t = text;
+          while (t.length > 0 && ctx.measureText(t + ellipsis).width > maxWidth) {
+            t = t.slice(0, -1);
+          }
+          return t.length ? t + ellipsis : ellipsis;
+        };
+
+        const formatUsd = (num: number): string => {
+          const n = Number(num) || 0;
+          if (Math.abs(n) >= 1_000_000) return `$${(n / 1_000_000).toFixed(2)}M`;
+          if (Math.abs(n) >= 1_000) return `$${(n / 1_000).toFixed(2)}K`;
+          return `$${n.toFixed(2)}`;
+        };
+
+        const formatTradesCount = (num: number): string => {
+          const n = Number(num) || 0;
+          if (Math.abs(n) >= 1_000) return `${(n / 1_000).toFixed(1)}K`;
+          return `${Math.round(n)}`;
+        };
+
+        const proxyUrl = (url: string) =>
+          `/api/image-proxy?url=${encodeURIComponent(url)}`;
+        const normalizeImageUrl = (url: string) => {
+          const u = url.trim();
+          if (!u) return u;
+          if (u.startsWith("data:") || u.startsWith("blob:") || u.startsWith("/"))
+            return u;
+          return proxyUrl(u);
+        };
+
+        const loadImage = async (url: string): Promise<HTMLImageElement | null> => {
+          const src = normalizeImageUrl(url);
+          if (!src) return null;
+          const img = document.createElement("img");
+          img.crossOrigin = "anonymous";
+          return await new Promise((resolve) => {
+            const done = (ok: boolean) => resolve(ok ? img : null);
+            img.onload = () => done(true);
+            img.onerror = () => done(false);
+            img.src = src;
+          });
+        };
+
+        // Base background
+        ctx.fillStyle = "#05070b";
+        ctx.fillRect(0, 0, W, H);
+
+        // Outer gradient border
+        const outerPad = 28;
+        const outerR = 72;
+        const outerX = outerPad;
+        const outerY = outerPad;
+        const outerW = W - outerPad * 2;
+        const outerH = H - outerPad * 2;
+        const borderGrad = ctx.createLinearGradient(outerX, outerY, outerX + outerW, outerY + outerH);
+        borderGrad.addColorStop(0, "#4f46e5");
+        borderGrad.addColorStop(0.5, "#7c3aed");
+        borderGrad.addColorStop(1, "#ec4899");
+
+        ctx.save();
+        ctx.shadowColor = "rgba(236, 72, 153, 0.35)";
+        ctx.shadowBlur = 18;
+        fillRoundRect(ctx, outerX, outerY, outerW, outerH, outerR, borderGrad as unknown as string);
+        ctx.restore();
+
+        // Inner card background
+        const innerPad = 6;
+        const innerX = outerX + innerPad;
+        const innerY = outerY + innerPad;
+        const innerW = outerW - innerPad * 2;
+        const innerH = outerH - innerPad * 2;
+        const innerR = outerR - 10;
+        const innerGrad = ctx.createLinearGradient(innerX, innerY, innerX + innerW, innerY + innerH);
+        innerGrad.addColorStop(0, "#0b1220");
+        innerGrad.addColorStop(0.6, "rgba(11, 18, 32, 0.96)");
+        innerGrad.addColorStop(1, "#0b1220");
+        fillRoundRect(ctx, innerX, innerY, innerW, innerH, innerR, innerGrad as unknown as string);
+
+        // Header layout
+        const contentPad = 48;
+        const cx = innerX + contentPad;
+        const cy = innerY + contentPad;
+        const cw = innerW - contentPad * 2;
+
+        const avatarSize = 170;
+        const avatarX = cx;
+        const avatarY = cy + 10;
+        const avatarCenterX = avatarX + avatarSize / 2;
+        const avatarCenterY = avatarY + avatarSize / 2;
+
+        // Avatar glow
+        const glow = ctx.createRadialGradient(
+          avatarCenterX,
+          avatarCenterY,
+          avatarSize * 0.45,
+          avatarCenterX,
+          avatarCenterY,
+          avatarSize * 0.85
+        );
+        glow.addColorStop(0, "rgba(168, 85, 247, 0.55)");
+        glow.addColorStop(0.55, "rgba(236, 72, 153, 0.35)");
+        glow.addColorStop(1, "rgba(0, 0, 0, 0)");
+        ctx.fillStyle = glow;
+        ctx.beginPath();
+        ctx.arc(avatarCenterX, avatarCenterY, avatarSize * 0.85, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Avatar border ring
+        ctx.lineWidth = 10;
+        ctx.strokeStyle = "rgba(17, 24, 39, 0.9)";
+        ctx.beginPath();
+        ctx.arc(avatarCenterX, avatarCenterY, avatarSize / 2 + 6, 0, Math.PI * 2);
+        ctx.stroke();
+
+        // Avatar image
+        const avatarSrc = (avatarUrl || pfpUrl || "").trim();
+        const avatarImg = avatarSrc ? await loadImage(avatarSrc) : null;
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(avatarCenterX, avatarCenterY, avatarSize / 2, 0, Math.PI * 2);
+        ctx.clip();
+        if (avatarImg) {
+          ctx.drawImage(avatarImg, avatarX, avatarY, avatarSize, avatarSize);
+        } else {
+          const fallbackGrad = ctx.createLinearGradient(avatarX, avatarY, avatarX + avatarSize, avatarY + avatarSize);
+          fallbackGrad.addColorStop(0, "#7c3aed");
+          fallbackGrad.addColorStop(1, "#ec4899");
+          ctx.fillStyle = fallbackGrad;
+          ctx.fillRect(avatarX, avatarY, avatarSize, avatarSize);
+          ctx.fillStyle = "rgba(255,255,255,0.9)";
+          ctx.font = '700 64px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          ctx.fillText((username || "T").slice(0, 1).toUpperCase(), avatarCenterX, avatarCenterY);
+        }
+        ctx.restore();
+
+        // User name + fid
+        const nameX = avatarX + avatarSize + 46;
+        const nameY = avatarY + 58;
+        const nameMaxW = cx + cw - nameX;
+        ctx.textAlign = "left";
+        ctx.textBaseline = "alphabetic";
+
+        // Name gradient
+        const nameGrad = ctx.createLinearGradient(nameX, nameY - 56, nameX + 320, nameY);
+        nameGrad.addColorStop(0, "#d8b4fe");
+        nameGrad.addColorStop(0.5, "#f9a8d4");
+        nameGrad.addColorStop(1, "#93c5fd");
+        ctx.fillStyle = nameGrad as unknown as string;
+        ctx.font = '700 64px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+        const safeName = ellipsize(username || "Trader", nameMaxW);
+        ctx.fillText(safeName, nameX, nameY);
+
+        ctx.fillStyle = "rgba(156, 163, 175, 0.95)";
+        ctx.font = '500 30px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+        const fidText = (() => {
+          const u = (userId || "").trim();
+          if (u) return `FID ${u.startsWith("#") ? u : `#${u}`}`;
+          return `FID #${fid ?? "—"}`;
+        })();
+        ctx.fillText(fidText, nameX, nameY + 46);
+
+        // Tags (pill row under header, left aligned to name block)
+        const pills = (tags && tags.length > 0 ? tags : []).slice(0, 2);
+        const pillY = nameY + 78;
+        const pillH = 54;
+        const pillGap = 14;
+        const pillR = 26;
+        let pillX = nameX;
+
+        const tagStyle = (t: ProfileTag) => {
+          if (t.kind === "holder")
+            return {
+              fill: "rgba(34, 211, 238, 0.14)",
+              stroke: "rgba(34, 211, 238, 0.35)",
+              text: "rgba(207, 250, 254, 0.98)",
+              prefix: "✦",
+            };
+          if (t.kind === "whale")
+            return {
+              fill: "rgba(234, 179, 8, 0.16)",
+              stroke: "rgba(234, 179, 8, 0.35)",
+              text: "rgba(254, 243, 199, 0.98)",
+              prefix: "⚡",
+            };
+          return {
+            fill: "rgba(147, 51, 234, 0.22)",
+            stroke: "rgba(147, 51, 234, 0.35)",
+            text: "rgba(233, 213, 255, 0.98)",
+            prefix: "↗",
+          };
+        };
+
+        ctx.font = '600 28px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+        for (const t of pills) {
+          const cfg = tagStyle(t);
+          const label = `${cfg.prefix} ${t.label}`.trim();
+          const padX = 22;
+          const w = Math.min(
+            nameMaxW,
+            Math.max(220, Math.ceil(ctx.measureText(label).width) + padX * 2)
+          );
+          fillRoundRect(ctx, pillX, pillY, w, pillH, pillR, cfg.fill);
+          strokeRoundRect(ctx, pillX, pillY, w, pillH, pillR, cfg.stroke, 2);
+          ctx.fillStyle = cfg.text;
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          ctx.fillText(label, pillX + w / 2, pillY + pillH / 2 + 1);
+          pillX += w + pillGap;
+        }
+
+        // Favorite cards row
+        const favY = cy + 320;
+        const favGap = 28;
+        const favW = Math.floor((cw - favGap) / 2);
+        const favH = 220;
+
+        const drawFavCard = async (opts: {
+          x: number;
+          y: number;
+          title: string;
+          symbol: string;
+          value: string;
+          accentFill: string;
+          accentStroke: string;
+          accentText: string;
+          iconUrl?: string | null;
+        }) => {
+          // base
+          const baseFill = "rgba(17, 24, 39, 0.68)";
+          fillRoundRect(ctx, opts.x, opts.y, favW, favH, 34, baseFill);
+          strokeRoundRect(ctx, opts.x, opts.y, favW, favH, 34, opts.accentStroke, 3);
+
+          // subtle accent gradient overlay
+          const g = ctx.createLinearGradient(opts.x, opts.y, opts.x + favW, opts.y + favH);
+          g.addColorStop(0, opts.accentFill);
+          g.addColorStop(1, "rgba(0,0,0,0)");
+          ctx.save();
+          ctx.globalCompositeOperation = "screen";
+          fillRoundRect(ctx, opts.x, opts.y, favW, favH, 34, g as unknown as string);
+          ctx.restore();
+
+          const pad = 26;
+          const tx = opts.x + pad;
+          const ty = opts.y + pad + 8;
+
+          ctx.textAlign = "left";
+          ctx.textBaseline = "alphabetic";
+          ctx.fillStyle = opts.accentText;
+          ctx.font = '700 24px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+          ctx.fillText(opts.title.toUpperCase(), tx, ty);
+
+          // Symbol gradient text
+          const symY = ty + 74;
+          const symGrad = ctx.createLinearGradient(tx, symY - 50, tx + 200, symY);
+          symGrad.addColorStop(0, "rgba(224, 231, 255, 0.95)");
+          symGrad.addColorStop(1, "rgba(186, 230, 253, 0.95)");
+          ctx.fillStyle = symGrad as unknown as string;
+          ctx.font = '700 56px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+          ctx.fillText(ellipsize(opts.symbol || "$—", favW - pad * 2 - 96), tx, symY);
+
+          ctx.fillStyle = "rgba(156, 163, 175, 0.95)";
+          ctx.font = '500 34px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+          ctx.fillText(opts.value, tx, symY + 64);
+
+          // Icon circle (top-right)
+          if (opts.iconUrl) {
+            const iconSize = 84;
+            const ix = opts.x + favW - pad - iconSize;
+            const iy = opts.y + pad + 18;
+            ctx.fillStyle = "rgba(255,255,255,0.06)";
+            ctx.beginPath();
+            ctx.arc(ix + iconSize / 2, iy + iconSize / 2, iconSize / 2, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.strokeStyle = opts.accentStroke;
+            ctx.lineWidth = 3;
+            ctx.stroke();
+
+            const iconImg = await loadImage(opts.iconUrl);
+            if (iconImg) {
+              ctx.save();
+              ctx.beginPath();
+              ctx.arc(ix + iconSize / 2, iy + iconSize / 2, iconSize / 2 - 2, 0, Math.PI * 2);
+              ctx.clip();
+              ctx.drawImage(iconImg, ix, iy, iconSize, iconSize);
+              ctx.restore();
+            }
+          }
+        };
+
+        await drawFavCard({
+          x: cx,
+          y: favY,
+          title: "Fav by Volume",
+          symbol: maybeStats.favCoinByVolume?.symbol ?? "$—",
+          value: formatUsd(maybeStats.favCoinByVolume?.volume ?? 0),
+          accentFill: "rgba(34, 211, 238, 0.14)",
+          accentStroke: "rgba(34, 211, 238, 0.35)",
+          accentText: "rgba(103, 232, 249, 0.95)",
+          iconUrl: maybeStats.favCoinByVolume?.imageUrl ?? null,
+        });
+
+        await drawFavCard({
+          x: cx + favW + favGap,
+          y: favY,
+          title: "Fav by Trades",
+          symbol: maybeStats.favCoinByTrades?.symbol ?? "$—",
+          value: `${formatTradesCount(maybeStats.favCoinByTrades?.trades ?? 0)} trades`,
+          accentFill: "rgba(16, 185, 129, 0.14)",
+          accentStroke: "rgba(16, 185, 129, 0.35)",
+          accentText: "rgba(110, 231, 183, 0.95)",
+          iconUrl: maybeStats.favCoinByTrades?.imageUrl ?? null,
+        });
+
+        // Stats row (3 cards)
+        const statY = favY + favH + 44;
+        const statGap = 26;
+        const statW = Math.floor((cw - statGap * 2) / 3);
+        const statH = 260;
+
+        const drawStatCard = (opts: {
+          x: number;
+          y: number;
+          label: string;
+          accent: { fill: string; stroke: string; title: string; gradA: string; gradB: string };
+          volume: number;
+          trades: number;
+        }) => {
+          fillRoundRect(ctx, opts.x, opts.y, statW, statH, 34, "rgba(17, 24, 39, 0.62)");
+          strokeRoundRect(ctx, opts.x, opts.y, statW, statH, 34, opts.accent.stroke, 3);
+
+          // glow blob
+          ctx.fillStyle = opts.accent.fill;
+          ctx.beginPath();
+          ctx.arc(opts.x + statW + 10, opts.y - 10, 120, 0, Math.PI * 2);
+          ctx.fill();
+
+          const pad = 26;
+          const tx = opts.x + pad;
+          const ty = opts.y + pad + 12;
+          ctx.textAlign = "left";
+          ctx.textBaseline = "alphabetic";
+          ctx.fillStyle = opts.accent.title;
+          ctx.font = '700 22px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+          ctx.fillText(opts.label.toUpperCase(), tx, ty);
+
+          ctx.fillStyle = "rgba(156,163,175,0.95)";
+          ctx.font = '500 22px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+          ctx.fillText("Volume", tx, ty + 44);
+
+          const numY = ty + 110;
+          const numGrad = ctx.createLinearGradient(tx, numY - 60, tx + 240, numY);
+          numGrad.addColorStop(0, opts.accent.gradA);
+          numGrad.addColorStop(1, opts.accent.gradB);
+          ctx.fillStyle = numGrad as unknown as string;
+          ctx.font = '700 54px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+          ctx.fillText(formatUsd(opts.volume), tx, numY);
+
+          ctx.fillStyle = "rgba(156,163,175,0.95)";
+          ctx.font = '500 24px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+          ctx.fillText(`${formatTradesCount(opts.trades)} trades`, tx, numY + 56);
+        };
+
+        drawStatCard({
+          x: cx,
+          y: statY,
+          label: "Daily",
+          accent: {
+            fill: "rgba(168, 85, 247, 0.10)",
+            stroke: "rgba(168, 85, 247, 0.35)",
+            title: "rgba(216, 180, 254, 0.95)",
+            gradA: "rgba(216, 180, 254, 0.95)",
+            gradB: "rgba(249, 168, 212, 0.95)",
+          },
+          volume: maybeStats.daily.volume,
+          trades: maybeStats.daily.trades,
+        });
+
+        drawStatCard({
+          x: cx + statW + statGap,
+          y: statY,
+          label: "Weekly",
+          accent: {
+            fill: "rgba(236, 72, 153, 0.10)",
+            stroke: "rgba(236, 72, 153, 0.35)",
+            title: "rgba(253, 164, 175, 0.95)",
+            gradA: "rgba(253, 164, 175, 0.95)",
+            gradB: "rgba(147, 197, 253, 0.95)",
+          },
+          volume: maybeStats.weekly.volume,
+          trades: maybeStats.weekly.trades,
+        });
+
+        drawStatCard({
+          x: cx + (statW + statGap) * 2,
+          y: statY,
+          label: "Monthly",
+          accent: {
+            fill: "rgba(59, 130, 246, 0.10)",
+            stroke: "rgba(59, 130, 246, 0.35)",
+            title: "rgba(147, 197, 253, 0.95)",
+            gradA: "rgba(147, 197, 253, 0.95)",
+            gradB: "rgba(216, 180, 254, 0.95)",
+          },
+          volume: maybeStats.monthly.volume,
+          trades: maybeStats.monthly.trades,
+        });
+
+        // Footer
+        const footerY = innerY + innerH - 160;
+        ctx.strokeStyle = "rgba(55, 65, 81, 0.7)";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(cx, footerY);
+        ctx.lineTo(cx + cw, footerY);
+        ctx.stroke();
+
+        // Logo box
+        const logoBox = 72;
+        const logoX = cx;
+        const logoY = footerY + 42;
+        fillRoundRect(ctx, logoX, logoY, logoBox, logoBox, 18, "rgba(31, 41, 55, 0.55)");
+        const logoImg = await loadImage("/original.webp");
+        if (logoImg) {
+          ctx.save();
+          roundRectPath(ctx, logoX + 10, logoY + 10, logoBox - 20, logoBox - 20, 10);
+          ctx.clip();
+          ctx.drawImage(logoImg, logoX + 10, logoY + 10, logoBox - 20, logoBox - 20);
+          ctx.restore();
+        }
+
+        const brandX = logoX + logoBox + 22;
+        const brandY = logoY + 50;
+        const brandGrad = ctx.createLinearGradient(brandX, brandY - 32, brandX + 220, brandY);
+        brandGrad.addColorStop(0, "#22d3ee");
+        brandGrad.addColorStop(0.5, "#38bdf8");
+        brandGrad.addColorStop(1, "#60a5fa");
+        ctx.fillStyle = brandGrad as unknown as string;
+        ctx.font = '800 54px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+        ctx.textAlign = "left";
+        ctx.textBaseline = "alphabetic";
+        ctx.fillText("Bluera", brandX, brandY);
+
+        ctx.fillStyle = "rgba(156,163,175,0.7)";
+        ctx.font = '500 28px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+        ctx.textAlign = "right";
+        const dateStr = new Date().toLocaleDateString("en-GB");
+        ctx.fillText(`Generated on ${dateStr}`, cx + cw, brandY);
+
+        return canvas.toDataURL("image/png");
+      }
+
       // Prefer capturing the actual rendered card if an external ref is provided.
       // IMPORTANT: If externalCardRef is provided but not mounted, do NOT fall back
       // to the legacy canvas renderer (would upload the old design).
@@ -615,6 +1156,7 @@ export function ShareableAuraCard({
   }, [
     allTimeVolumeState,
     dailyTradesState,
+    avatarUrl,
     externalCardRef,
     waitForExternalCard,
     waitForImages,
@@ -626,7 +1168,10 @@ export function ShareableAuraCard({
     monthlyTradesState,
     monthlyVolumeState,
     pfpUrl,
+    stats,
+    tags,
     traderTag,
+    userId,
     username,
     weeklyTradesState,
     weeklyVolumeState,
@@ -1306,18 +1851,20 @@ export function ShareableAuraCard({
               users should still be able to upload+share once the tx is confirmed. */}
           {mode === "modal" && (
             <div className="flex flex-col gap-2 w-full">
-              <Button
-                onClick={handleShareOnBase}
-                size="lg"
-                disabled={isMinting || isConfirmingMint || isUploadingImage}
-                className="bg-gradient-to-r from-purple-500 to-yellow-500 hover:from-purple-600 hover:to-yellow-600 text-white font-semibold px-8 shadow-lg hover:shadow-xl transition-all w-full disabled:opacity-60 disabled:cursor-not-allowed"
-              >
-                {isUploadingImage
-                  ? "Uploading..."
-                  : isConfirmingMint
-                    ? "Confirming..."
-                    : "Share on Base"}
-              </Button>
+              {showShareButton ? (
+                <Button
+                  onClick={handleShareOnBase}
+                  size="lg"
+                  disabled={isMinting || isConfirmingMint || isUploadingImage}
+                  className="bg-gradient-to-r from-purple-500 to-yellow-500 hover:from-purple-600 hover:to-yellow-600 text-white font-semibold px-8 shadow-lg hover:shadow-xl transition-all w-full disabled:opacity-60 disabled:cursor-not-allowed"
+                >
+                  {isUploadingImage
+                    ? "Uploading..."
+                    : isConfirmingMint
+                      ? "Confirming..."
+                      : "Share on Base"}
+                </Button>
+              ) : null}
               {lastUploadError ? (
                 <p className="text-xs text-muted-foreground text-center">
                   Upload error: {lastUploadError}

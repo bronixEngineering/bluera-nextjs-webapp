@@ -458,6 +458,10 @@ export default function ProfilePage() {
                 username={displayUser.username || mockUser.username}
                 fid={displayUser.fid || mockUser.fid}
                 pfpUrl={displayUser.pfpUrl || mockUser.avatar}
+                avatarUrl={displayUser.pfpUrl || mockUser.avatar}
+                userId={`#${displayUser.fid || mockUser.fid}`}
+                stats={stats}
+                tags={tags}
                 holderTag={holderTag || ""}
                 traderTag={dailyVolumeReal > 100000 ? "Whale Trader" : ""}
                 activeTraderTag={dailyTrades > 0 ? "Active Base Trader" : ""}
@@ -473,6 +477,7 @@ export default function ProfilePage() {
                 externalCardRef={shareCardRef}
                 autoUploadImage={true}
                 mode="modal"
+                showShareButton={false}
               />
             </div>
           </div>
