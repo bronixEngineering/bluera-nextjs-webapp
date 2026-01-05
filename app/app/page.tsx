@@ -31,20 +31,23 @@ function normalizePct(v: unknown): number {
 
 function extractPriceChangePct24h(ppc: unknown): number {
   if (!ppc) return 0;
+  // NOTE: price_percent_change values are already stored as "percent points"
+  // (e.g. 0.20 means 0.20%), so we must NOT multiply by 100 here.
+  const asPct = (v: unknown) => toNum(v);
   if (typeof ppc === "object") {
     const obj = ppc as Record<string, unknown>;
     const candidates = ["24h", "h24", "day", "1d", "24H", "h_24", "percent_24h"];
     for (const k of candidates) {
-      if (k in obj) return normalizePct(obj[k]);
+      if (k in obj) return asPct(obj[k]);
     }
     // fallback: use first numeric-ish field
     for (const v of Object.values(obj)) {
       const n = toNum(v);
-      if (Number.isFinite(n) && n !== 0) return normalizePct(n);
+      if (Number.isFinite(n) && n !== 0) return asPct(n);
     }
     return 0;
   }
-  return normalizePct(ppc);
+  return asPct(ppc);
 }
 
 async function getHeatmapData(): Promise<{
