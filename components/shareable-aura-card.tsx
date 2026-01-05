@@ -85,6 +85,7 @@ export function ShareableAuraCard({
   const [isConfirmingMint, setIsConfirmingMint] = React.useState(false);
   const [isUploadingImage, setIsUploadingImage] = React.useState(false);
   const [lastUploadError, setLastUploadError] = React.useState<string | null>(null);
+  const [lastUploadedImageUrl, setLastUploadedImageUrl] = React.useState<string | null>(null);
   const [showPreview, setShowPreview] = React.useState(false);
   const [previewUrl, setPreviewUrl] = React.useState<string | null>(null);
   const cardRef = React.useRef<HTMLDivElement>(null);
@@ -735,6 +736,7 @@ export function ShareableAuraCard({
 
       setIsUploadingImage(true);
       setLastUploadError(null);
+      setLastUploadedImageUrl(null);
       const dataUrl =
         previewUrl ||
         (await withTimeout(generateImage(), 90_000, "generateImage"));
@@ -772,6 +774,7 @@ export function ShareableAuraCard({
         | null
         | { imageUrl?: string; error?: string };
       const imageUrl = json?.imageUrl;
+      if (imageUrl) setLastUploadedImageUrl(imageUrl);
       setLastUploadError(null);
       return { ok: true, imageUrl };
     } catch (e) {
@@ -1319,6 +1322,27 @@ export function ShareableAuraCard({
                 <p className="text-xs text-muted-foreground text-center">
                   Upload error: {lastUploadError}
                 </p>
+              ) : null}
+              {lastUploadedImageUrl ? (
+                <div className="rounded-lg border border-white/10 bg-black/30 p-2">
+                  <p className="text-xs text-muted-foreground break-all">
+                    image_url:{" "}
+                    <a
+                      href={lastUploadedImageUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="underline"
+                    >
+                      {lastUploadedImageUrl}
+                    </a>
+                  </p>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={lastUploadedImageUrl}
+                    alt="Uploaded aura card"
+                    className="mt-2 w-full rounded-md"
+                  />
+                </div>
               ) : null}
             </div>
           )}
