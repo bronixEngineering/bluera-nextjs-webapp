@@ -2,11 +2,6 @@
 
 import * as React from "react";
 import Image from "next/image";
-import {
-  Sparkles,
-  TrendingUp,
-  Zap,
-} from "lucide-react";
 
 import { cn } from "@/lib/utils";
 
@@ -66,30 +61,24 @@ function tagStyles(tag: ProfileTag) {
   switch (tag.kind) {
     case "active":
       return {
-        icon: TrendingUp,
         style: {
           backgroundColor: "rgba(147, 51, 234, 0.20)",
           color: "#E9D5FF",
         } as React.CSSProperties,
-        iconStyle: { color: "#D8B4FE" } as React.CSSProperties,
       };
     case "whale":
       return {
-        icon: Zap,
         style: {
           backgroundColor: "rgba(234, 179, 8, 0.18)",
           color: "#FEF3C7",
         } as React.CSSProperties,
-        iconStyle: { color: "#FDE68A" } as React.CSSProperties,
       };
     case "holder":
       return {
-        icon: Sparkles,
         style: {
           backgroundColor: "rgba(34, 211, 238, 0.16)",
           color: "#CFFAFE",
         } as React.CSSProperties,
-        iconStyle: { color: "#A5F3FC" } as React.CSSProperties,
       };
   }
 }
@@ -574,7 +563,6 @@ export function ProfileShareableCard({
                 <div className="mt-2 flex flex-wrap items-center gap-2">
                   {tags.map((t) => {
                     const s = tagStyles(t);
-                    const Icon = s.icon;
                     return (
                       <div
                         key={`${t.kind}:${t.label}`}
@@ -583,7 +571,6 @@ export function ProfileShareableCard({
                         )}
                         style={s.style}
                       >
-                        <Icon className="size-3" style={s.iconStyle} />
                         <span>{t.label}</span>
                       </div>
                     );

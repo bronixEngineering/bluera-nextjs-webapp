@@ -369,7 +369,7 @@ export default function ProfilePage() {
 
   const tags: ProfileTag[] = [
     holderTag ? { kind: "holder", label: holderTag } : null,
-    dailyVolumeReal >= 1 ? { kind: "whale", label: "Whale Trader" } : null,
+    dailyVolumeReal >= 100_000 ? { kind: "whale", label: "Whale Trader" } : null,
     dailyTrades > 0 ? { kind: "active", label: "Active Base Trader" } : null,
   ].filter(Boolean) as ProfileTag[];
 
