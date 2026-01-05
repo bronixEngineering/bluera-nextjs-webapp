@@ -634,6 +634,47 @@ export function ShareableAuraCard({
     }
   }, [address, externalCardRef, generateImage, previewUrl, waitForExternalCard]);
 
+  const interpretCallsStatus = React.useCallback((data: unknown) => {
+    const statusStr = (() => {
+      if (!data || typeof data !== "object") return undefined;
+      if (!("status" in data)) return undefined;
+      const s = (data as { status?: unknown }).status;
+      return typeof s === "string" ? s : undefined;
+    })();
+    const normalized = statusStr ? statusStr.toUpperCase() : undefined;
+
+    const receipts = (() => {
+      if (!data || typeof data !== "object") return undefined;
+      if (!("receipts" in data)) return undefined;
+      const r = (data as { receipts?: unknown }).receipts;
+      return Array.isArray(r) ? (r as unknown[]) : undefined;
+    })();
+
+    const allSuccess =
+      !receipts ||
+      receipts.length === 0 ||
+      receipts.every((r) => {
+        if (!r || typeof r !== "object") return true;
+        if (!("status" in r)) return true;
+        const s = (r as { status?: unknown }).status;
+        return s === "success" || s === 1;
+      });
+
+    return {
+      normalizedStatus: normalized,
+      receipts,
+      allSuccess,
+    };
+  }, []);
+
+  const finalizeMint = React.useCallback(async () => {
+    await uploadAuraCardImage();
+    setHasMinted(true);
+    setIsConfirmingMint(false);
+    setPendingCallsId(null);
+    alert("✅ Mint confirmed! You can now share on Base.");
+  }, [uploadAuraCardImage]);
+
   // Ensure Supabase image_url matches the currently rendered share card.
   // Note: externalCardRef.current might become available after initial render,
   // so we poll briefly.
@@ -677,22 +718,8 @@ export function ShareableAuraCard({
 
     // Some wagmi connectors return a call status payload with a `status` field.
     // We've seen variants like: 'PENDING' | 'CONFIRMED' | 'FAILED' and also lowercase / 'success'.
-    const callBundleStatus = (() => {
-      if (!callsStatusData || typeof callsStatusData !== "object") return undefined;
-      if (!("status" in callsStatusData)) return undefined;
-      const s = (callsStatusData as { status?: unknown }).status;
-      return typeof s === "string" ? s : undefined;
-    })();
-    const normalizedBundleStatus = callBundleStatus
-      ? callBundleStatus.toUpperCase()
-      : undefined;
-
-    const callsReceipts = (() => {
-      if (!callsStatusData || typeof callsStatusData !== "object") return undefined;
-      if (!("receipts" in callsStatusData)) return undefined;
-      const r = (callsStatusData as { receipts?: unknown }).receipts;
-      return Array.isArray(r) ? (r as unknown[]) : undefined;
-    })();
+    const { normalizedStatus: normalizedBundleStatus, receipts: callsReceipts, allSuccess } =
+      interpretCallsStatus(callsStatusData);
 
     // If we have neither a bundle status nor receipts, there's nothing to act on yet.
     if (!normalizedBundleStatus && (!callsReceipts || callsReceipts.length === 0)) {
@@ -711,16 +738,6 @@ export function ShareableAuraCard({
       // For other statuses, we keep going and evaluate receipts if present.
     }
 
-    const allSuccess =
-      !callsReceipts ||
-      callsReceipts.length === 0 ||
-      callsReceipts.every((r) => {
-        if (!r || typeof r !== "object") return true;
-        if (!("status" in r)) return true;
-        const s = (r as { status?: unknown }).status;
-        return s === "success" || s === 1;
-      });
-
     if (!allSuccess) {
       setIsConfirmingMint(false);
       setPendingCallsId(null);
@@ -738,21 +755,62 @@ export function ShareableAuraCard({
     }
 
     // Only after confirmation + success we consider it minted.
-    (async () => {
-      await uploadAuraCardImage();
-      setHasMinted(true);
-      setIsConfirmingMint(false);
-      setPendingCallsId(null);
-      alert("✅ Mint confirmed! You can now share on Base.");
-    })();
+    void finalizeMint();
   }, [
     callsStatusData,
+    finalizeMint,
+    interpretCallsStatus,
     isConfirmingMint,
     pendingCallsId,
-    uploadAuraCardImage,
     waitCallsError,
     waitCallsStatus,
   ]);
+
+  // Fallback poll: some miniapp/webviews fail to update wagmi's calls status hook.
+  // In that case, directly query `wallet_getCallsStatus` and finalize when confirmed.
+  React.useEffect(() => {
+    if (!pendingCallsId || !isConfirmingMint) return;
+
+    let cancelled = false;
+    const interval = setInterval(async () => {
+      try {
+        const eth = (globalThis as unknown as { ethereum?: { request?: Function } }).ethereum;
+        if (!eth?.request) return;
+        const res = await eth.request({
+          method: "wallet_getCallsStatus",
+          params: [pendingCallsId],
+        });
+        if (cancelled) return;
+
+        const { normalizedStatus, allSuccess, receipts } = interpretCallsStatus(res);
+        if (!normalizedStatus && (!receipts || receipts.length === 0)) return;
+        if (normalizedStatus === "PENDING") return;
+        if (normalizedStatus === "FAILED" || normalizedStatus === "ERROR") {
+          setIsConfirmingMint(false);
+          setPendingCallsId(null);
+          alert("❌ Mint transaction failed. Please try again.");
+          return;
+        }
+        if (!allSuccess) {
+          setIsConfirmingMint(false);
+          setPendingCallsId(null);
+          alert("❌ Mint transaction reverted. Please try again.");
+          return;
+        }
+        if (normalizedStatus && normalizedStatus !== "CONFIRMED" && normalizedStatus !== "SUCCESS") {
+          return;
+        }
+        await finalizeMint();
+      } catch {
+        // Ignore and let the timeout handle worst-case scenarios.
+      }
+    }, 2000);
+
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+  }, [finalizeMint, interpretCallsStatus, isConfirmingMint, pendingCallsId]);
 
   // Safety timeout: sometimes webviews/connectors fail to report the call status,
   // which would otherwise leave the UI stuck in "Confirming...".
