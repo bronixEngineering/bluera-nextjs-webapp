@@ -3,7 +3,7 @@
 import { useMemo, useRef, useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Trophy, Medal, AlertCircle, TrendingUp, BarChart3, DollarSign } from 'lucide-react';
+import { Trophy, Medal, AlertCircle } from 'lucide-react';
 
 interface WalletStats {
   wallet_address: string;
@@ -208,8 +208,10 @@ export function LeaderboardClient({ initialData, error }: LeaderboardClientProps
       {/* Category Tabs */}
       <div 
         ref={scrollContainerRef}
-        className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide cursor-grab select-none" 
-        style={{ scrollBehavior: 'smooth', WebkitOverflowScrolling: 'touch' }}
+        className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide cursor-grab select-none touch-manipulation"
+        // Avoid scroll-behavior: smooth here; on iOS webviews it can cause a visible flicker/jump
+        // when the active tab styling changes.
+        style={{ WebkitOverflowScrolling: 'touch' }}
         onMouseDown={handleMouseDown}
         onMouseLeave={handleMouseLeave}
         onMouseUp={handleMouseUp}
@@ -217,46 +219,42 @@ export function LeaderboardClient({ initialData, error }: LeaderboardClientProps
       >
         <button
           onClick={() => setActiveTab('allTimeVolume')}
-          className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all whitespace-nowrap flex items-center gap-1.5 ${
+          className={`px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap flex items-center ${
             activeTab === 'allTimeVolume'
               ? 'bg-gradient-to-r from-yellow-500 to-orange-500 text-white shadow-md'
               : 'bg-muted hover:bg-muted/80'
           }`}
         >
-          <Trophy className="h-3.5 w-3.5" />
           Daily Vol
         </button>
         <button
           onClick={() => setActiveTab('weeklyVolume')}
-          className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all whitespace-nowrap flex items-center gap-1.5 ${
+          className={`px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap flex items-center ${
             activeTab === 'weeklyVolume'
               ? 'bg-gradient-to-r from-blue-500 to-cyan-500 text-white shadow-md'
               : 'bg-muted hover:bg-muted/80'
           }`}
         >
-          <TrendingUp className="h-3.5 w-3.5" />
           Weekly Vol
         </button>
         <button
           onClick={() => setActiveTab('monthlyVolume')}
-          className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all whitespace-nowrap flex items-center gap-1.5 ${
+          className={`px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap flex items-center ${
             activeTab === 'monthlyVolume'
               ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-md'
               : 'bg-muted hover:bg-muted/80'
           }`}
         >
-          <BarChart3 className="h-3.5 w-3.5" />
           Monthly Vol
         </button>
         <button
           onClick={() => setActiveTab('netWorth')}
-          className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all whitespace-nowrap flex items-center gap-1.5 ${
+          className={`px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap flex items-center ${
             activeTab === 'netWorth'
               ? 'bg-gradient-to-r from-indigo-500 to-purple-500 text-white shadow-md'
               : 'bg-muted hover:bg-muted/80'
           }`}
         >
-          <DollarSign className="h-3.5 w-3.5" />
           Net Worth
         </button>
       </div>
