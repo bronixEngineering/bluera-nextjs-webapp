@@ -250,6 +250,32 @@ export function ShareableAuraCard({
             imageTimeout: 30_000,
             removeContainer: true,
             onclone: (doc) => {
+              // html2canvas cannot parse modern CSS color functions like `lab()` / `oklch()`
+              // (Tailwind v4 theme vars may serialize to those). In the cloned DOM only,
+              // force a few key theme variables/classes to plain rgb/rgba so capture succeeds.
+              const style = doc.createElement("style");
+              style.textContent = `
+                :root, .dark {
+                  --background: #0b0b0f !important;
+                  --foreground: #ffffff !important;
+                  --muted: rgba(255,255,255,.08) !important;
+                  --muted-foreground: rgba(255,255,255,.72) !important;
+                  --border: rgba(255,255,255,.14) !important;
+                }
+
+                /* Tailwind classes used in the share card */
+                .bg-background { background-color: #0b0b0f !important; }
+                .text-foreground { color: #ffffff !important; }
+                .text-muted-foreground { color: rgba(255,255,255,.72) !important; }
+                .border-border { border-color: rgba(255,255,255,.14) !important; }
+                .bg-muted { background-color: rgba(255,255,255,.08) !important; }
+
+                /* Slash opacity utilities */
+                .bg-background\\/50 { background-color: rgba(11,11,15,.5) !important; }
+                .bg-black\\/80 { background-color: rgba(0,0,0,.8) !important; }
+              `;
+              doc.head.appendChild(style);
+
               // Rewrite remote <img> URLs through our proxy in the cloned DOM only
               // (does not affect the visible UI).
               const imgs = Array.from(doc.querySelectorAll("img")) as HTMLImageElement[];
