@@ -653,7 +653,9 @@ export function ShareableAuraCard({
       alert("❌ Could not confirm the transaction. Please try again.");
       return;
     }
-    if (waitCallsStatus !== "success") return;
+    // Note: Some connectors/webviews never flip `waitCallsStatus` to "success"
+    // even though `callsStatusData` is populated. So we primarily rely on the
+    // data payload when present, and only early-return when there's no signal.
 
     // Some wagmi connectors return a call status payload with a `status` field.
     // We've seen variants like: 'PENDING' | 'CONFIRMED' | 'FAILED' and also lowercase / 'success'.
@@ -663,18 +665,9 @@ export function ShareableAuraCard({
       const s = (callsStatusData as { status?: unknown }).status;
       return typeof s === "string" ? s : undefined;
     })();
-    if (callBundleStatus) {
-      const normalized = callBundleStatus.toUpperCase();
-      if (normalized === "PENDING") return;
-      if (normalized === "FAILED" || normalized === "ERROR") {
-        setIsConfirmingMint(false);
-        setPendingCallsId(null);
-        alert("❌ Mint transaction failed. Please try again.");
-        return;
-      }
-      // Treat CONFIRMED / SUCCESS as ok; anything else falls through.
-      if (normalized !== "CONFIRMED" && normalized !== "SUCCESS") return;
-    }
+    const normalizedBundleStatus = callBundleStatus
+      ? callBundleStatus.toUpperCase()
+      : undefined;
 
     const callsReceipts = (() => {
       if (!callsStatusData || typeof callsStatusData !== "object") return undefined;
@@ -682,6 +675,24 @@ export function ShareableAuraCard({
       const r = (callsStatusData as { receipts?: unknown }).receipts;
       return Array.isArray(r) ? (r as unknown[]) : undefined;
     })();
+
+    // If we have neither a bundle status nor receipts, there's nothing to act on yet.
+    if (!normalizedBundleStatus && (!callsReceipts || callsReceipts.length === 0)) {
+      // If wagmi never resolves, the timeout effect will reset the UI.
+      return;
+    }
+
+    if (normalizedBundleStatus) {
+      if (normalizedBundleStatus === "PENDING") return;
+      if (normalizedBundleStatus === "FAILED" || normalizedBundleStatus === "ERROR") {
+        setIsConfirmingMint(false);
+        setPendingCallsId(null);
+        alert("❌ Mint transaction failed. Please try again.");
+        return;
+      }
+      // For other statuses, we keep going and evaluate receipts if present.
+    }
+
     const allSuccess =
       !callsReceipts ||
       callsReceipts.length === 0 ||
@@ -699,6 +710,15 @@ export function ShareableAuraCard({
       return;
     }
 
+    // If bundle status exists and is not confirmed/success, don't finalize yet.
+    if (
+      normalizedBundleStatus &&
+      normalizedBundleStatus !== "CONFIRMED" &&
+      normalizedBundleStatus !== "SUCCESS"
+    ) {
+      return;
+    }
+
     // Only after confirmation + success we consider it minted.
     (async () => {
       await uploadAuraCardImage();
@@ -707,7 +727,14 @@ export function ShareableAuraCard({
       setPendingCallsId(null);
       alert("✅ Mint confirmed! You can now share on Base.");
     })();
-  }, [callsStatusData, isConfirmingMint, pendingCallsId, uploadAuraCardImage, waitCallsStatus]);
+  }, [
+    callsStatusData,
+    isConfirmingMint,
+    pendingCallsId,
+    uploadAuraCardImage,
+    waitCallsError,
+    waitCallsStatus,
+  ]);
 
   // Safety timeout: sometimes webviews/connectors fail to report the call status,
   // which would otherwise leave the UI stuck in "Confirming...".
