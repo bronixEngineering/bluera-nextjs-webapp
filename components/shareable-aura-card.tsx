@@ -1400,12 +1400,11 @@ export function ShareableAuraCard({
 
   // On-chain fallback: some webviews confirm tx in-wallet, but never report
   // `wallet_getCallsStatus` / wagmi call-status updates. In that case, we poll
-  // the Aura NFT contract to see if `ownerOf(auraCardId)` resolves.
+  // the Aura NFT contract state directly.
   React.useEffect(() => {
     if (hasMinted) return;
     if (!isConfirmingMint) return;
-    const tokenId = lastMintAuraCardIdRef.current;
-    if (tokenId == null) return;
+    if (!address) return;
     if (!publicClient) return;
 
     let cancelled = false;
@@ -1415,20 +1414,24 @@ export function ShareableAuraCard({
       try {
         if (cancelled) return;
         tries += 1;
-        const owner = await publicClient.readContract({
+        // Prefer contract-level flag over tokenId assumptions.
+        const minted = await publicClient.readContract({
           address: AURA_NFT_ADDRESS as `0x${string}`,
           abi: auraAbi as Abi,
-          functionName: "ownerOf",
-          args: [tokenId],
+          functionName: "hasMinted",
+          args: [address],
         });
         if (cancelled) return;
-        const ownerStr = typeof owner === "string" ? owner : String(owner);
-        if (ownerStr && ownerStr !== "0x0000000000000000000000000000000000000000") {
+        const isMinted =
+          typeof minted === "boolean"
+            ? minted
+            : String(minted).toLowerCase() === "true";
+        if (isMinted) {
           finalizeMint();
           return;
         }
       } catch {
-        // If ownerOf reverts pre-mint, ignore; keep polling.
+        // Ignore and keep polling.
       } finally {
         if (tries >= maxTries) {
           clearInterval(interval);
@@ -1440,7 +1443,7 @@ export function ShareableAuraCard({
       cancelled = true;
       clearInterval(interval);
     };
-  }, [AURA_NFT_ADDRESS, finalizeMint, hasMinted, isConfirmingMint, pendingCallsId, publicClient]);
+  }, [AURA_NFT_ADDRESS, address, finalizeMint, hasMinted, isConfirmingMint, publicClient]);
 
   // Ensure Supabase image_url matches the currently rendered share card.
   // Note: externalCardRef.current might become available after initial render,
