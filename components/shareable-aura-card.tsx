@@ -1870,27 +1870,6 @@ export function ShareableAuraCard({
                   Upload error: {lastUploadError}
                 </p>
               ) : null}
-              {lastUploadedImageUrl ? (
-                <div className="rounded-lg border border-white/10 bg-black/30 p-2">
-                  <p className="text-xs text-muted-foreground break-all">
-                    image_url:{" "}
-                    <a
-                      href={lastUploadedImageUrl}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="underline"
-                    >
-                      {lastUploadedImageUrl}
-                    </a>
-                  </p>
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={lastUploadedImageUrl}
-                    alt="Uploaded aura card"
-                    className="mt-2 w-full rounded-md"
-                  />
-                </div>
-              ) : null}
             </div>
           )}
         </div>
