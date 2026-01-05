@@ -270,11 +270,11 @@ export function LeaderboardClient({ initialData, error }: LeaderboardClientProps
                 return (
                   <div
                     key={wallet.wallet_address}
-                    className="group flex items-center justify-between p-3 hover:bg-gradient-to-r hover:from-muted/50 hover:to-transparent transition-all duration-200"
+                    className="group flex items-center justify-between p-3 hover:bg-gradient-to-r hover:from-muted/50 hover:to-transparent transition-colors duration-200"
                   >
                     <div className="flex items-center gap-3 flex-1 min-w-0">
                       {/* Rank Badge */}
-                      <div className={`relative w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold flex-shrink-0 transition-all ${
+                      <div className={`relative w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold flex-shrink-0 transition-colors ${
                         index === 0 
                           ? "bg-gradient-to-br from-yellow-500/30 to-yellow-600/30 text-yellow-500 border border-yellow-500/50" 
                           : index === 1 
@@ -286,7 +286,7 @@ export function LeaderboardClient({ initialData, error }: LeaderboardClientProps
                         {index < 3 ? (
                           <>
                             <Medal className="h-4 w-4" />
-                            <div className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-gradient-to-br from-yellow-400 to-orange-500 animate-pulse" />
+                            {/* Removed pulsing dot to avoid flicker during re-sorts in mobile webviews */}
                           </>
                         ) : (
                           <span className="text-xs">#{index + 1}</span>
