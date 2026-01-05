@@ -233,81 +233,89 @@ export function ShareableAuraCard({
         if (!captureNode) {
           throw new Error("Card UI not ready (ref is null)");
         }
-        // Ensure token logos / avatar have a chance to load before capture.
-        await waitForImages(captureNode, 12_000);
-        const canvas = await withTimeout(
-          html2canvas(captureNode, {
-            backgroundColor: null,
-            // Keep size reasonable for mobile webviews to avoid huge base64 payloads/timeouts.
-            // (scale is the #1 knob for performance here)
-            scale: 1,
-            useCORS: true,
-            // Prefer not tainting so we can reliably export via toDataURL.
-            // Cross-origin images are fetched through the proxy below.
-            allowTaint: false,
-            // Use our server-side image proxy to avoid CORS issues with avatars/token icons.
-            proxy: "/api/image-proxy",
-            // html2canvas defaults to 15s; bump to reduce flaky failures on slow mobile networks.
-            imageTimeout: 60_000,
-            removeContainer: true,
-            logging: false,
-            onclone: (doc) => {
-              // html2canvas cannot parse modern CSS color functions like `lab()` / `oklch()`
-              // (Tailwind v4 theme vars may serialize to those). In the cloned DOM only,
-              // force a few key theme variables/classes to plain rgb/rgba so capture succeeds.
-              const style = doc.createElement("style");
-              style.textContent = `
-                :root, .dark {
-                  --background: #0b0b0f !important;
-                  --foreground: #ffffff !important;
-                  --muted: rgba(255,255,255,.08) !important;
-                  --muted-foreground: rgba(255,255,255,.72) !important;
-                  --border: rgba(255,255,255,.14) !important;
+        try {
+          // Ensure token logos / avatar have a chance to load before capture.
+          await waitForImages(captureNode, 12_000);
+          const canvas = await withTimeout(
+            html2canvas(captureNode, {
+              backgroundColor: null,
+              // Keep size reasonable for mobile webviews to avoid huge base64 payloads/timeouts.
+              // (scale is the #1 knob for performance here)
+              scale: 1,
+              useCORS: true,
+              // Prefer not tainting so we can reliably export via toDataURL.
+              // Cross-origin images are fetched through the proxy below.
+              allowTaint: false,
+              // Use our server-side image proxy to avoid CORS issues with avatars/token icons.
+              proxy: "/api/image-proxy",
+              // html2canvas defaults to 15s; bump to reduce flaky failures on slow mobile networks.
+              imageTimeout: 60_000,
+              removeContainer: true,
+              logging: false,
+              onclone: (doc) => {
+                // html2canvas cannot parse modern CSS color functions like `lab()` / `oklch()`
+                // (Tailwind v4 theme vars may serialize to those). In the cloned DOM only,
+                // force a few key theme variables/classes to plain rgb/rgba so capture succeeds.
+                const style = doc.createElement("style");
+                style.textContent = `
+                  :root, .dark {
+                    --background: #0b0b0f !important;
+                    --foreground: #ffffff !important;
+                    --muted: rgba(255,255,255,.08) !important;
+                    --muted-foreground: rgba(255,255,255,.72) !important;
+                    --border: rgba(255,255,255,.14) !important;
+                  }
+
+                  /* Tailwind classes used in the share card */
+                  .bg-background { background-color: #0b0b0f !important; }
+                  .text-foreground { color: #ffffff !important; }
+                  .text-muted-foreground { color: rgba(255,255,255,.72) !important; }
+                  .border-border { border-color: rgba(255,255,255,.14) !important; }
+                  .bg-muted { background-color: rgba(255,255,255,.08) !important; }
+
+                  /* Slash opacity utilities */
+                  .bg-background\\/50 { background-color: rgba(11,11,15,.5) !important; }
+                  .bg-black\\/80 { background-color: rgba(0,0,0,.8) !important; }
+
+                  /* Performance: expensive effects can stall html2canvas on mobile webviews */
+                  * {
+                    -webkit-backdrop-filter: none !important;
+                    backdrop-filter: none !important;
+                    filter: none !important;
+                    animation: none !important;
+                    transition: none !important;
+                  }
+                `;
+                doc.head.appendChild(style);
+
+                // Rewrite remote <img> URLs through our proxy in the cloned DOM only
+                // (does not affect the visible UI).
+                const imgs = Array.from(doc.querySelectorAll("img")) as HTMLImageElement[];
+                for (const img of imgs) {
+                  const src = (img.getAttribute("src") || "").trim();
+                  if (!src) continue;
+                  if (src.startsWith("data:") || src.startsWith("blob:")) continue;
+                  // Relative URLs are same-origin already.
+                  if (src.startsWith("/")) continue;
+                  img.setAttribute("crossorigin", "anonymous");
+                  img.setAttribute(
+                    "src",
+                    `/api/image-proxy?url=${encodeURIComponent(src)}`
+                  );
                 }
-
-                /* Tailwind classes used in the share card */
-                .bg-background { background-color: #0b0b0f !important; }
-                .text-foreground { color: #ffffff !important; }
-                .text-muted-foreground { color: rgba(255,255,255,.72) !important; }
-                .border-border { border-color: rgba(255,255,255,.14) !important; }
-                .bg-muted { background-color: rgba(255,255,255,.08) !important; }
-
-                /* Slash opacity utilities */
-                .bg-background\\/50 { background-color: rgba(11,11,15,.5) !important; }
-                .bg-black\\/80 { background-color: rgba(0,0,0,.8) !important; }
-
-                /* Performance: expensive effects can stall html2canvas on mobile webviews */
-                * {
-                  -webkit-backdrop-filter: none !important;
-                  backdrop-filter: none !important;
-                  filter: none !important;
-                  animation: none !important;
-                  transition: none !important;
-                }
-              `;
-              doc.head.appendChild(style);
-
-              // Rewrite remote <img> URLs through our proxy in the cloned DOM only
-              // (does not affect the visible UI).
-              const imgs = Array.from(doc.querySelectorAll("img")) as HTMLImageElement[];
-              for (const img of imgs) {
-                const src = (img.getAttribute("src") || "").trim();
-                if (!src) continue;
-                if (src.startsWith("data:") || src.startsWith("blob:")) continue;
-                // Relative URLs are same-origin already.
-                if (src.startsWith("/")) continue;
-                img.setAttribute("crossorigin", "anonymous");
-                img.setAttribute(
-                  "src",
-                  `/api/image-proxy?url=${encodeURIComponent(src)}`
-                );
-              }
-            },
-          }),
-          60_000,
-          "html2canvas"
-        );
-        return canvas.toDataURL("image/jpeg", 0.88);
+              },
+            }),
+            60_000,
+            "html2canvas"
+          );
+          return canvas.toDataURL("image/jpeg", 0.88);
+        } catch (e) {
+          console.warn(
+            "[shareable-aura-card] html2canvas capture failed; falling back to canvas renderer:",
+            e
+          );
+          // Fall through to legacy canvas renderer below.
+        }
       }
 
       const canvas = document.createElement("canvas");
