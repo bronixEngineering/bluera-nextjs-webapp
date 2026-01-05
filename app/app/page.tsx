@@ -1,6 +1,5 @@
 import { createClient as createSupabaseClient } from "@/utils/supabase/server";
 import { HeatmapClient } from "@/components/heatmap-client";
-import { DollarSign, Repeat2 } from "lucide-react";
 
 // Bu satırı ekleyin
 export const dynamic = 'force-dynamic';
@@ -153,16 +152,22 @@ export default async function Home() {
       {/* Simple Header */}
       <div className="space-y-3">
         <h1 className="text-xl font-bold">Market Overview</h1>
-        <div className="flex flex-wrap gap-2">
-          <div className="flex items-center gap-2 rounded-lg border bg-muted/50 px-3 py-1.5 text-xs font-medium text-muted-foreground">
-            <DollarSign className="h-3.5 w-3.5" />
-            <span>Total Volume</span>
-            <span className="text-foreground font-semibold">{formatUsdCompact(totalVolume24h)}</span>
+        <div className="grid grid-cols-2 gap-3">
+          <div className="rounded-xl border bg-muted/40 px-4 py-3 shadow-sm">
+            <div className="text-[11px] font-medium tracking-wide text-muted-foreground">
+              Total Volume
+            </div>
+            <div className="mt-1 text-2xl font-bold tracking-tight text-foreground">
+              {formatUsdCompact(totalVolume24h)}
+            </div>
           </div>
-          <div className="flex items-center gap-2 rounded-lg border bg-muted/50 px-3 py-1.5 text-xs font-medium text-muted-foreground">
-            <Repeat2 className="h-3.5 w-3.5" />
-            <span>Total Swaps</span>
-            <span className="text-foreground font-semibold">{formatCountCompact(totalSwaps24h)}</span>
+          <div className="rounded-xl border bg-muted/40 px-4 py-3 shadow-sm">
+            <div className="text-[11px] font-medium tracking-wide text-muted-foreground">
+              Total Swaps
+            </div>
+            <div className="mt-1 text-2xl font-bold tracking-tight text-foreground">
+              {formatCountCompact(totalSwaps24h)}
+            </div>
           </div>
         </div>
       </div>
