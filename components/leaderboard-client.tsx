@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useRef, useState } from 'react';
+import { useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Trophy, Medal, AlertCircle } from 'lucide-react';
@@ -27,6 +27,11 @@ export function LeaderboardClient({ initialData, error }: LeaderboardClientProps
   const [isDragging, setIsDragging] = useState(false);
   const [startX, setStartX] = useState(0);
   const [scrollLeft, setScrollLeft] = useState(0);
+
+  // FLIP animation refs to reduce flicker when list order changes across tabs (iOS/Base webviews).
+  const rowRefs = useRef(new Map<string, HTMLDivElement>());
+  const prevRectsRef = useRef(new Map<string, DOMRect>());
+  const hasMeasuredRef = useRef(false);
 
   // Mouse drag scroll handlers
   const handleMouseDown = (e: React.MouseEvent) => {
@@ -120,6 +125,59 @@ export function LeaderboardClient({ initialData, error }: LeaderboardClientProps
         return sortData(initialData, 'volume_daily');
     }
   }, [activeTab, initialData]);
+
+  // Apply FLIP transforms after the DOM updates to animate items into their new positions.
+  useLayoutEffect(() => {
+    // Skip first paint (no previous rects yet).
+    if (!hasMeasuredRef.current) {
+      hasMeasuredRef.current = true;
+      // Prime prev rects for subsequent transitions.
+      const m = new Map<string, DOMRect>();
+      for (const [key, el] of rowRefs.current.entries()) {
+        m.set(key, el.getBoundingClientRect());
+      }
+      prevRectsRef.current = m;
+      return;
+    }
+
+    const prevRects = prevRectsRef.current;
+    const moves: Array<{ el: HTMLDivElement; dy: number }> = [];
+
+    // Measure new rects and compute deltas.
+    const nextRects = new Map<string, DOMRect>();
+    for (const [key, el] of rowRefs.current.entries()) {
+      const next = el.getBoundingClientRect();
+      nextRects.set(key, next);
+      const prev = prevRects.get(key);
+      if (!prev) continue;
+      const dy = prev.top - next.top;
+      if (Math.abs(dy) > 0.5) moves.push({ el, dy });
+    }
+
+    // Invert
+    for (const { el, dy } of moves) {
+      el.style.willChange = 'transform';
+      el.style.transform = `translate3d(0, ${dy}px, 0)`;
+      el.style.transition = 'transform 0s';
+    }
+
+    // Play
+    requestAnimationFrame(() => {
+      for (const { el } of moves) {
+        el.style.transition = 'transform 180ms cubic-bezier(0.2, 0.8, 0.2, 1)';
+        el.style.transform = '';
+      }
+      // Cleanup willChange after animation.
+      window.setTimeout(() => {
+        for (const { el } of moves) {
+          el.style.willChange = '';
+          el.style.transition = '';
+        }
+      }, 220);
+    });
+
+    prevRectsRef.current = nextRects;
+  }, [activeTab, sortedData]);
 
   const getValueForTab = (wallet: WalletStats) => {
     switch (activeTab) {
@@ -218,7 +276,15 @@ export function LeaderboardClient({ initialData, error }: LeaderboardClientProps
         onMouseMove={handleMouseMove}
       >
         <button
-          onClick={() => setActiveTab('allTimeVolume')}
+          onClick={() => {
+            // Capture current positions before re-sorting.
+            const m = new Map<string, DOMRect>();
+            for (const [key, el] of rowRefs.current.entries()) {
+              m.set(key, el.getBoundingClientRect());
+            }
+            prevRectsRef.current = m;
+            setActiveTab('allTimeVolume');
+          }}
           className={`px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap flex items-center ${
             activeTab === 'allTimeVolume'
               ? 'bg-gradient-to-r from-yellow-500 to-orange-500 text-white shadow-md'
@@ -228,7 +294,14 @@ export function LeaderboardClient({ initialData, error }: LeaderboardClientProps
           Daily Vol
         </button>
         <button
-          onClick={() => setActiveTab('weeklyVolume')}
+          onClick={() => {
+            const m = new Map<string, DOMRect>();
+            for (const [key, el] of rowRefs.current.entries()) {
+              m.set(key, el.getBoundingClientRect());
+            }
+            prevRectsRef.current = m;
+            setActiveTab('weeklyVolume');
+          }}
           className={`px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap flex items-center ${
             activeTab === 'weeklyVolume'
               ? 'bg-gradient-to-r from-blue-500 to-cyan-500 text-white shadow-md'
@@ -238,7 +311,14 @@ export function LeaderboardClient({ initialData, error }: LeaderboardClientProps
           Weekly Vol
         </button>
         <button
-          onClick={() => setActiveTab('monthlyVolume')}
+          onClick={() => {
+            const m = new Map<string, DOMRect>();
+            for (const [key, el] of rowRefs.current.entries()) {
+              m.set(key, el.getBoundingClientRect());
+            }
+            prevRectsRef.current = m;
+            setActiveTab('monthlyVolume');
+          }}
           className={`px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap flex items-center ${
             activeTab === 'monthlyVolume'
               ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-md'
@@ -248,7 +328,14 @@ export function LeaderboardClient({ initialData, error }: LeaderboardClientProps
           Monthly Vol
         </button>
         <button
-          onClick={() => setActiveTab('netWorth')}
+          onClick={() => {
+            const m = new Map<string, DOMRect>();
+            for (const [key, el] of rowRefs.current.entries()) {
+              m.set(key, el.getBoundingClientRect());
+            }
+            prevRectsRef.current = m;
+            setActiveTab('netWorth');
+          }}
           className={`px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap flex items-center ${
             activeTab === 'netWorth'
               ? 'bg-gradient-to-r from-indigo-500 to-purple-500 text-white shadow-md'
@@ -270,6 +357,13 @@ export function LeaderboardClient({ initialData, error }: LeaderboardClientProps
                 return (
                   <div
                     key={wallet.wallet_address}
+                    ref={(el) => {
+                      if (!el) {
+                        rowRefs.current.delete(wallet.wallet_address);
+                        return;
+                      }
+                      rowRefs.current.set(wallet.wallet_address, el);
+                    }}
                     className="group flex items-center justify-between p-3 hover:bg-gradient-to-r hover:from-muted/50 hover:to-transparent transition-colors duration-200"
                   >
                     <div className="flex items-center gap-3 flex-1 min-w-0">
