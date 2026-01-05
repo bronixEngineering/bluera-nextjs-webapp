@@ -186,11 +186,25 @@ export function ShareableAuraCard({
     ]);
   }, []);
 
+  const waitForExternalCard = React.useCallback(async (timeoutMs = 4000) => {
+    const start = Date.now();
+    while (Date.now() - start < timeoutMs) {
+      const node = externalCardRef?.current;
+      if (node) return node;
+      await new Promise((r) => setTimeout(r, 100));
+    }
+    return null;
+  }, [externalCardRef]);
+
   const generateImage = React.useCallback(async () => {
     try {
       // Prefer capturing the actual rendered card if an external ref is provided.
-      const captureNode = externalCardRef?.current;
-      if (captureNode) {
+      // IMPORTANT: If externalCardRef is provided but not mounted, do NOT fall back
+      // to the legacy canvas renderer (would upload the old design).
+      const wantsExternal = !!externalCardRef;
+      if (wantsExternal) {
+        const captureNode = await waitForExternalCard();
+        if (!captureNode) return null;
         // Ensure token logos / avatar have a chance to load before capture.
         await waitForImages(captureNode);
         const canvas = await html2canvas(captureNode, {
@@ -497,6 +511,7 @@ export function ShareableAuraCard({
     allTimeVolumeState,
     dailyTradesState,
     externalCardRef,
+    waitForExternalCard,
     waitForImages,
     activeTraderTag,
     fid,
@@ -553,19 +568,13 @@ export function ShareableAuraCard({
         }
       }
 
-      if (navigator.clipboard && "write" in navigator.clipboard) {
-        try {
-          await navigator.clipboard.write([new ClipboardItem({ "image/png": blob })]);
-          alert("✅ Image copied to clipboard! You can now paste it anywhere.");
-          return;
-        } catch {}
-      }
-
       const blobUrl = URL.createObjectURL(blob);
       const newWindow = window.open(blobUrl, "_blank");
 
       if (newWindow) {
-        alert('💡 Tip: Long press on the image and select "Save Image" to download it to your device.');
+        alert(
+          '💡 Tip: Long press on the image and select "Save Image".\n\nNote: Some composers (Base/Warpcast) do not support pasting images from clipboard yet.'
+        );
         setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
       } else {
         const link = document.createElement("a");
@@ -582,13 +591,22 @@ export function ShareableAuraCard({
       }
     } catch (error) {
       console.error("Share error:", error);
-      alert("❌ Failed to share. Try taking a screenshot instead!");
+      alert("❌ Failed to share. Try saving the image and uploading it, or use Share on Base.");
     }
   };
 
   const uploadAuraCardImage = React.useCallback(async () => {
     try {
       if (!address) return;
+
+      // If we're wired to an external card, ensure it's available before upload.
+      if (typeof externalCardRef !== "undefined") {
+        const node = await waitForExternalCard();
+        if (!node) {
+          console.warn("[aura-card-image] external card ref not ready; skipping upload");
+          return;
+        }
+      }
 
       const dataUrl = previewUrl || (await generateImage());
       if (!dataUrl) return;
@@ -614,7 +632,7 @@ export function ShareableAuraCard({
     } catch (e) {
       console.error("Aura card image upload failed:", e);
     }
-  }, [address, generateImage, previewUrl]);
+  }, [address, externalCardRef, generateImage, previewUrl, waitForExternalCard]);
 
   // Ensure Supabase image_url matches the currently rendered share card.
   // Note: externalCardRef.current might become available after initial render,
@@ -853,7 +871,8 @@ export function ShareableAuraCard({
       const appUrl =
         (typeof window !== "undefined" && window.location?.origin) ||
         "https://bluera.vercel.app";
-      const shareUrl = `${appUrl}/aura/${address.toLowerCase()}`;
+      // Cache-bust to force Farcaster/Base to refresh OG preview for this URL.
+      const shareUrl = `${appUrl}/aura/${address.toLowerCase()}?v=${Date.now()}`;
 
       const text =
         "My onchain aura is officially live on Bluera 🔮 Curious what yours looks like?";
