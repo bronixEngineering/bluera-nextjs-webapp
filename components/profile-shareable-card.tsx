@@ -594,10 +594,10 @@ export function ProfileShareableCard({
           </div>
 
           {/* Favorite Coins */}
-          <div className="relative z-10 mb-2 grid grid-cols-2 gap-2.5 sm:mb-3 sm:gap-3">
+          <div className="relative z-10 mb-2 grid grid-cols-2 gap-2 sm:mb-3 sm:gap-2.5">
             {/* Fav Coin by Volume (always keep slot) */}
             <div
-              className="overflow-hidden rounded-2xl border p-4 backdrop-blur-sm sm:p-5"
+              className="overflow-hidden rounded-2xl border p-3.5 backdrop-blur-sm sm:p-4"
               style={{
                 borderColor: "rgba(34, 211, 238, 0.3)",
                 backgroundImage:
@@ -648,7 +648,7 @@ export function ProfileShareableCard({
 
             {/* Fav Coin by Trades (always keep slot) */}
             <div
-              className="overflow-hidden rounded-2xl border p-4 backdrop-blur-sm sm:p-5"
+              className="overflow-hidden rounded-2xl border p-3.5 backdrop-blur-sm sm:p-4"
               style={{
                 borderColor: "rgba(16, 185, 129, 0.3)",
                 backgroundImage:
@@ -699,10 +699,10 @@ export function ProfileShareableCard({
           </div>
 
           {/* Stats Grid */}
-          <div className="relative z-10 grid grid-cols-2 gap-2.5 sm:grid-cols-3 sm:gap-3">
+          <div className="relative z-10 grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-2.5">
             {/* Daily */}
             <div
-              className="relative overflow-hidden rounded-2xl border p-4 sm:p-6 backdrop-blur-sm"
+              className="relative overflow-hidden rounded-2xl border p-4 sm:p-5 backdrop-blur-sm"
               style={{
                 borderColor: "rgba(168, 85, 247, 0.3)",
                 backgroundImage:
@@ -742,7 +742,7 @@ export function ProfileShareableCard({
 
             {/* Weekly */}
             <div
-              className="relative overflow-hidden rounded-2xl border p-4 sm:p-6 backdrop-blur-sm"
+              className="relative overflow-hidden rounded-2xl border p-4 sm:p-5 backdrop-blur-sm"
               style={{
                 borderColor: "rgba(236, 72, 153, 0.3)",
                 backgroundImage:
@@ -782,7 +782,7 @@ export function ProfileShareableCard({
 
             {/* Monthly */}
             <div
-              className="relative overflow-hidden rounded-2xl border p-4 sm:p-6 backdrop-blur-sm col-span-2 sm:col-span-1"
+              className="relative overflow-hidden rounded-2xl border p-4 sm:p-5 backdrop-blur-sm col-span-2 sm:col-span-1"
               style={{
                 borderColor: "rgba(59, 130, 246, 0.3)",
                 backgroundImage:
