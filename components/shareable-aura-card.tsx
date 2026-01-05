@@ -104,6 +104,9 @@ export function ShareableAuraCard({
   const [pendingCallsId, setPendingCallsId] = React.useState<string | null>(null);
   const [isConfirmingMint, setIsConfirmingMint] = React.useState(false);
   const [isUploadingImage, setIsUploadingImage] = React.useState(false);
+  // Only for the "Share on Base" button UX. We don't want background auto-uploads
+  // (autoUploadImage/finalizeMint) to flip the button into "Uploading..." state.
+  const [isShareUploading, setIsShareUploading] = React.useState(false);
   const [lastUploadError, setLastUploadError] = React.useState<string | null>(null);
   const [showPreview, setShowPreview] = React.useState(false);
   const [previewUrl, setPreviewUrl] = React.useState<string | null>(null);
@@ -1631,6 +1634,8 @@ export function ShareableAuraCard({
         return;
       }
 
+      setIsShareUploading(true);
+
       // Ensure Supabase image_url is updated to the latest share-card design before sharing.
       const ok = await uploadAuraCardImageWithRetry(3);
       if (!ok) {
@@ -1670,6 +1675,8 @@ export function ShareableAuraCard({
     } catch (e) {
       console.error("Share on Base error:", e);
       alert("Failed to open share composer. Please try again.");
+    } finally {
+      setIsShareUploading(false);
     }
   };
 
@@ -1839,10 +1846,10 @@ export function ShareableAuraCard({
                 <Button
                   onClick={handleShareOnBase}
                   size="lg"
-                  disabled={isMinting || isConfirmingMint || isUploadingImage}
+                  disabled={isMinting || isConfirmingMint || isShareUploading}
                   className="bg-gradient-to-r from-purple-500 to-yellow-500 hover:from-purple-600 hover:to-yellow-600 text-white font-semibold px-8 shadow-lg hover:shadow-xl transition-all w-full disabled:opacity-60 disabled:cursor-not-allowed"
                 >
-                  {isUploadingImage
+                  {isShareUploading
                     ? "Uploading..."
                     : isConfirmingMint
                       ? "Confirming..."
