@@ -93,7 +93,11 @@ export function ShareableAuraCard({
   const chainId = useChainId();
   const { switchChainAsync } = useSwitchChain();
   const { sendCallsAsync } = useSendCalls();
-  const { data: callsStatusData, status: waitCallsStatus } = useWaitForCallsStatus({
+  const {
+    data: callsStatusData,
+    status: waitCallsStatus,
+    error: waitCallsError,
+  } = useWaitForCallsStatus({
     id: pendingCallsId ?? undefined,
     pollingInterval: 1000,
     query: { enabled: !!pendingCallsId },
@@ -162,11 +166,33 @@ export function ShareableAuraCard({
 
   // handleGenerateAuraCard fonksiyonunu tamamen kaldır (satır 141-169)
 
+  const waitForImages = React.useCallback(async (root: HTMLElement, timeoutMs = 4000) => {
+    const imgs = Array.from(root.querySelectorAll("img")) as HTMLImageElement[];
+    const pending = imgs.filter((img) => !img.complete);
+    if (pending.length === 0) return;
+
+    await Promise.race([
+      Promise.all(
+        pending.map(
+          (img) =>
+            new Promise<void>((resolve) => {
+              const done = () => resolve();
+              img.addEventListener("load", done, { once: true });
+              img.addEventListener("error", done, { once: true });
+            })
+        )
+      ),
+      new Promise<void>((resolve) => setTimeout(resolve, timeoutMs)),
+    ]);
+  }, []);
+
   const generateImage = React.useCallback(async () => {
     try {
       // Prefer capturing the actual rendered card if an external ref is provided.
       const captureNode = externalCardRef?.current;
       if (captureNode) {
+        // Ensure token logos / avatar have a chance to load before capture.
+        await waitForImages(captureNode);
         const canvas = await html2canvas(captureNode, {
           backgroundColor: null,
           scale: 2,
@@ -471,6 +497,7 @@ export function ShareableAuraCard({
     allTimeVolumeState,
     dailyTradesState,
     externalCardRef,
+    waitForImages,
     activeTraderTag,
     fid,
     fmtMoney,
@@ -580,7 +607,10 @@ export function ShareableAuraCard({
 
       if (!uploadRes.ok) {
         console.error("[aura-card-image] upload failed:", await uploadRes.text());
+        return;
       }
+      // Best-effort: read response for debugging / to ensure route executed.
+      await uploadRes.json().catch(() => null);
     } catch (e) {
       console.error("Aura card image upload failed:", e);
     }
@@ -616,6 +646,13 @@ export function ShareableAuraCard({
 
   React.useEffect(() => {
     if (!pendingCallsId || !isConfirmingMint) return;
+    if (waitCallsStatus === "error") {
+      console.error("[mint] waitForCallsStatus error:", waitCallsError);
+      setIsConfirmingMint(false);
+      setPendingCallsId(null);
+      alert("❌ Could not confirm the transaction. Please try again.");
+      return;
+    }
     if (waitCallsStatus !== "success") return;
 
     // Some wagmi connectors return a call status payload with a `status` field.
@@ -671,6 +708,30 @@ export function ShareableAuraCard({
       alert("✅ Mint confirmed! You can now share on Base.");
     })();
   }, [callsStatusData, isConfirmingMint, pendingCallsId, uploadAuraCardImage, waitCallsStatus]);
+
+  // Safety timeout: sometimes webviews/connectors fail to report the call status,
+  // which would otherwise leave the UI stuck in "Confirming...".
+  React.useEffect(() => {
+    if (!pendingCallsId || !isConfirmingMint) return;
+
+    const idAtStart = pendingCallsId;
+    const timeout = setTimeout(() => {
+      // Only reset if we're still confirming the same calls bundle.
+      setIsConfirmingMint((stillConfirming) => {
+        if (!stillConfirming) return stillConfirming;
+        setPendingCallsId((current) => {
+          if (current !== idAtStart) return current;
+          return null;
+        });
+        alert(
+          "⚠️ Confirmation is taking longer than expected. If you approved the tx in your wallet, please wait a bit and try again if needed."
+        );
+        return false;
+      });
+    }, 90_000);
+
+    return () => clearTimeout(timeout);
+  }, [isConfirmingMint, pendingCallsId]);
 
   const handleMint = async () => {
     try {
@@ -744,6 +805,9 @@ export function ShareableAuraCard({
         alert("Connect your wallet first.");
         return;
       }
+
+      // Ensure Supabase image_url is updated to the latest share-card design before sharing.
+      await uploadAuraCardImage();
 
       const res = await fetch(
         `/api/aura-card?wallet=${address}&network=base`
