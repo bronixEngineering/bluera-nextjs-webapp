@@ -249,6 +249,7 @@ export async function POST(request: Request) {
     // 4) aura_card insert (HER çağrıda yeni satır)
     const insertData = {
       wallet_address: dbWallet,
+      network: String(chain || "base").toLowerCase(),
       holder_tag: holderTagValue,
       whale_trader: whaleTrader,
       active_base_trader: activeBaseTrader,

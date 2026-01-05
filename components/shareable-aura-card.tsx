@@ -234,14 +234,38 @@ export function ShareableAuraCard({
           throw new Error("Card UI not ready (ref is null)");
         }
         // Ensure token logos / avatar have a chance to load before capture.
-        await waitForImages(captureNode);
+        await waitForImages(captureNode, 12_000);
         const canvas = await withTimeout(
           html2canvas(captureNode, {
             backgroundColor: null,
             // Keep size reasonable for mobile webviews to avoid huge base64 payloads/timeouts.
-            scale: 1.6,
+            scale: 1.2,
             useCORS: true,
-            allowTaint: true,
+            // Prefer not tainting so we can reliably export via toDataURL.
+            // Cross-origin images are fetched through the proxy below.
+            allowTaint: false,
+            // Use our server-side image proxy to avoid CORS issues with avatars/token icons.
+            proxy: "/api/image-proxy",
+            // html2canvas defaults to 15s; bump to reduce flaky failures on slow mobile networks.
+            imageTimeout: 30_000,
+            removeContainer: true,
+            onclone: (doc) => {
+              // Rewrite remote <img> URLs through our proxy in the cloned DOM only
+              // (does not affect the visible UI).
+              const imgs = Array.from(doc.querySelectorAll("img")) as HTMLImageElement[];
+              for (const img of imgs) {
+                const src = (img.getAttribute("src") || "").trim();
+                if (!src) continue;
+                if (src.startsWith("data:") || src.startsWith("blob:")) continue;
+                // Relative URLs are same-origin already.
+                if (src.startsWith("/")) continue;
+                img.setAttribute("crossorigin", "anonymous");
+                img.setAttribute(
+                  "src",
+                  `/api/image-proxy?url=${encodeURIComponent(src)}`
+                );
+              }
+            },
           }),
           30_000,
           "html2canvas"
@@ -668,7 +692,7 @@ export function ShareableAuraCard({
       setLastUploadError(null);
       const dataUrl =
         previewUrl ||
-        (await withTimeout(generateImage(), 20_000, "generateImage"));
+        (await withTimeout(generateImage(), 60_000, "generateImage"));
 
       // Convert data URL -> Blob, then send as multipart to avoid huge base64 JSON bodies.
       const blob = dataUrlToBlob(dataUrl);
