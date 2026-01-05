@@ -122,6 +122,8 @@ export function HeatmapClient({
     return compact ? "Price" : "Price";
   };
 
+  const safeSvgId = (s: string) => s.replace(/[^a-zA-Z0-9_-]/g, "");
+
   // Loading state
   if (isLoading) {
     return (
@@ -220,20 +222,21 @@ export function HeatmapClient({
                     if (!coin || width < 10 || height < 8) return <g />;
 
                     const imgUrl = coin.image_url as string | undefined;
-                    const showIcon = Boolean(imgUrl) && width >= 55 && height >= 55;
+                    // Hide icons for narrow tiles to avoid crowding/overlap in mobile webviews.
+                    const showIcon = Boolean(imgUrl) && width >= 120 && height >= 55;
                     const iconSize = showIcon
                       ? Math.max(14, Math.min(20, Math.min(width, height) * 0.22))
                       : 0;
-                    const iconPad = showIcon ? 10 : 0;
-                    const reservedRight = showIcon ? iconSize + iconPad + 2 : 8;
-                    const clipId = `heatmap-clip-${index}`;
+                    // Reserve extra space for the circle background + padding.
+                    const reservedRight = showIcon ? iconSize + 28 : 8;
+                    const clipId = `heatmap-clip-${safeSvgId(String(coin.token_address || index))}`;
                     const compactLabel = width < 115;
                     const metricLabel = labelForMetric(metric, compactLabel);
 
                     return (
                       <g>
                         <defs>
-                          <clipPath id={clipId}>
+                          <clipPath id={clipId} clipPathUnits="userSpaceOnUse">
                             <rect
                               x={x + 4}
                               y={y + 4}
@@ -259,7 +262,7 @@ export function HeatmapClient({
                         {/* Token image from backend (if provided) */}
                         {(() => {
                           if (!showIcon || !imgUrl) return null;
-                          const iconX = x + width - iconSize - 8;
+                          const iconX = x + width - iconSize - 10;
                           const iconY = y + 8; // always top-right to avoid overlapping value lines
                           const cx = iconX + iconSize / 2;
                           const cy = iconY + iconSize / 2;

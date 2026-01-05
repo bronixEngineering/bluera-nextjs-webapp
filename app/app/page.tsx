@@ -1,5 +1,6 @@
 import { createClient as createSupabaseClient } from "@/utils/supabase/server";
 import { HeatmapClient } from "@/components/heatmap-client";
+import { DollarSign, Repeat2 } from "lucide-react";
 
 // Bu satırı ekleyin
 export const dynamic = 'force-dynamic';
@@ -154,11 +155,13 @@ export default async function Home() {
         <h1 className="text-xl font-bold">Market Overview</h1>
         <div className="flex flex-wrap gap-2">
           <div className="flex items-center gap-2 rounded-lg border bg-muted/50 px-3 py-1.5 text-xs font-medium text-muted-foreground">
-            <span className="text-foreground/80">Total Volume</span>
+            <DollarSign className="h-3.5 w-3.5" />
+            <span>Total Volume</span>
             <span className="text-foreground font-semibold">{formatUsdCompact(totalVolume24h)}</span>
           </div>
           <div className="flex items-center gap-2 rounded-lg border bg-muted/50 px-3 py-1.5 text-xs font-medium text-muted-foreground">
-            <span className="text-foreground/80">Total Swaps</span>
+            <Repeat2 className="h-3.5 w-3.5" />
+            <span>Total Swaps</span>
             <span className="text-foreground font-semibold">{formatCountCompact(totalSwaps24h)}</span>
           </div>
         </div>
