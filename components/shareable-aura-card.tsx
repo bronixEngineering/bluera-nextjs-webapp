@@ -243,7 +243,7 @@ export function ShareableAuraCard({
             useCORS: true,
             allowTaint: true,
           }),
-          15_000,
+          30_000,
           "html2canvas"
         );
         return canvas.toDataURL("image/jpeg", 0.88);
