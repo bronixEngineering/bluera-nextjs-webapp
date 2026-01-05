@@ -84,6 +84,7 @@ export function ShareableAuraCard({
   const [pendingCallsId, setPendingCallsId] = React.useState<string | null>(null);
   const [isConfirmingMint, setIsConfirmingMint] = React.useState(false);
   const [isUploadingImage, setIsUploadingImage] = React.useState(false);
+  const [lastUploadError, setLastUploadError] = React.useState<string | null>(null);
   const [showPreview, setShowPreview] = React.useState(false);
   const [previewUrl, setPreviewUrl] = React.useState<string | null>(null);
   const cardRef = React.useRef<HTMLDivElement>(null);
@@ -660,6 +661,7 @@ export function ShareableAuraCard({
       }
 
       setIsUploadingImage(true);
+      setLastUploadError(null);
       const dataUrl = previewUrl || (await withTimeout(generateImage(), 20_000, "generateImage"));
       if (!dataUrl) return { ok: false, error: "Failed to render card image" };
 
@@ -696,6 +698,7 @@ export function ShareableAuraCard({
         | null
         | { imageUrl?: string; error?: string };
       const imageUrl = json?.imageUrl;
+      setLastUploadError(null);
       return { ok: true, imageUrl };
     } catch (e) {
       console.error("Aura card image upload failed:", e);
@@ -721,12 +724,15 @@ export function ShareableAuraCard({
 
   const uploadAuraCardImageWithRetry = React.useCallback(
     async (attempts = 3) => {
+      let lastErr: string | undefined;
       for (let i = 0; i < attempts; i++) {
         const res = await uploadAuraCardImage();
         if (res.ok) return true;
+        lastErr = res.error;
         // backoff: 0.8s, 1.6s, 3.2s...
         await sleep(800 * Math.pow(2, i));
       }
+      setLastUploadError(lastErr ?? "Upload failed");
       return false;
     },
     [sleep, uploadAuraCardImage]
@@ -796,7 +802,7 @@ export function ShareableAuraCard({
       if (nodeReady) {
         hasAutoUploadedRef.current = true;
         clearInterval(interval);
-        void uploadAuraCardImage();
+        void uploadAuraCardImageWithRetry(2);
         return;
       }
       if (tries >= maxTries) {
@@ -805,7 +811,7 @@ export function ShareableAuraCard({
     }, 200);
 
     return () => clearInterval(interval);
-  }, [address, autoUploadImage, externalCardRef, uploadAuraCardImage]);
+  }, [address, autoUploadImage, externalCardRef, uploadAuraCardImageWithRetry]);
 
   React.useEffect(() => {
     if (!pendingCallsId || !isConfirmingMint) return;
@@ -1023,7 +1029,7 @@ export function ShareableAuraCard({
       const ok = await uploadAuraCardImageWithRetry(3);
       if (!ok) {
         alert(
-          "❌ Card image could not be uploaded.\n\nThis is usually caused by a slow connection or the token logo URLs being blocked.\nPlease try again."
+          `❌ Card image could not be uploaded.\n\n${lastUploadError ?? "Unknown error"}\n\nTry again on a stronger connection.`
         );
         return;
       }
@@ -1217,19 +1223,30 @@ export function ShareableAuraCard({
                 </>
               )}
             </Button>
-          ) : (
-            mode === "modal" && (
-              <div className="flex flex-col gap-2 w-full">
-                <Button
-                  onClick={handleShareOnBase}
-                  size="lg"
-                disabled={isUploadingImage}
+          ) : null}
+
+          {/* Always show Share button in modal. Even if hasMinted state fails to flip,
+              users should still be able to upload+share once the tx is confirmed. */}
+          {mode === "modal" && (
+            <div className="flex flex-col gap-2 w-full">
+              <Button
+                onClick={handleShareOnBase}
+                size="lg"
+                disabled={isMinting || isConfirmingMint || isUploadingImage}
                 className="bg-gradient-to-r from-purple-500 to-yellow-500 hover:from-purple-600 hover:to-yellow-600 text-white font-semibold px-8 shadow-lg hover:shadow-xl transition-all w-full disabled:opacity-60 disabled:cursor-not-allowed"
-                >
-                {isUploadingImage ? "Uploading..." : "Share on Base"}
-                </Button>
-              </div>
-            )
+              >
+                {isUploadingImage
+                  ? "Uploading..."
+                  : isConfirmingMint
+                    ? "Confirming..."
+                    : "Share on Base"}
+              </Button>
+              {lastUploadError ? (
+                <p className="text-xs text-muted-foreground text-center">
+                  Upload error: {lastUploadError}
+                </p>
+              ) : null}
+            </div>
           )}
         </div>
       )}
