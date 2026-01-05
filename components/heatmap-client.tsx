@@ -116,6 +116,12 @@ export function HeatmapClient({
     return `${Math.round(v)}`;
   };
 
+  const labelForMetric = (m: HeatmapMetric, compact: boolean) => {
+    if (m === "volume") return compact ? "Vol" : "Volume";
+    if (m === "swaps") return "Swaps"; // already short
+    return compact ? "Price" : "Price";
+  };
+
   // Loading state
   if (isLoading) {
     return (
@@ -213,8 +219,31 @@ export function HeatmapClient({
 
                     if (!coin || width < 10 || height < 8) return <g />;
 
+                    const imgUrl = coin.image_url as string | undefined;
+                    const showIcon = Boolean(imgUrl) && width >= 55 && height >= 55;
+                    const iconSize = showIcon
+                      ? Math.max(14, Math.min(20, Math.min(width, height) * 0.22))
+                      : 0;
+                    const iconPad = showIcon ? 10 : 0;
+                    const reservedRight = showIcon ? iconSize + iconPad + 2 : 8;
+                    const clipId = `heatmap-clip-${index}`;
+                    const compactLabel = width < 115;
+                    const metricLabel = labelForMetric(metric, compactLabel);
+
                     return (
                       <g>
+                        <defs>
+                          <clipPath id={clipId}>
+                            <rect
+                              x={x + 4}
+                              y={y + 4}
+                              width={Math.max(0, width - reservedRight)}
+                              height={Math.max(0, height - 8)}
+                              rx={4}
+                              ry={4}
+                            />
+                          </clipPath>
+                        </defs>
                         <rect
                           x={x}
                           y={y}
@@ -229,19 +258,9 @@ export function HeatmapClient({
                         />
                         {/* Token image from backend (if provided) */}
                         {(() => {
-                          const imgUrl = coin.image_url;
-                          if (!imgUrl || width < 50) return null;
-                          const iconSize = Math.max(
-                            14,
-                            Math.min(20, Math.min(width, height) * 0.25)
-                          );
-                          // If tile width is narrow, place icon bottom-right; else top-right
-                          const narrowThreshold = 80;
+                          if (!showIcon || !imgUrl) return null;
                           const iconX = x + width - iconSize - 8;
-                          const iconY =
-                            width < narrowThreshold
-                              ? y + height - iconSize - 8
-                              : y + 8;
+                          const iconY = y + 8; // always top-right to avoid overlapping value lines
                           const cx = iconX + iconSize / 2;
                           const cy = iconY + iconSize / 2;
                           return (
@@ -267,50 +286,51 @@ export function HeatmapClient({
                             </>
                           );
                         })()}
-                        <text
-                          x={x + 6}
-                          y={y + 16}
-                          fill="#ffffff"
-                          stroke="none"
-                          fontSize={width < 60 ? "8" : "12"}
-                          fontWeight="900"
-                        >
-                          {coin.name}
-                        </text>
-                        {width > 40 && height > 30 && (
-                          <>
-                            <text
-                              x={x + 6}
-                              y={y + 32}
-                              fill="#ffffff"
-                              stroke="none"
-                              fontSize={width < 60 ? "8" : "13"}
-                              fontWeight="800"
-                              opacity="0.9"
-                            >
-                              {/* Only show 24h Volume value inside tiles when in Volume mode */}
-                              {metric === "volume"
-                                ? `Volume: ${formatUsdCompact(Number(coin.volume24h || 0))}`
-                                : metric === "swaps"
-                                  ? `Swaps: ${formatCountCompact(Number(coin.swaps24h || 0))}`
-                                  : metric === "price"
-                                    ? `Price: $${Number(coin.priceUsd || 0).toFixed(4)}`
-                                    : ""}
-                            </text>
-                            <text
-                              x={x + 6}
-                              y={y + 46}
-                              fill="#ffffff"
-                              stroke="none"
-                              fontSize={width < 60 ? "7" : "12"}
-                              fontWeight="700"
-                              opacity="0.8"
-                            >
-                              {coin.changePct > 0 ? "+" : ""}
-                              {coin.changePct.toFixed(2)}%
-                            </text>
-                          </>
-                        )}
+                        <g clipPath={`url(#${clipId})`}>
+                          <text
+                            x={x + 6}
+                            y={y + 16}
+                            fill="#ffffff"
+                            stroke="none"
+                            fontSize={width < 60 ? "8" : "12"}
+                            fontWeight="900"
+                          >
+                            {coin.name}
+                          </text>
+                          {width > 40 && height > 30 && (
+                            <>
+                              <text
+                                x={x + 6}
+                                y={y + 32}
+                                fill="#ffffff"
+                                stroke="none"
+                                fontSize={width < 60 ? "8" : "13"}
+                                fontWeight="800"
+                                opacity="0.9"
+                              >
+                                {metric === "volume"
+                                  ? `${metricLabel}: ${formatUsdCompact(Number(coin.volume24h || 0))}`
+                                  : metric === "swaps"
+                                    ? `${metricLabel}: ${formatCountCompact(Number(coin.swaps24h || 0))}`
+                                    : metric === "price"
+                                      ? `${metricLabel}: $${Number(coin.priceUsd || 0).toFixed(4)}`
+                                      : ""}
+                              </text>
+                              <text
+                                x={x + 6}
+                                y={y + 46}
+                                fill="#ffffff"
+                                stroke="none"
+                                fontSize={width < 60 ? "7" : "12"}
+                                fontWeight="700"
+                                opacity="0.8"
+                              >
+                                {coin.changePct > 0 ? "+" : ""}
+                                {coin.changePct.toFixed(2)}%
+                              </text>
+                            </>
+                          )}
+                        </g>
                       </g>
                     );
                   }}

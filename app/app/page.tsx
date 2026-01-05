@@ -52,6 +52,8 @@ function extractPriceChangePct24h(ppc: unknown): number {
 
 async function getHeatmapData(): Promise<{
   data: HeatmapToken[];
+  totalVolume24h: number;
+  totalSwaps24h: number;
   error?: string;
 }> {
   try {
@@ -69,6 +71,8 @@ async function getHeatmapData(): Promise<{
       console.error("❌ Supabase error:", error);
       return {
         data: [],
+        totalVolume24h: 0,
+        totalSwaps24h: 0,
         error: "Failed to fetch tokens data",
       };
     }
@@ -88,39 +92,76 @@ async function getHeatmapData(): Promise<{
         token_type: t.token_type ?? undefined,
       })) || [];
 
-    // If no data from database, return empty
-    const filtered = heatmapData
-      .filter((x) => x.liquidityUsd > 0)
+    const eligible = heatmapData.filter((x) => x.liquidityUsd > 0);
+
+    // Totals should be computed across ALL eligible tokens (not just the top N rendered tiles).
+    const totalVolume24h = eligible.reduce((sum, t) => sum + (t.volume24h || 0), 0);
+    const totalSwaps24h = eligible.reduce((sum, t) => sum + (t.swaps24h || 0), 0);
+
+    // Tiles are still limited (15) for UX.
+    const filtered = eligible
       .sort((a, b) => b.liquidityUsd - a.liquidityUsd)
       .slice(0, 15);
 
     if (filtered.length === 0) {
       return {
         data: [],
+        totalVolume24h: 0,
+        totalSwaps24h: 0,
         error: "No data available",
       };
     }
 
     return {
       data: filtered,
+      totalVolume24h,
+      totalSwaps24h,
     };
   } catch (error) {
     console.error("❌ Heatmap data fetch error:", error);
     return {
       data: [],
+      totalVolume24h: 0,
+      totalSwaps24h: 0,
       error: "Internal server error",
     };
   }
 }
 
 export default async function Home() {
-  const { data, error } = await getHeatmapData();
+  const { data, totalVolume24h, totalSwaps24h, error } = await getHeatmapData();
+
+  const formatUsdCompact = (value: number) => {
+    if (!Number.isFinite(value)) return "$0";
+    if (value >= 1e9) return `$${(value / 1e9).toFixed(2)}B`;
+    if (value >= 1e6) return `$${(value / 1e6).toFixed(2)}M`;
+    if (value >= 1e3) return `$${(value / 1e3).toFixed(0)}K`;
+    return `$${value.toFixed(2)}`;
+  };
+
+  const formatCountCompact = (value: number) => {
+    if (!Number.isFinite(value)) return "0";
+    if (value >= 1e9) return `${(value / 1e9).toFixed(2)}B`;
+    if (value >= 1e6) return `${(value / 1e6).toFixed(2)}M`;
+    if (value >= 1e3) return `${(value / 1e3).toFixed(1)}K`;
+    return `${Math.round(value)}`;
+  };
 
   return (
     <div className="py-6 space-y-4">
       {/* Simple Header */}
       <div className="space-y-3">
         <h1 className="text-xl font-bold">Market Overview</h1>
+        <div className="flex flex-wrap gap-2">
+          <div className="flex items-center gap-2 rounded-lg border bg-muted/50 px-3 py-1.5 text-xs font-medium text-muted-foreground">
+            <span className="text-foreground/80">Total Volume</span>
+            <span className="text-foreground font-semibold">{formatUsdCompact(totalVolume24h)}</span>
+          </div>
+          <div className="flex items-center gap-2 rounded-lg border bg-muted/50 px-3 py-1.5 text-xs font-medium text-muted-foreground">
+            <span className="text-foreground/80">Total Swaps</span>
+            <span className="text-foreground font-semibold">{formatCountCompact(totalSwaps24h)}</span>
+          </div>
+        </div>
       </div>
 
       {/* Heatmap */}
