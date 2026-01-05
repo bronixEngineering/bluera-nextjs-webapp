@@ -1,8 +1,6 @@
 'use client';
 
-import { useState, useRef } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { useAccount } from 'wagmi';
+import { useMemo, useRef, useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Trophy, Medal, AlertCircle, TrendingUp, BarChart3, DollarSign } from 'lucide-react';
@@ -24,53 +22,11 @@ interface LeaderboardClientProps {
 }
 
 export function LeaderboardClient({ initialData, error }: LeaderboardClientProps) {
-  const { address, isConnecting } = useAccount();
   const [activeTab, setActiveTab] = useState('weeklyVolume');
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [startX, setStartX] = useState(0);
   const [scrollLeft, setScrollLeft] = useState(0);
-
-  // TanStack Query ile wallet-status-moralis endpoint'ini çağır
-  const { } = useQuery({
-    queryKey: ['wallet-status-moralis', address],
-    queryFn: async () => {
-      if (!address) return null;
-      
-      const response = await fetch('/api/wallet-status-moralis', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          walletAddress: address,
-          chain: 'base',
-        }),
-      });
-
-      // Önce status kontrolü
-      if (!response.ok) {
-        const contentType = response.headers.get('content-type');
-        if (contentType?.includes('application/json')) {
-          const errorData = await response.json();
-          throw new Error(errorData.error || `Failed: ${response.status}`);
-        } else {
-          throw new Error(`API returned ${response.status}: ${response.statusText}`);
-        }
-      }
-
-      // Başarılı response için Content-Type kontrolü
-      const contentType = response.headers.get('content-type');
-      if (!contentType?.includes('application/json')) {
-        throw new Error(`API returned non-JSON: ${response.status}`);
-      }
-
-      return response.json();
-    },
-    enabled: !!address && !isConnecting,
-    refetchOnWindowFocus: true,
-    staleTime: 30000,
-  });
 
   // Mouse drag scroll handlers
   const handleMouseDown = (e: React.MouseEvent) => {
@@ -149,7 +105,7 @@ export function LeaderboardClient({ initialData, error }: LeaderboardClientProps
     });
   };
 
-  const getTabData = () => {
+  const sortedData = useMemo(() => {
     switch (activeTab) {
       case 'allTimeVolume':
         // Artık günlük volume'e göre sıralıyoruz
@@ -163,7 +119,7 @@ export function LeaderboardClient({ initialData, error }: LeaderboardClientProps
       default:
         return sortData(initialData, 'volume_daily');
     }
-  };
+  }, [activeTab, initialData]);
 
   const getValueForTab = (wallet: WalletStats) => {
     switch (activeTab) {
@@ -181,6 +137,17 @@ export function LeaderboardClient({ initialData, error }: LeaderboardClientProps
     }
   };
 
+  const avgNetWorth = useMemo(() => {
+    const netWorths = initialData
+      .map((w) => w.net_worth || 0)
+      .filter((nw) => nw > 0);
+    const average =
+      netWorths.length > 0
+        ? netWorths.reduce((sum, nw) => sum + nw, 0) / netWorths.length
+        : 0;
+    return formatValue(average);
+  }, [initialData]);
+
   if (error) {
     return (
       <div className="py-6 space-y-8">
@@ -194,14 +161,48 @@ export function LeaderboardClient({ initialData, error }: LeaderboardClientProps
     );
   }
 
-  const sortedData = getTabData();
-
   return (
     <div className="py-6 space-y-4">
       {/* Header */}
       <div className="space-y-1">
         <h1 className="text-xl font-bold">Leaderboard</h1>
-        <p className="text-sm text-muted-foreground">Top traders ranked by performance</p>
+      </div>
+
+      {/* Quick stats (compact) */}
+      <div className="grid grid-cols-2 gap-3">
+        <div className="relative overflow-hidden rounded-xl border bg-gradient-to-br from-blue-500/5 to-transparent p-3">
+          <div className="absolute -top-6 -right-6 size-20 rounded-full bg-blue-500/10 blur-2xl" />
+          <div className="relative flex items-center justify-between gap-3">
+            <div>
+              <div className="text-[11px] font-medium text-muted-foreground">Total Traders</div>
+              <div className="text-lg font-bold bg-gradient-to-r from-blue-500 to-cyan-500 bg-clip-text text-transparent">
+                {initialData.length}
+              </div>
+            </div>
+            <div className="rounded-lg bg-blue-500/10 p-2 text-blue-400">
+              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+              </svg>
+            </div>
+          </div>
+        </div>
+
+        <div className="relative overflow-hidden rounded-xl border bg-gradient-to-br from-purple-500/5 to-transparent p-3">
+          <div className="absolute -top-6 -right-6 size-20 rounded-full bg-purple-500/10 blur-2xl" />
+          <div className="relative flex items-center justify-between gap-3">
+            <div className="min-w-0">
+              <div className="text-[11px] font-medium text-muted-foreground">Avg Net Worth</div>
+              <div className="truncate text-lg font-bold bg-gradient-to-r from-purple-500 to-pink-500 bg-clip-text text-transparent">
+                {avgNetWorth}
+              </div>
+            </div>
+            <div className="rounded-lg bg-purple-500/10 p-2 text-purple-400">
+              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Category Tabs */}
@@ -334,55 +335,6 @@ export function LeaderboardClient({ initialData, error }: LeaderboardClientProps
           </ScrollArea>
         </CardContent>
       </Card>
-
-      {/* Statistics */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {/* Total Traders */}
-        <div className="group relative overflow-hidden rounded-2xl border bg-gradient-to-br from-blue-500/5 to-transparent p-5 hover:shadow-xl hover:shadow-blue-500/10 transition-all duration-300">
-          <div className="absolute top-0 right-0 w-24 h-24 bg-blue-500/10 rounded-full blur-2xl group-hover:bg-blue-500/20 transition-all" />
-          <div className="absolute bottom-0 left-0 w-16 h-16 bg-blue-500/5 rounded-full blur-xl" />
-          <div className="relative">
-            <div className="flex items-center gap-3 mb-3">
-              <div className="p-2 rounded-xl bg-blue-500/10 group-hover:bg-blue-500/20 transition-colors">
-                <svg className="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                </svg>
-              </div>
-              <div className="text-sm font-medium text-muted-foreground">Total Traders</div>
-            </div>
-            <div className="text-3xl font-bold bg-gradient-to-r from-blue-500 to-cyan-500 bg-clip-text text-transparent">
-              {initialData.length}
-            </div>
-          </div>
-        </div>
-
-        {/* Average Net Worth */}
-        <div className="group relative overflow-hidden rounded-2xl border bg-gradient-to-br from-purple-500/5 to-transparent p-5 hover:shadow-xl hover:shadow-purple-500/10 transition-all duration-300">
-          <div className="absolute top-0 right-0 w-24 h-24 bg-purple-500/10 rounded-full blur-2xl group-hover:bg-purple-500/20 transition-all" />
-          <div className="absolute bottom-0 left-0 w-16 h-16 bg-purple-500/5 rounded-full blur-xl" />
-          <div className="relative">
-            <div className="flex items-center gap-3 mb-3">
-              <div className="p-2 rounded-xl bg-purple-500/10 group-hover:bg-purple-500/20 transition-colors">
-                <svg className="w-5 h-5 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              </div>
-              <div className="text-sm font-medium text-muted-foreground">Avg Net Worth</div>
-            </div>
-            <div className="text-3xl font-bold bg-gradient-to-r from-purple-500 to-pink-500 bg-clip-text text-transparent">
-              {(() => {
-                const netWorths = initialData
-                  .map(w => w.net_worth || 0)
-                  .filter(nw => nw > 0);
-                const average = netWorths.length > 0 
-                  ? netWorths.reduce((sum, nw) => sum + nw, 0) / netWorths.length 
-                  : 0;
-                return formatValue(average);
-              })()}
-            </div>
-          </div>
-        </div>
-      </div>
     </div>
   );
 }
