@@ -222,14 +222,16 @@ export function HeatmapClient({
                     if (!coin || width < 10 || height < 8) return <g />;
 
                     const imgUrl = coin.image_url as string | undefined;
-                    // Hide icons for narrow tiles to avoid crowding/overlap in mobile webviews.
-                    const showIcon = Boolean(imgUrl) && width >= 120 && height >= 55;
+                    // Place icon bottom-right (away from the top-left text block).
+                    // With this placement we can show icons on smaller tiles too.
+                    const showIcon = Boolean(imgUrl) && width >= 55 && height >= 55;
                     const iconSize = showIcon
                       ? Math.max(14, Math.min(20, Math.min(width, height) * 0.22))
                       : 0;
-                    // Reserve extra space for the circle background + padding.
-                    const reservedRight = showIcon ? iconSize + 28 : 8;
+                    // Text sits in the top-left; no need to reserve right space anymore.
+                    const reservedRight = 8;
                     const clipId = `heatmap-clip-${safeSvgId(String(coin.token_address || index))}`;
+                    const iconClipId = `heatmap-icon-clip-${safeSvgId(String(coin.token_address || index))}`;
                     const compactLabel = width < 115;
                     const metricLabel = labelForMetric(metric, compactLabel);
 
@@ -246,6 +248,15 @@ export function HeatmapClient({
                               ry={4}
                             />
                           </clipPath>
+                          {showIcon ? (
+                            <clipPath id={iconClipId} clipPathUnits="userSpaceOnUse">
+                              <circle
+                                cx={x + width - 10 - iconSize / 2}
+                                cy={y + height - 10 - iconSize / 2}
+                                r={iconSize / 2}
+                              />
+                            </clipPath>
+                          ) : null}
                         </defs>
                         <rect
                           x={x}
@@ -263,7 +274,7 @@ export function HeatmapClient({
                         {(() => {
                           if (!showIcon || !imgUrl) return null;
                           const iconX = x + width - iconSize - 10;
-                          const iconY = y + 8; // always top-right to avoid overlapping value lines
+                          const iconY = y + height - iconSize - 10; // bottom-right to avoid text overlap
                           const cx = iconX + iconSize / 2;
                           const cy = iconY + iconSize / 2;
                           return (
@@ -282,9 +293,7 @@ export function HeatmapClient({
                                 width={iconSize}
                                 height={iconSize}
                                 preserveAspectRatio="xMidYMid meet"
-                                clipPath={`circle(${iconSize / 2}px at ${
-                                  iconSize / 2
-                                }px ${iconSize / 2}px)`}
+                                clipPath={`url(#${iconClipId})`}
                               />
                             </>
                           );
