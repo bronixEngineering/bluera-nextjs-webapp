@@ -13,6 +13,10 @@ type Props = {
   tags?: ProfileTag[];
 };
 
+function proxyImageUrl(url: string): string {
+  return `/api/image-proxy?url=${encodeURIComponent(url)}`;
+}
+
 function formatNumber(num: number): string {
   const n = Number(num) || 0;
   if (n >= 1_000_000) return `$${(n / 1_000_000).toFixed(2)}M`;
@@ -70,7 +74,7 @@ export const ShareableTradingCard = React.forwardRef<HTMLDivElement, Props>(
                   {avatarUrl ? (
                     // Using <img> for more predictable html2canvas capture (CORS best-effort)
                     <img
-                      src={avatarUrl}
+                      src={proxyImageUrl(avatarUrl)}
                       alt={userName}
                       className="size-full object-cover"
                       crossOrigin="anonymous"
@@ -132,14 +136,14 @@ export const ShareableTradingCard = React.forwardRef<HTMLDivElement, Props>(
                   {stats.favCoinByVolume?.imageUrl ? (
                     <div className="size-10 shrink-0 overflow-hidden rounded-full border border-cyan-500/30 bg-cyan-500/10 sm:size-11">
                       <img
-                        src={stats.favCoinByVolume.imageUrl}
+                        src={proxyImageUrl(stats.favCoinByVolume.imageUrl)}
                         alt={stats.favCoinByVolume.symbol}
                         className="size-full object-cover"
                         crossOrigin="anonymous"
                         loading="eager"
                         decoding="async"
                         onError={(e) => {
-                          // Fallback: hide broken image so we don't show empty circle
+                          // Fallback: hide broken image so we don't show a broken icon
                           (e.currentTarget as HTMLImageElement).style.display = "none";
                         }}
                       />
@@ -165,7 +169,7 @@ export const ShareableTradingCard = React.forwardRef<HTMLDivElement, Props>(
                   {stats.favCoinByTrades?.imageUrl ? (
                     <div className="size-10 shrink-0 overflow-hidden rounded-full border border-emerald-500/30 bg-emerald-500/10 sm:size-11">
                       <img
-                        src={stats.favCoinByTrades.imageUrl}
+                        src={proxyImageUrl(stats.favCoinByTrades.imageUrl)}
                         alt={stats.favCoinByTrades.symbol}
                         className="size-full object-cover"
                         crossOrigin="anonymous"
@@ -249,7 +253,6 @@ export const ShareableTradingCard = React.forwardRef<HTMLDivElement, Props>(
                   <span className="bg-gradient-to-r from-cyan-400 via-sky-400 to-blue-400 bg-clip-text text-xl font-bold leading-none text-transparent sm:text-2xl">
                     Bluera
                   </span>
-                  <span className="text-sm text-gray-500 sm:text-base">Aura Card</span>
                 </div>
               </div>
               <p className="shrink-0 text-[11px] text-gray-500 sm:text-sm">

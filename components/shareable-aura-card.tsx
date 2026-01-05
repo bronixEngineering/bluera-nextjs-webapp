@@ -49,6 +49,12 @@ type ShareableAuraCardProps = {
    * the actual UI shown to the user.
    */
   externalCardRef?: React.RefObject<HTMLElement | null>;
+  /**
+   * If true, uploads the card image to Supabase (via /api/aura-card-image)
+   * automatically after mount. Useful to ensure aura_card.image_url matches
+   * the latest share-card design even before mint.
+   */
+  autoUploadImage?: boolean;
 };
 
 export function ShareableAuraCard({
@@ -69,6 +75,7 @@ export function ShareableAuraCard({
   mode = "inline",
   showCard = true,
   externalCardRef,
+  autoUploadImage = false,
 }: ShareableAuraCardProps) {
   // Bu satırları kaldır: isGenratingAuraCard, isAuraCardGenerated
   const [isGenerating, setIsGenerating] = React.useState(false);
@@ -578,6 +585,34 @@ export function ShareableAuraCard({
       console.error("Aura card image upload failed:", e);
     }
   }, [address, generateImage, previewUrl]);
+
+  // Ensure Supabase image_url matches the currently rendered share card.
+  // Note: externalCardRef.current might become available after initial render,
+  // so we poll briefly.
+  const hasAutoUploadedRef = React.useRef(false);
+  React.useEffect(() => {
+    if (!autoUploadImage) return;
+    if (hasAutoUploadedRef.current) return;
+    if (!address) return;
+
+    let tries = 0;
+    const maxTries = 10; // ~2s
+    const interval = setInterval(() => {
+      tries += 1;
+      const nodeReady = !externalCardRef || !!externalCardRef.current;
+      if (nodeReady) {
+        hasAutoUploadedRef.current = true;
+        clearInterval(interval);
+        void uploadAuraCardImage();
+        return;
+      }
+      if (tries >= maxTries) {
+        clearInterval(interval);
+      }
+    }, 200);
+
+    return () => clearInterval(interval);
+  }, [address, autoUploadImage, externalCardRef, uploadAuraCardImage]);
 
   React.useEffect(() => {
     if (!pendingCallsId || !isConfirmingMint) return;
