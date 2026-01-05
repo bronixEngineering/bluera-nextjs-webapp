@@ -1,7 +1,6 @@
 "use client";
 
 import * as React from "react";
-import { Sparkles, TrendingUp, Zap } from "lucide-react";
 
 import type { ProfileTag, StatsData } from "@/components/profile-shareable-card";
 
@@ -34,21 +33,15 @@ function tagConfig(tag: ProfileTag) {
   switch (tag.kind) {
     case "holder":
       return {
-        Icon: Sparkles,
         pill: "bg-cyan-500/10 border-cyan-400/20 text-cyan-100",
-        icon: "text-cyan-300",
       };
     case "whale":
       return {
-        Icon: Zap,
         pill: "bg-yellow-500/10 border-yellow-400/20 text-yellow-100",
-        icon: "text-yellow-300",
       };
     case "active":
       return {
-        Icon: TrendingUp,
         pill: "bg-purple-500/20 border-purple-400/20 text-purple-100",
-        icon: "text-purple-300",
       };
   }
 }
@@ -105,9 +98,8 @@ export const ShareableTradingCard = React.forwardRef<HTMLDivElement, Props>(
                       return (
                         <div
                           key={`${t.kind}:${t.label}`}
-                          className={`flex items-center gap-1 rounded-full border px-3 py-1 text-xs font-medium ${cfg.pill}`}
+                          className={`flex items-center rounded-full border px-3 py-1 text-xs font-medium ${cfg.pill}`}
                         >
-                          <cfg.Icon className={`size-3 ${cfg.icon}`} />
                           <span className="truncate">{t.label}</span>
                         </div>
                       );

@@ -483,62 +483,6 @@ export function ShareableAuraCard({
         const pillR = 26;
         let pillX = nameX;
 
-        const drawSparkleIcon = (
-          c: CanvasRenderingContext2D,
-          x: number,
-          y: number,
-          size: number,
-          color: string
-        ) => {
-          const cx = x + size / 2;
-          const cy = y + size / 2;
-          const r1 = size * 0.48;
-          const r2 = size * 0.18;
-          c.save();
-          c.fillStyle = color;
-          c.beginPath();
-          for (let i = 0; i < 8; i++) {
-            const a = (Math.PI / 4) * i - Math.PI / 2;
-            const r = i % 2 === 0 ? r1 : r2;
-            const px = cx + Math.cos(a) * r;
-            const py = cy + Math.sin(a) * r;
-            if (i === 0) c.moveTo(px, py);
-            else c.lineTo(px, py);
-          }
-          c.closePath();
-          c.fill();
-          c.restore();
-        };
-
-        const drawArrowUpRightIcon = (
-          c: CanvasRenderingContext2D,
-          x: number,
-          y: number,
-          size: number,
-          color: string
-        ) => {
-          // Simple ↗ icon: diagonal arrow with corner
-          const pad = size * 0.18;
-          const x1 = x + pad;
-          const y1 = y + size - pad;
-          const x2 = x + size - pad;
-          const y2 = y + pad;
-          c.save();
-          c.strokeStyle = color;
-          c.lineWidth = Math.max(2, Math.round(size * 0.12));
-          c.lineCap = "round";
-          c.lineJoin = "round";
-          c.beginPath();
-          c.moveTo(x1, y1);
-          c.lineTo(x2, y2);
-          // arrow head
-          c.moveTo(x2 - size * 0.34, y2);
-          c.lineTo(x2, y2);
-          c.lineTo(x2, y2 + size * 0.34);
-          c.stroke();
-          c.restore();
-        };
-
         const tagStyle = (t: ProfileTag) => {
           if (t.kind === "holder")
             return {
@@ -564,32 +508,17 @@ export function ShareableAuraCard({
           const cfg = tagStyle(t);
           const label = `${t.label}`.trim();
           const padX = 22;
-          const iconSize = 20;
-          const iconGap = 12;
-          const leftPad = padX + iconSize + iconGap;
           const w = Math.min(
             nameMaxW,
-            Math.max(220, Math.ceil(ctx.measureText(label).width) + leftPad + padX)
+            Math.max(220, Math.ceil(ctx.measureText(label).width) + padX * 2)
           );
           fillRoundRect(ctx, pillX, pillY, w, pillH, pillR, cfg.fill);
           strokeRoundRect(ctx, pillX, pillY, w, pillH, pillR, cfg.stroke, 2);
 
-          // Icon
-          const ix = pillX + padX;
-          const iy = pillY + (pillH - iconSize) / 2;
-          if (t.kind === "holder") {
-            drawSparkleIcon(ctx, ix, iy, iconSize, cfg.text);
-          } else if (t.kind === "active") {
-            drawArrowUpRightIcon(ctx, ix, iy, iconSize, cfg.text);
-          } else if (t.kind === "whale") {
-            // keep whale simple (use sparkle icon variant)
-            drawSparkleIcon(ctx, ix, iy, iconSize, cfg.text);
-          }
-
           ctx.fillStyle = cfg.text;
-          ctx.textAlign = "left";
+          ctx.textAlign = "center";
           ctx.textBaseline = "middle";
-          ctx.fillText(label, pillX + leftPad, pillY + pillH / 2 + 1);
+          ctx.fillText(label, pillX + w / 2, pillY + pillH / 2 + 1);
           pillX += w + pillGap;
         }
 
