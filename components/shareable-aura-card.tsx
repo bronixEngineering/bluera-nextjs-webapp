@@ -599,22 +599,26 @@ export function ShareableAuraCard({
     }
   };
 
-  const uploadAuraCardImage = React.useCallback(async () => {
+  const uploadAuraCardImage = React.useCallback(async (): Promise<{
+    ok: boolean;
+    imageUrl?: string;
+    error?: string;
+  }> => {
     try {
-      if (!address) return;
+      if (!address) return { ok: false, error: "Wallet not connected" };
 
       // If we're wired to an external card, ensure it's available before upload.
       if (typeof externalCardRef !== "undefined") {
         const node = await waitForExternalCard();
         if (!node) {
           console.warn("[aura-card-image] external card ref not ready; skipping upload");
-          return;
+          return { ok: false, error: "Card UI not ready" };
         }
       }
 
       setIsUploadingImage(true);
       const dataUrl = previewUrl || (await generateImage());
-      if (!dataUrl) return;
+      if (!dataUrl) return { ok: false, error: "Failed to render card image" };
 
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 25_000);
@@ -633,13 +637,24 @@ export function ShareableAuraCard({
       clearTimeout(timeout);
 
       if (!uploadRes.ok) {
-        console.error("[aura-card-image] upload failed:", await uploadRes.text());
-        return;
+        const text = await uploadRes.text().catch(() => "");
+        console.error("[aura-card-image] upload failed:", uploadRes.status, text);
+        return { ok: false, error: `Upload failed (${uploadRes.status})` };
       }
-      // Best-effort: read response for debugging / to ensure route executed.
-      await uploadRes.json().catch(() => null);
+      const json = (await uploadRes.json().catch(() => null)) as
+        | null
+        | { imageUrl?: string; error?: string };
+      const imageUrl = json?.imageUrl;
+      return { ok: true, imageUrl };
     } catch (e) {
       console.error("Aura card image upload failed:", e);
+      const msg =
+        e instanceof DOMException && e.name === "AbortError"
+          ? "Upload timed out"
+          : e instanceof Error
+            ? e.message
+            : "Unknown upload error";
+      return { ok: false, error: msg };
     } finally {
       setIsUploadingImage(false);
     }
@@ -648,13 +663,8 @@ export function ShareableAuraCard({
   const uploadAuraCardImageWithRetry = React.useCallback(
     async (attempts = 3) => {
       for (let i = 0; i < attempts; i++) {
-        try {
-          await uploadAuraCardImage();
-          // If uploadAuraCardImage didn't throw, we consider it done (it logs internally on non-2xx).
-          return true;
-        } catch (e) {
-          console.error("[aura-card-image] retryable failure:", e);
-        }
+        const res = await uploadAuraCardImage();
+        if (res.ok) return true;
         // backoff: 0.8s, 1.6s, 3.2s...
         await sleep(800 * Math.pow(2, i));
       }
@@ -947,7 +957,9 @@ export function ShareableAuraCard({
       // Ensure Supabase image_url is updated to the latest share-card design before sharing.
       const ok = await uploadAuraCardImageWithRetry(3);
       if (!ok) {
-        alert("❌ Failed to upload the latest card image. Please try again.");
+        alert(
+          "❌ Card image could not be uploaded.\n\nThis is usually caused by a slow connection or the token logo URLs being blocked.\nPlease try again."
+        );
         return;
       }
 
@@ -1146,9 +1158,10 @@ export function ShareableAuraCard({
                 <Button
                   onClick={handleShareOnBase}
                   size="lg"
-                  className="bg-gradient-to-r from-purple-500 to-yellow-500 hover:from-purple-600 hover:to-yellow-600 text-white font-semibold px-8 shadow-lg hover:shadow-xl transition-all w-full"
+                disabled={isUploadingImage}
+                className="bg-gradient-to-r from-purple-500 to-yellow-500 hover:from-purple-600 hover:to-yellow-600 text-white font-semibold px-8 shadow-lg hover:shadow-xl transition-all w-full disabled:opacity-60 disabled:cursor-not-allowed"
                 >
-                  Share on Base
+                {isUploadingImage ? "Uploading..." : "Share on Base"}
                 </Button>
               </div>
             )
