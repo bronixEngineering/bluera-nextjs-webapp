@@ -217,7 +217,7 @@ export function ShareableAuraCard({
           useCORS: true,
           allowTaint: true,
         });
-        return canvas.toDataURL("image/png");
+        return canvas.toDataURL("image/jpeg", 0.88);
       }
 
       const canvas = document.createElement("canvas");
@@ -506,7 +506,7 @@ export function ShareableAuraCard({
         ctx.fill();
       });
 
-      return canvas.toDataURL("image/png");
+      return canvas.toDataURL("image/jpeg", 0.88);
     } catch (error) {
       console.error("Image generation failed:", error);
       return null;
@@ -636,20 +636,27 @@ export function ShareableAuraCard({
       const dataUrl = previewUrl || (await generateImage());
       if (!dataUrl) return { ok: false, error: "Failed to render card image" };
 
+      // Convert data URL -> Blob, then send as multipart to avoid huge base64 JSON bodies.
+      const blob = await (await fetch(dataUrl)).blob();
+
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 25_000);
       const uploadRes = await fetch("/api/aura-card-image", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
         signal: controller.signal,
-        body: JSON.stringify({
-          imageDataUrl: dataUrl,
-          walletAddress: address.toLowerCase(),
-          network: "base",
-          auraCardId,
-        }),
+        body: (() => {
+          const form = new FormData();
+          form.set("walletAddress", address.toLowerCase());
+          form.set("network", "base");
+          form.set("auraCardId", auraCardId);
+          const type = blob.type || "image/jpeg";
+          const ext = type === "image/jpeg" ? "jpg" : "png";
+          form.set(
+            "file",
+            new File([blob], `aura-card-${auraCardId}.${ext}`, { type })
+          );
+          return form;
+        })(),
       });
       clearTimeout(timeout);
 
@@ -836,7 +843,13 @@ export function ShareableAuraCard({
     let cancelled = false;
     const interval = setInterval(async () => {
       try {
-        const eth = (globalThis as unknown as { ethereum?: { request?: Function } }).ethereum;
+        const eth = (
+          globalThis as unknown as {
+            ethereum?: {
+              request?: (args: { method: string; params?: unknown[] }) => Promise<unknown>;
+            };
+          }
+        ).ethereum;
         if (!eth?.request) return;
         const res = await eth.request({
           method: "wallet_getCallsStatus",
