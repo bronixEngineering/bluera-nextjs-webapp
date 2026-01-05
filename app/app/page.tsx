@@ -196,6 +196,7 @@ export default async function Home() {
       {/* Heatmap */}
       <HeatmapClient
         initialData={data}
+        compact
         isLoading={false}
         error={error || null}
       />

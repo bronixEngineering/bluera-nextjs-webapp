@@ -477,7 +477,7 @@ export default function RewardsPage() {
       <div className="space-y-1">
         <h1 className="text-xl font-bold">Rewards</h1>
         <p className="text-sm text-muted-foreground">
-        If your mindshare is above 0.001%, congrats — you’ve unlocked claimable rewards.
+        If your mindshare is above 0.001% and you've pinned Bluera, congrats — you’ve unlocked claimable rewards.
         </p>
       </div>
 
@@ -527,7 +527,7 @@ export default function RewardsPage() {
         <Card className="border-dashed">
           <CardContent className="flex flex-col items-center justify-center py-12 space-y-4">
             <div className="text-center space-y-2">
-              <h3 className="text-lg font-semibold">Be more active on Base to claim rewards</h3>
+              <h3 className="text-lg font-semibold">Pinned Bluera and be more active on Base to claim rewards</h3>
             </div>
           </CardContent>
         </Card>

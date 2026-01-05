@@ -27,12 +27,14 @@ interface HeatmapClientProps {
   initialData: HeatmapToken[];
   isLoading: boolean;
   error: string | null;
+  compact?: boolean;
 }
 
 export function HeatmapClient({
   initialData,
   isLoading,
   error,
+  compact = false,
 }: HeatmapClientProps) {
   const router = useRouter();
   const [metric, setMetric] = React.useState<HeatmapMetric>("volume");
@@ -138,7 +140,7 @@ export function HeatmapClient({
   // Loading state
   if (isLoading) {
     return (
-      <div className="space-y-8">
+      <div className={compact ? "space-y-4" : "space-y-8"}>
         <Card className="p-0">
           <CardContent className="p-0">
             <div className="h-[600px] w-full flex items-center justify-center p-6">
@@ -156,7 +158,7 @@ export function HeatmapClient({
   // Error state
   if (error) {
     return (
-      <div className="py-6 space-y-8">
+      <div className={compact ? "space-y-4" : "py-6 space-y-8"}>
         <Card>
           <CardContent className="p-0">
             <div className="h-[600px] w-full flex items-center justify-center p-6">
@@ -178,9 +180,9 @@ export function HeatmapClient({
   }
 
   return (
-    <div className="py-6 space-y-8">
+    <div className={compact ? "space-y-4" : "py-6 space-y-8"}>
       {/* Mode selector (Leaderboard style) */}
-      <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide cursor-grab select-none touch-manipulation">
+      <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide cursor-grab select-none touch-manipulation">
         <button
           onClick={() => setMetric("volume")}
           className={`px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap ${
