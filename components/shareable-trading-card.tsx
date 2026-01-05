@@ -172,50 +172,50 @@ export const ShareableTradingCard = React.forwardRef<HTMLDivElement, Props>(
             </div>
 
             {/* Stats */}
-            <div className="relative z-10 grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4">
-              <div className="relative overflow-hidden rounded-2xl border border-purple-500/30 bg-gradient-to-br from-purple-500/20 via-purple-500/10 to-transparent p-4 backdrop-blur-sm sm:p-6">
+            <div className="relative z-10 grid grid-cols-3 gap-3 sm:gap-4">
+              <div className="relative overflow-hidden rounded-2xl border border-purple-500/30 bg-gradient-to-br from-purple-500/20 via-purple-500/10 to-transparent p-3.5 backdrop-blur-sm sm:p-6">
                 <div className="absolute -right-4 -top-4 size-24 rounded-full bg-purple-500/20 blur-2xl" />
                 <div className="relative">
-                  <p className="text-xs font-semibold uppercase tracking-wider text-purple-300">
+                  <p className="text-[11px] font-semibold uppercase tracking-wider text-purple-300 sm:text-xs">
                     Daily
                   </p>
-                  <p className="mt-2 text-sm text-gray-400">Volume</p>
-                  <p className="mt-1 bg-gradient-to-r from-purple-200 to-pink-200 bg-clip-text text-2xl font-semibold text-transparent">
+                  <p className="mt-2 text-[11px] text-gray-400 sm:text-sm">Volume</p>
+                  <p className="mt-1 bg-gradient-to-r from-purple-200 to-pink-200 bg-clip-text text-xl font-semibold text-transparent sm:text-2xl">
                     {formatNumber(stats.daily.volume)}
                   </p>
-                  <p className="mt-1 text-gray-400">
+                  <p className="mt-1 text-[11px] text-gray-400 sm:text-base">
                     {formatTradesCount(stats.daily.trades)} trades
                   </p>
                 </div>
               </div>
 
-              <div className="relative overflow-hidden rounded-2xl border border-pink-500/30 bg-gradient-to-br from-pink-500/20 via-pink-500/10 to-transparent p-4 backdrop-blur-sm sm:p-6">
+              <div className="relative overflow-hidden rounded-2xl border border-pink-500/30 bg-gradient-to-br from-pink-500/20 via-pink-500/10 to-transparent p-3.5 backdrop-blur-sm sm:p-6">
                 <div className="absolute -right-4 -top-4 size-24 rounded-full bg-pink-500/20 blur-2xl" />
                 <div className="relative">
-                  <p className="text-xs font-semibold uppercase tracking-wider text-pink-300">
+                  <p className="text-[11px] font-semibold uppercase tracking-wider text-pink-300 sm:text-xs">
                     Weekly
                   </p>
-                  <p className="mt-2 text-sm text-gray-400">Volume</p>
-                  <p className="mt-1 bg-gradient-to-r from-pink-200 to-blue-200 bg-clip-text text-2xl font-semibold text-transparent">
+                  <p className="mt-2 text-[11px] text-gray-400 sm:text-sm">Volume</p>
+                  <p className="mt-1 bg-gradient-to-r from-pink-200 to-blue-200 bg-clip-text text-xl font-semibold text-transparent sm:text-2xl">
                     {formatNumber(stats.weekly.volume)}
                   </p>
-                  <p className="mt-1 text-gray-400">
+                  <p className="mt-1 text-[11px] text-gray-400 sm:text-base">
                     {formatTradesCount(stats.weekly.trades)} trades
                   </p>
                 </div>
               </div>
 
-              <div className="relative overflow-hidden rounded-2xl border border-blue-500/30 bg-gradient-to-br from-blue-500/20 via-blue-500/10 to-transparent p-4 backdrop-blur-sm sm:col-span-1 sm:p-6">
+              <div className="relative overflow-hidden rounded-2xl border border-blue-500/30 bg-gradient-to-br from-blue-500/20 via-blue-500/10 to-transparent p-3.5 backdrop-blur-sm sm:p-6">
                 <div className="absolute -right-4 -top-4 size-24 rounded-full bg-blue-500/20 blur-2xl" />
                 <div className="relative">
-                  <p className="text-xs font-semibold uppercase tracking-wider text-blue-300">
+                  <p className="text-[11px] font-semibold uppercase tracking-wider text-blue-300 sm:text-xs">
                     Monthly
                   </p>
-                  <p className="mt-2 text-sm text-gray-400">Volume</p>
-                  <p className="mt-1 bg-gradient-to-r from-blue-200 to-purple-200 bg-clip-text text-2xl font-semibold text-transparent">
+                  <p className="mt-2 text-[11px] text-gray-400 sm:text-sm">Volume</p>
+                  <p className="mt-1 bg-gradient-to-r from-blue-200 to-purple-200 bg-clip-text text-xl font-semibold text-transparent sm:text-2xl">
                     {formatNumber(stats.monthly.volume)}
                   </p>
-                  <p className="mt-1 text-gray-400">
+                  <p className="mt-1 text-[11px] text-gray-400 sm:text-base">
                     {formatTradesCount(stats.monthly.trades)} trades
                   </p>
                 </div>
