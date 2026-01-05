@@ -686,10 +686,10 @@ export function ProfileShareableCard({
           </div>
 
           {/* Stats Grid */}
-          <div className="relative z-10 grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-2.5">
+          <div className="relative z-10 grid grid-cols-3 gap-2 sm:gap-2.5">
             {/* Daily */}
             <div
-              className="relative overflow-hidden rounded-2xl border p-4 sm:p-5 backdrop-blur-sm"
+              className="relative overflow-hidden rounded-2xl border p-3.5 sm:p-5 backdrop-blur-sm"
               style={{
                 borderColor: "rgba(168, 85, 247, 0.3)",
                 backgroundImage:
@@ -702,16 +702,16 @@ export function ProfileShareableCard({
               />
               <div className="relative">
                 <p
-                  className="uppercase tracking-wider font-semibold"
+                  className="uppercase tracking-wider font-semibold text-[11px] sm:text-base"
                   style={{ color: "#E9D5FF" }}
                 >
                   DAILY
                 </p>
-                <div className="mt-2 space-y-1.5">
+                <div className="mt-2 space-y-1 sm:space-y-1.5">
                   <div>
-                    <p className="mb-1 text-white/60">Volume</p>
+                    <p className="mb-1 text-[11px] text-white/60 sm:text-base">Volume</p>
                     <p
-                      className="text-xl font-semibold bg-clip-text text-transparent sm:text-2xl"
+                      className="text-lg font-semibold bg-clip-text text-transparent sm:text-2xl"
                       style={{
                         backgroundImage:
                           "linear-gradient(90deg, #e9d5ff 0%, #fbcfe8 100%)",
@@ -720,7 +720,7 @@ export function ProfileShareableCard({
                       {formatMoney(stats.daily.volume)}
                     </p>
                   </div>
-                  <p className="text-sm text-white/60 sm:text-base">
+                  <p className="text-[11px] text-white/60 sm:text-base">
                     {formatTradesCount(stats.daily.trades)} trades
                   </p>
                 </div>
@@ -729,7 +729,7 @@ export function ProfileShareableCard({
 
             {/* Weekly */}
             <div
-              className="relative overflow-hidden rounded-2xl border p-4 sm:p-5 backdrop-blur-sm"
+              className="relative overflow-hidden rounded-2xl border p-3.5 sm:p-5 backdrop-blur-sm"
               style={{
                 borderColor: "rgba(236, 72, 153, 0.3)",
                 backgroundImage:
@@ -742,16 +742,16 @@ export function ProfileShareableCard({
               />
               <div className="relative">
                 <p
-                  className="uppercase tracking-wider font-semibold"
+                  className="uppercase tracking-wider font-semibold text-[11px] sm:text-base"
                   style={{ color: "#FBCFE8" }}
                 >
                   WEEKLY
                 </p>
-                <div className="mt-2 space-y-1.5">
+                <div className="mt-2 space-y-1 sm:space-y-1.5">
                   <div>
-                    <p className="mb-1 text-white/60">Volume</p>
+                    <p className="mb-1 text-[11px] text-white/60 sm:text-base">Volume</p>
                     <p
-                      className="text-xl font-semibold bg-clip-text text-transparent sm:text-2xl"
+                      className="text-lg font-semibold bg-clip-text text-transparent sm:text-2xl"
                       style={{
                         backgroundImage:
                           "linear-gradient(90deg, #fbcfe8 0%, #bfdbfe 100%)",
@@ -760,7 +760,7 @@ export function ProfileShareableCard({
                       {formatMoney(stats.weekly.volume)}
                     </p>
                   </div>
-                  <p className="text-sm text-white/60 sm:text-base">
+                  <p className="text-[11px] text-white/60 sm:text-base">
                     {formatTradesCount(stats.weekly.trades)} trades
                   </p>
                 </div>
@@ -769,7 +769,7 @@ export function ProfileShareableCard({
 
             {/* Monthly */}
             <div
-              className="relative overflow-hidden rounded-2xl border p-4 sm:p-5 backdrop-blur-sm col-span-2 sm:col-span-1"
+              className="relative overflow-hidden rounded-2xl border p-3.5 sm:p-5 backdrop-blur-sm"
               style={{
                 borderColor: "rgba(59, 130, 246, 0.3)",
                 backgroundImage:
@@ -782,16 +782,16 @@ export function ProfileShareableCard({
               />
               <div className="relative">
                 <p
-                  className="uppercase tracking-wider font-semibold"
+                  className="uppercase tracking-wider font-semibold text-[11px] sm:text-base"
                   style={{ color: "#BFDBFE" }}
                 >
                   MONTHLY
                 </p>
-                <div className="mt-2 space-y-1.5">
+                <div className="mt-2 space-y-1 sm:space-y-1.5">
                   <div>
-                    <p className="mb-1 text-white/60">Volume</p>
+                    <p className="mb-1 text-[11px] text-white/60 sm:text-base">Volume</p>
                     <p
-                      className="text-xl font-semibold bg-clip-text text-transparent sm:text-2xl"
+                      className="text-lg font-semibold bg-clip-text text-transparent sm:text-2xl"
                       style={{
                         backgroundImage:
                           "linear-gradient(90deg, #bfdbfe 0%, #e9d5ff 100%)",
@@ -800,7 +800,7 @@ export function ProfileShareableCard({
                       {formatMoney(stats.monthly.volume)}
                     </p>
                   </div>
-                  <p className="text-sm text-white/60 sm:text-base">
+                  <p className="text-[11px] text-white/60 sm:text-base">
                     {formatTradesCount(stats.monthly.trades)} trades
                   </p>
                 </div>
