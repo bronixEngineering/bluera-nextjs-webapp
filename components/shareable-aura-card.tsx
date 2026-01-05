@@ -105,7 +105,6 @@ export function ShareableAuraCard({
   const [isConfirmingMint, setIsConfirmingMint] = React.useState(false);
   const [isUploadingImage, setIsUploadingImage] = React.useState(false);
   const [lastUploadError, setLastUploadError] = React.useState<string | null>(null);
-  const [lastUploadedImageUrl, setLastUploadedImageUrl] = React.useState<string | null>(null);
   const [showPreview, setShowPreview] = React.useState(false);
   const [previewUrl, setPreviewUrl] = React.useState<string | null>(null);
   const cardRef = React.useRef<HTMLDivElement>(null);
@@ -1281,7 +1280,6 @@ export function ShareableAuraCard({
 
       setIsUploadingImage(true);
       setLastUploadError(null);
-      setLastUploadedImageUrl(null);
       const dataUrl =
         previewUrl ||
         (await withTimeout(generateImage(), 90_000, "generateImage"));
@@ -1319,7 +1317,6 @@ export function ShareableAuraCard({
         | null
         | { imageUrl?: string; error?: string };
       const imageUrl = json?.imageUrl;
-      if (imageUrl) setLastUploadedImageUrl(imageUrl);
       setLastUploadError(null);
       return { ok: true, imageUrl };
     } catch (e) {
@@ -1851,7 +1848,7 @@ export function ShareableAuraCard({
               users should still be able to upload+share once the tx is confirmed. */}
           {mode === "modal" && (
             <div className="flex flex-col gap-2 w-full">
-              {showShareButton ? (
+              {showShareButton && hasMinted ? (
                 <Button
                   onClick={handleShareOnBase}
                   size="lg"

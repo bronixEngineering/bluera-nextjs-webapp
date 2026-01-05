@@ -477,7 +477,6 @@ export default function ProfilePage() {
                 externalCardRef={shareCardRef}
                 autoUploadImage={true}
                 mode="modal"
-                showShareButton={false}
               />
             </div>
           </div>
