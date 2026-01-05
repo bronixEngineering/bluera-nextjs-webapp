@@ -1594,6 +1594,9 @@ export function ShareableAuraCard({
       // we can mint directly, which prevents extra wallet prompts/flicker.
       const allowance = await (async () => {
         try {
+          // In some environments/types, `usePublicClient()` can be undefined.
+          // If we can't read allowance, we fall back to approving to be safe.
+          if (!publicClient) return BigInt(-1);
           const v = await publicClient.readContract({
             address: usdc.address,
             abi: usdc.abi,
