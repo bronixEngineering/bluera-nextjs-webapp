@@ -124,6 +124,17 @@ export function HeatmapClient({
 
   const safeSvgId = (s: string) => s.replace(/[^a-zA-Z0-9_-]/g, "");
 
+  // SVG doesn't give reliable text measurement across webviews; use a pragmatic
+  // character-based fit so text doesn't overflow/collide.
+  const fitText = (text: string, maxWidthPx: number, fontSizePx: number) => {
+    if (!text) return text;
+    const approxCharW = fontSizePx * 0.62; // bold-ish font approximation
+    const maxChars = Math.max(1, Math.floor(maxWidthPx / approxCharW));
+    if (text.length <= maxChars) return text;
+    if (maxChars <= 1) return "…";
+    return `${text.slice(0, maxChars - 1)}…`;
+  };
+
   // Loading state
   if (isLoading) {
     return (
@@ -232,8 +243,32 @@ export function HeatmapClient({
                     const reservedRight = 8;
                     const clipId = `heatmap-clip-${safeSvgId(String(coin.token_address || index))}`;
                     const iconClipId = `heatmap-icon-clip-${safeSvgId(String(coin.token_address || index))}`;
-                    const compactLabel = width < 115;
-                    const metricLabel = labelForMetric(metric, compactLabel);
+                    const compactLevel = width < 90 ? 2 : width < 115 ? 1 : 0;
+                    const metricLabel =
+                      compactLevel === 2
+                        ? metric === "volume"
+                          ? "Vol"
+                          : metric === "swaps"
+                            ? "Sw"
+                            : "Pr"
+                        : labelForMetric(metric, compactLevel >= 1);
+
+                    const padLeft = 6;
+                    const maxTextWidth = Math.max(0, width - padLeft - 10);
+                    const nameFont = width < 75 ? 10 : width < 110 ? 11 : 12;
+                    const valueFont = width < 75 ? 10 : width < 110 ? 12 : 13;
+                    const changeFont = width < 75 ? 10 : width < 110 ? 11 : 12;
+
+                    const priceDecimals = width < 95 ? 2 : width < 130 ? 3 : 4;
+                    const valueTextRaw =
+                      metric === "volume"
+                        ? `${metricLabel}: ${formatUsdCompact(Number(coin.volume24h || 0))}`
+                        : metric === "swaps"
+                          ? `${metricLabel}: ${formatCountCompact(Number(coin.swaps24h || 0))}`
+                          : metric === "price"
+                            ? `${metricLabel}: $${Number(coin.priceUsd || 0).toFixed(priceDecimals)}`
+                            : "";
+                    const valueText = fitText(valueTextRaw, maxTextWidth, valueFont);
 
                     return (
                       <g>
@@ -300,45 +335,42 @@ export function HeatmapClient({
                         })()}
                         <g clipPath={`url(#${clipId})`}>
                           <text
-                            x={x + 6}
+                            x={x + padLeft}
                             y={y + 16}
                             fill="#ffffff"
                             stroke="none"
-                            fontSize={width < 60 ? "8" : "12"}
+                            fontSize={nameFont}
                             fontWeight="900"
                           >
-                            {coin.name}
+                            {fitText(String(coin.name || ""), maxTextWidth, nameFont)}
                           </text>
                           {width > 40 && height > 30 && (
                             <>
                               <text
-                                x={x + 6}
+                                x={x + padLeft}
                                 y={y + 32}
                                 fill="#ffffff"
                                 stroke="none"
-                                fontSize={width < 60 ? "8" : "13"}
+                                fontSize={valueFont}
                                 fontWeight="800"
                                 opacity="0.9"
                               >
-                                {metric === "volume"
-                                  ? `${metricLabel}: ${formatUsdCompact(Number(coin.volume24h || 0))}`
-                                  : metric === "swaps"
-                                    ? `${metricLabel}: ${formatCountCompact(Number(coin.swaps24h || 0))}`
-                                    : metric === "price"
-                                      ? `${metricLabel}: $${Number(coin.priceUsd || 0).toFixed(4)}`
-                                      : ""}
+                                {valueText}
                               </text>
                               <text
-                                x={x + 6}
+                                x={x + padLeft}
                                 y={y + 46}
                                 fill="#ffffff"
                                 stroke="none"
-                                fontSize={width < 60 ? "7" : "12"}
+                                fontSize={changeFont}
                                 fontWeight="700"
                                 opacity="0.8"
                               >
-                                {coin.changePct > 0 ? "+" : ""}
-                                {coin.changePct.toFixed(2)}%
+                                {fitText(
+                                  `${coin.changePct > 0 ? "+" : ""}${Number(coin.changePct || 0).toFixed(2)}%`,
+                                  maxTextWidth,
+                                  changeFont
+                                )}
                               </text>
                             </>
                           )}
