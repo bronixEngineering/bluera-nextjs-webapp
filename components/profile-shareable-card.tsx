@@ -514,7 +514,7 @@ export function ProfileShareableCard({
           }
         >
           {/* Header */}
-          <div className="relative z-10 mb-6 flex flex-col items-start gap-4 sm:mb-8 sm:flex-row sm:items-center sm:gap-6">
+          <div className="relative z-10 mb-4 flex flex-col items-start gap-3 sm:mb-6 sm:flex-row sm:items-center sm:gap-5">
             {/* Avatar */}
             <div className="relative">
               <div
@@ -594,7 +594,7 @@ export function ProfileShareableCard({
           </div>
 
           {/* Favorite Coins */}
-          <div className="relative z-10 mb-3 grid grid-cols-2 gap-3 sm:mb-4 sm:gap-4">
+          <div className="relative z-10 mb-2 grid grid-cols-2 gap-2.5 sm:mb-3 sm:gap-3">
             {/* Fav Coin by Volume (always keep slot) */}
             <div
               className="overflow-hidden rounded-2xl border p-4 backdrop-blur-sm sm:p-5"
@@ -699,7 +699,7 @@ export function ProfileShareableCard({
           </div>
 
           {/* Stats Grid */}
-          <div className="relative z-10 grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4">
+          <div className="relative z-10 grid grid-cols-2 gap-2.5 sm:grid-cols-3 sm:gap-3">
             {/* Daily */}
             <div
               className="relative overflow-hidden rounded-2xl border p-4 sm:p-6 backdrop-blur-sm"
@@ -720,7 +720,7 @@ export function ProfileShareableCard({
                 >
                   DAILY
                 </p>
-                <div className="mt-3 space-y-2">
+                <div className="mt-2 space-y-1.5">
                   <div>
                     <p className="mb-1 text-white/60">Volume</p>
                     <p
@@ -760,7 +760,7 @@ export function ProfileShareableCard({
                 >
                   WEEKLY
                 </p>
-                <div className="mt-3 space-y-2">
+                <div className="mt-2 space-y-1.5">
                   <div>
                     <p className="mb-1 text-white/60">Volume</p>
                     <p
@@ -800,7 +800,7 @@ export function ProfileShareableCard({
                 >
                   MONTHLY
                 </p>
-                <div className="mt-3 space-y-2">
+                <div className="mt-2 space-y-1.5">
                   <div>
                     <p className="mb-1 text-white/60">Volume</p>
                     <p
