@@ -1403,7 +1403,7 @@ export function ShareableAuraCard({
   // the Aura NFT contract to see if `ownerOf(auraCardId)` resolves.
   React.useEffect(() => {
     if (hasMinted) return;
-    if (!isConfirmingMint || !pendingCallsId) return;
+    if (!isConfirmingMint) return;
     const tokenId = lastMintAuraCardIdRef.current;
     if (tokenId == null) return;
     if (!publicClient) return;
@@ -1588,7 +1588,7 @@ export function ShareableAuraCard({
   // Safety timeout: sometimes webviews/connectors fail to report the call status,
   // which would otherwise leave the UI stuck in "Confirming...".
   React.useEffect(() => {
-    if (!pendingCallsId || !isConfirmingMint) return;
+    if (!isConfirmingMint) return;
 
     const idAtStart = pendingCallsId;
     const timeout = setTimeout(() => {
@@ -1596,7 +1596,8 @@ export function ShareableAuraCard({
       setIsConfirmingMint((stillConfirming) => {
         if (!stillConfirming) return stillConfirming;
         setPendingCallsId((current) => {
-          if (current !== idAtStart) return current;
+          // If a calls bundle id exists, only clear it if it's the same one we started with.
+          if (idAtStart && current !== idAtStart) return current;
           return null;
         });
         alert(
@@ -1693,17 +1694,18 @@ export function ShareableAuraCard({
 
       // Wait for confirmation before enabling share.
       const id = (() => {
+        if (typeof result === "string") return result;
         const maybe = result as unknown;
         if (!maybe || typeof maybe !== "object") return undefined;
-        if (!("id" in maybe)) return undefined;
-        const v = (maybe as { id?: unknown }).id;
-        return typeof v === "string" ? v : undefined;
+        if ("id" in maybe) {
+          const v = (maybe as { id?: unknown }).id;
+          if (typeof v === "string") return v;
+        }
+        // Some providers may return `{ hash }` or other shapes — we can still rely on on-chain polling.
+        return undefined;
       })();
-      if (!id) {
-        throw new Error("Missing calls id from sendCalls");
-      }
-      setPendingCallsId(id);
       setIsConfirmingMint(true);
+      setPendingCallsId(id ?? null);
       alert("⏳ Transaction sent. Waiting for confirmation...");
     } catch (error) {
       console.error("Mint error:", error);
