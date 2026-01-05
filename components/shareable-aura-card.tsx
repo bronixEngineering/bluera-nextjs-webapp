@@ -239,7 +239,8 @@ export function ShareableAuraCard({
           html2canvas(captureNode, {
             backgroundColor: null,
             // Keep size reasonable for mobile webviews to avoid huge base64 payloads/timeouts.
-            scale: 1.2,
+            // (scale is the #1 knob for performance here)
+            scale: 1,
             useCORS: true,
             // Prefer not tainting so we can reliably export via toDataURL.
             // Cross-origin images are fetched through the proxy below.
@@ -247,8 +248,9 @@ export function ShareableAuraCard({
             // Use our server-side image proxy to avoid CORS issues with avatars/token icons.
             proxy: "/api/image-proxy",
             // html2canvas defaults to 15s; bump to reduce flaky failures on slow mobile networks.
-            imageTimeout: 30_000,
+            imageTimeout: 60_000,
             removeContainer: true,
+            logging: false,
             onclone: (doc) => {
               // html2canvas cannot parse modern CSS color functions like `lab()` / `oklch()`
               // (Tailwind v4 theme vars may serialize to those). In the cloned DOM only,
@@ -273,6 +275,15 @@ export function ShareableAuraCard({
                 /* Slash opacity utilities */
                 .bg-background\\/50 { background-color: rgba(11,11,15,.5) !important; }
                 .bg-black\\/80 { background-color: rgba(0,0,0,.8) !important; }
+
+                /* Performance: expensive effects can stall html2canvas on mobile webviews */
+                * {
+                  -webkit-backdrop-filter: none !important;
+                  backdrop-filter: none !important;
+                  filter: none !important;
+                  animation: none !important;
+                  transition: none !important;
+                }
               `;
               doc.head.appendChild(style);
 
@@ -293,7 +304,7 @@ export function ShareableAuraCard({
               }
             },
           }),
-          30_000,
+          60_000,
           "html2canvas"
         );
         return canvas.toDataURL("image/jpeg", 0.88);
@@ -718,7 +729,7 @@ export function ShareableAuraCard({
       setLastUploadError(null);
       const dataUrl =
         previewUrl ||
-        (await withTimeout(generateImage(), 60_000, "generateImage"));
+        (await withTimeout(generateImage(), 90_000, "generateImage"));
 
       // Convert data URL -> Blob, then send as multipart to avoid huge base64 JSON bodies.
       const blob = dataUrlToBlob(dataUrl);
