@@ -113,6 +113,7 @@ export function ShareableAuraCard({
   const [previewUrl, setPreviewUrl] = React.useState<string | null>(null);
   const cardRef = React.useRef<HTMLDivElement>(null);
   const mintInFlightRef = React.useRef(false);
+  const lastMintAuraCardIdRef = React.useRef<bigint | null>(null);
   
   // Wagmi hooks'ları ekle:
   const { isConnected, address } = useAccount();
@@ -1397,6 +1398,50 @@ export function ShareableAuraCard({
     alert("✅ Mint confirmed! You can now share on Base.");
   }, [uploadAuraCardImageWithRetry]);
 
+  // On-chain fallback: some webviews confirm tx in-wallet, but never report
+  // `wallet_getCallsStatus` / wagmi call-status updates. In that case, we poll
+  // the Aura NFT contract to see if `ownerOf(auraCardId)` resolves.
+  React.useEffect(() => {
+    if (hasMinted) return;
+    if (!isConfirmingMint || !pendingCallsId) return;
+    const tokenId = lastMintAuraCardIdRef.current;
+    if (tokenId == null) return;
+    if (!publicClient) return;
+
+    let cancelled = false;
+    let tries = 0;
+    const maxTries = 60; // ~2 minutes at 2s interval
+    const interval = setInterval(async () => {
+      try {
+        if (cancelled) return;
+        tries += 1;
+        const owner = await publicClient.readContract({
+          address: AURA_NFT_ADDRESS as `0x${string}`,
+          abi: auraAbi as Abi,
+          functionName: "ownerOf",
+          args: [tokenId],
+        });
+        if (cancelled) return;
+        const ownerStr = typeof owner === "string" ? owner : String(owner);
+        if (ownerStr && ownerStr !== "0x0000000000000000000000000000000000000000") {
+          finalizeMint();
+          return;
+        }
+      } catch {
+        // If ownerOf reverts pre-mint, ignore; keep polling.
+      } finally {
+        if (tries >= maxTries) {
+          clearInterval(interval);
+        }
+      }
+    }, 2000);
+
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+  }, [AURA_NFT_ADDRESS, finalizeMint, hasMinted, isConfirmingMint, pendingCallsId, publicClient]);
+
   // Ensure Supabase image_url matches the currently rendered share card.
   // Note: externalCardRef.current might become available after initial render,
   // so we poll briefly.
@@ -1588,6 +1633,17 @@ export function ShareableAuraCard({
       const latestRes = await fetch(`/api/aura-card?wallet=${address}&network=base`);
       if (!latestRes.ok) throw new Error("Latest aura_card id not found");
       const { id: auraCardId } = await latestRes.json();
+      // Store for on-chain confirmation fallback.
+      lastMintAuraCardIdRef.current = (() => {
+        try {
+          if (typeof auraCardId === "bigint") return auraCardId;
+          if (typeof auraCardId === "number" && Number.isFinite(auraCardId)) return BigInt(auraCardId);
+          if (typeof auraCardId === "string" && /^\d+$/.test(auraCardId)) return BigInt(auraCardId);
+          return null;
+        } catch {
+          return null;
+        }
+      })();
 
       const amount = parseUnits("10", 4);
       // Avoid forcing an ERC20 approve every time. If allowance is already sufficient,
