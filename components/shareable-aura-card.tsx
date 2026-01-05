@@ -14,6 +14,7 @@ import {
   useChainId,
   useSendCalls,
   useWaitForCallsStatus,
+  usePublicClient,
 } from "wagmi";
 import { base } from "wagmi/chains";
 import type { Abi } from "viem";
@@ -111,6 +112,7 @@ export function ShareableAuraCard({
   const [showPreview, setShowPreview] = React.useState(false);
   const [previewUrl, setPreviewUrl] = React.useState<string | null>(null);
   const cardRef = React.useRef<HTMLDivElement>(null);
+  const mintInFlightRef = React.useRef(false);
   
   // Wagmi hooks'ları ekle:
   const { isConnected, address } = useAccount();
@@ -118,6 +120,7 @@ export function ShareableAuraCard({
   const chainId = useChainId();
   const { switchChainAsync } = useSwitchChain();
   const { sendCallsAsync } = useSendCalls();
+  const publicClient = usePublicClient({ chainId: base.id });
   const {
     data: callsStatusData,
     status: waitCallsStatus,
@@ -1562,6 +1565,10 @@ export function ShareableAuraCard({
   }, [isConfirmingMint, pendingCallsId]);
 
   const handleMint = async () => {
+    // Some webviews can trigger onClick twice (or re-enter during connector popups).
+    // Guard to prevent duplicate tx/signature prompts.
+    if (mintInFlightRef.current) return;
+    mintInFlightRef.current = true;
     try {
       setIsMinting(true);
 
@@ -1583,26 +1590,46 @@ export function ShareableAuraCard({
       const { id: auraCardId } = await latestRes.json();
 
       const amount = parseUnits("10", 4);
+      // Avoid forcing an ERC20 approve every time. If allowance is already sufficient,
+      // we can mint directly, which prevents extra wallet prompts/flicker.
+      const allowance = await (async () => {
+        try {
+          const v = await publicClient.readContract({
+            address: usdc.address,
+            abi: usdc.abi,
+            functionName: "allowance",
+            args: [address, aura.address],
+          });
+          return typeof v === "bigint" ? v : BigInt(String(v));
+        } catch {
+          // If read fails (RPC/webview), fall back to approving to be safe.
+          return BigInt(-1);
+        }
+      })();
+
+      const calls: Array<{ to: `0x${string}`; data: `0x${string}` }> = [];
+      if (allowance < amount) {
+        calls.push({
+          to: usdc.address,
+          data: encodeFunctionData({
+            abi: usdc.abi,
+            functionName: "approve",
+            args: [aura.address, amount],
+          }),
+        });
+      }
+      calls.push({
+        to: aura.address,
+        data: encodeFunctionData({
+          abi: aura.abi,
+          functionName: "mint",
+          args: [auraCardId],
+        }),
+      });
+
       const result = await sendCallsAsync({
         chainId: base.id,
-        calls: [
-          {
-            to: usdc.address,
-            data: encodeFunctionData({
-              abi: usdc.abi,
-              functionName: "approve",
-              args: [aura.address, amount],
-            }),
-          },
-          {
-            to: aura.address,
-            data: encodeFunctionData({
-              abi: aura.abi,
-              functionName: "mint",
-              args: [auraCardId],
-            }),
-          },
-        ],
+        calls,
       });
 
       // Wait for confirmation before enabling share.
@@ -1624,6 +1651,7 @@ export function ShareableAuraCard({
       alert("❌ Failed to mint. Please try again.");
     } finally {
       setIsMinting(false);
+      mintInFlightRef.current = false;
     }
   };
 
