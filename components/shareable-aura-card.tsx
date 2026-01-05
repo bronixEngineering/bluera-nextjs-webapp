@@ -714,7 +714,8 @@ export function ShareableAuraCard({
         });
 
         // Footer
-        const footerY = innerY + innerH - 160;
+        // Slightly lower the footer to create more breathing room above it (between content and footer).
+        const footerY = innerY + innerH - 130;
 
         // Logo box
         const logoBox = 72;
