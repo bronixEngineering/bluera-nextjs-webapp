@@ -535,6 +535,29 @@ export function ShareableAuraCard({
         const favW = Math.floor((cw - favGap) / 2);
         const favH = 220;
 
+        const wrapText = (
+          ctx2: CanvasRenderingContext2D,
+          text: string,
+          maxWidth: number,
+          maxLines = 2
+        ) => {
+          const words = String(text || "").split(/\s+/).filter(Boolean);
+          const lines: string[] = [];
+          let line = "";
+          for (const w of words) {
+            const test = line ? `${line} ${w}` : w;
+            if (ctx2.measureText(test).width <= maxWidth) {
+              line = test;
+              continue;
+            }
+            if (line) lines.push(line);
+            line = w;
+            if (lines.length >= maxLines - 1) break;
+          }
+          if (line && lines.length < maxLines) lines.push(line);
+          return lines;
+        };
+
         const drawFavCard = async (opts: {
           x: number;
           y: number;
@@ -545,6 +568,7 @@ export function ShareableAuraCard({
           accentStroke: string;
           accentText: string;
           iconUrl?: string | null;
+          isEmpty?: boolean;
         }) => {
           // base
           const baseFill = "rgba(17, 24, 39, 0.68)";
@@ -570,21 +594,35 @@ export function ShareableAuraCard({
           ctx.font = '700 24px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
           ctx.fillText(opts.title.toUpperCase(), tx, ty);
 
-          // Symbol gradient text
           const symY = ty + 74;
-          const symGrad = ctx.createLinearGradient(tx, symY - 50, tx + 200, symY);
-          symGrad.addColorStop(0, "rgba(224, 231, 255, 0.95)");
-          symGrad.addColorStop(1, "rgba(186, 230, 253, 0.95)");
-          ctx.fillStyle = symGrad as unknown as string;
-          ctx.font = '700 56px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
-          ctx.fillText(ellipsize(opts.symbol || "$—", favW - pad * 2 - 96), tx, symY);
+          const maxTextW = favW - pad * 2 - 96;
 
-          ctx.fillStyle = "rgba(156, 163, 175, 0.95)";
-          ctx.font = '500 34px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
-          ctx.fillText(opts.value, tx, symY + 64);
+          if (!opts.isEmpty) {
+            // Symbol gradient text
+            const symGrad = ctx.createLinearGradient(tx, symY - 50, tx + 200, symY);
+            symGrad.addColorStop(0, "rgba(224, 231, 255, 0.95)");
+            symGrad.addColorStop(1, "rgba(186, 230, 253, 0.95)");
+            ctx.fillStyle = symGrad as unknown as string;
+            ctx.font = '700 56px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+            ctx.fillText(ellipsize(opts.symbol || "$—", maxTextW), tx, symY);
+
+            ctx.fillStyle = "rgba(156, 163, 175, 0.95)";
+            ctx.font = '500 34px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+            ctx.fillText(ellipsize(opts.value, maxTextW), tx, symY + 64);
+          } else {
+            // Empty-state: no ticker/logo, show message (multi-line)
+            ctx.fillStyle = "rgba(156, 163, 175, 0.95)";
+            ctx.font = '500 28px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+            const lines = wrapText(ctx, opts.value, maxTextW, 3);
+            const startY = symY + 8;
+            const lh = 34;
+            lines.forEach((ln, i) => {
+              ctx.fillText(ln, tx, startY + i * lh);
+            });
+          }
 
           // Icon circle (top-right)
-          if (opts.iconUrl) {
+          if (opts.iconUrl && !opts.isEmpty) {
             const iconSize = 84;
             const ix = opts.x + favW - pad - iconSize;
             const iy = opts.y + pad + 18;
@@ -608,28 +646,42 @@ export function ShareableAuraCard({
           }
         };
 
+        const dailyFavVol = Number(maybeStats.favCoinByVolume?.volume ?? 0);
+        const dailyFavTrades = Number(maybeStats.favCoinByTrades?.trades ?? 0);
+
         await drawFavCard({
           x: cx,
           y: favY,
-          title: "Fav by Volume",
-          symbol: maybeStats.favCoinByVolume?.symbol ?? "$—",
-          value: formatUsd(maybeStats.favCoinByVolume?.volume ?? 0),
+          title: "Daily Fav by Volume",
+          symbol: dailyFavVol > 0 ? (maybeStats.favCoinByVolume?.symbol ?? "$—") : "",
+          value:
+            dailyFavVol > 0
+              ? formatUsd(dailyFavVol)
+              : "No volume today — make a trade to unlock your daily fav.",
           accentFill: "rgba(34, 211, 238, 0.14)",
           accentStroke: "rgba(34, 211, 238, 0.35)",
           accentText: "rgba(103, 232, 249, 0.95)",
-          iconUrl: maybeStats.favCoinByVolume?.imageUrl ?? null,
+          iconUrl:
+            dailyFavVol > 0 ? (maybeStats.favCoinByVolume?.imageUrl ?? null) : null,
+          isEmpty: dailyFavVol <= 0,
         });
 
         await drawFavCard({
           x: cx + favW + favGap,
           y: favY,
-          title: "Fav by Trades",
-          symbol: maybeStats.favCoinByTrades?.symbol ?? "$—",
-          value: `${formatTradesCount(maybeStats.favCoinByTrades?.trades ?? 0)} trades`,
+          title: "Daily Fav by Trades",
+          symbol:
+            dailyFavTrades > 0 ? (maybeStats.favCoinByTrades?.symbol ?? "$—") : "",
+          value:
+            dailyFavTrades > 0
+              ? `${formatTradesCount(dailyFavTrades)} trades`
+              : "No trades today — trade more to unlock your daily fav.",
           accentFill: "rgba(16, 185, 129, 0.14)",
           accentStroke: "rgba(16, 185, 129, 0.35)",
           accentText: "rgba(110, 231, 183, 0.95)",
-          iconUrl: maybeStats.favCoinByTrades?.imageUrl ?? null,
+          iconUrl:
+            dailyFavTrades > 0 ? (maybeStats.favCoinByTrades?.imageUrl ?? null) : null,
+          isEmpty: dailyFavTrades <= 0,
         });
 
         // Stats row (3 cards)
