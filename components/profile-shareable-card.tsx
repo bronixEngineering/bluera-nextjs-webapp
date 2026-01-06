@@ -681,7 +681,7 @@ export function ProfileShareableCard({
                       <>{formatTradesCount(stats.favCoinByTrades?.trades ?? 0)} trades</>
                     ) : (
                       <span className="block text-[11px] leading-snug text-white/70 sm:text-sm">
-                        No trades today — trade more to unlock your daily fav.
+                        No trades today, be more active to unlock your daily fav.
                       </span>
                     )}
                   </p>
