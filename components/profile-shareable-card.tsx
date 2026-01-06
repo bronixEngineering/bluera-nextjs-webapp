@@ -298,7 +298,9 @@ export function ProfileShareableCard({
       symGrad.addColorStop(1, "#BFDBFE");
       ctx.fillStyle = symGrad;
       ctx.font = "bold 34px -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif";
-      ctx.fillText(symbol, x + 28, y + 96);
+      if (symbol) {
+        ctx.fillText(symbol, x + 28, y + 96);
+      }
 
       ctx.fillStyle = "rgba(255,255,255,0.55)";
       ctx.font = "26px -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif";
@@ -328,9 +330,9 @@ export function ProfileShareableCard({
         "DAILY FAV BY VOLUME",
         "#67E8F9",
         "rgba(34,211,238,0.35)",
-        stats.favCoinByVolume.symbol,
+        dailyVol > 0 ? stats.favCoinByVolume.symbol : "",
         dailyVol > 0 ? formatMoney(dailyVol) : "No volume today",
-        stats.favCoinByVolume.imageUrl
+        dailyVol > 0 ? stats.favCoinByVolume.imageUrl : null
       );
     }
     if (stats.favCoinByTrades) {
@@ -341,11 +343,11 @@ export function ProfileShareableCard({
         "DAILY FAV BY TRADES",
         "#6EE7B7",
         "rgba(16,185,129,0.35)",
-        stats.favCoinByTrades.symbol,
+        dailyTrades > 0 ? stats.favCoinByTrades.symbol : "",
         dailyTrades > 0
           ? `${formatTradesCount(dailyTrades)} trades`
           : "No trades today",
-        stats.favCoinByTrades.imageUrl
+        dailyTrades > 0 ? stats.favCoinByTrades.imageUrl : null
       );
     }
 
@@ -610,7 +612,9 @@ export function ProfileShareableCard({
                         "linear-gradient(90deg, #a5f3fc 0%, #bfdbfe 100%)",
                     }}
                   >
-                    {stats.favCoinByVolume?.symbol ?? "$—"}
+                    {(stats.favCoinByVolume?.volume ?? 0) > 0
+                      ? (stats.favCoinByVolume?.symbol ?? "$—")
+                      : ""}
                   </p>
                   <p className="text-xs text-white/60 sm:text-base">
                     {(stats.favCoinByVolume?.volume ?? 0) > 0 ? (
@@ -623,7 +627,8 @@ export function ProfileShareableCard({
                   </p>
                 </div>
 
-                {stats.favCoinByVolume?.imageUrl ? (
+                {stats.favCoinByVolume?.imageUrl &&
+                (stats.favCoinByVolume?.volume ?? 0) > 0 ? (
                   <div
                     className="relative size-9 shrink-0 overflow-hidden rounded-full border sm:size-10"
                     style={{
@@ -667,7 +672,9 @@ export function ProfileShareableCard({
                         "linear-gradient(90deg, #a7f3d0 0%, #a5f3fc 100%)",
                     }}
                   >
-                    {stats.favCoinByTrades?.symbol ?? "$—"}
+                    {(stats.favCoinByTrades?.trades ?? 0) > 0
+                      ? (stats.favCoinByTrades?.symbol ?? "$—")
+                      : ""}
                   </p>
                   <p className="text-xs text-white/60 sm:text-base">
                     {(stats.favCoinByTrades?.trades ?? 0) > 0 ? (
@@ -680,7 +687,8 @@ export function ProfileShareableCard({
                   </p>
                 </div>
 
-                {stats.favCoinByTrades?.imageUrl ? (
+                {stats.favCoinByTrades?.imageUrl &&
+                (stats.favCoinByTrades?.trades ?? 0) > 0 ? (
                   <div
                     className="relative size-9 shrink-0 overflow-hidden rounded-full border sm:size-10"
                     style={{
