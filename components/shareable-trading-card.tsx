@@ -115,17 +115,26 @@ export const ShareableTradingCard = React.forwardRef<HTMLDivElement, Props>(
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-cyan-300">
-                      Fav by Volume
+                      Daily Fav by Volume
                     </p>
                     <p className="mb-1 truncate bg-gradient-to-r from-cyan-200 to-blue-200 bg-clip-text text-lg font-semibold text-transparent sm:text-2xl">
-                      {stats.favCoinByVolume?.symbol ?? "$—"}
+                      {(stats.favCoinByVolume?.volume ?? 0) > 0
+                        ? (stats.favCoinByVolume?.symbol ?? "$—")
+                        : ""}
                     </p>
                     <p className="text-sm text-gray-400 sm:text-base">
-                      {formatNumber(stats.favCoinByVolume?.volume ?? 0)}
+                      {(stats.favCoinByVolume?.volume ?? 0) > 0 ? (
+                        formatNumber(stats.favCoinByVolume?.volume ?? 0)
+                      ) : (
+                        <span className="block text-[11px] leading-snug text-gray-300 sm:text-sm">
+                          No volume today — make a trade to unlock your daily fav.
+                        </span>
+                      )}
                     </p>
                   </div>
 
-                  {stats.favCoinByVolume?.imageUrl ? (
+                  {stats.favCoinByVolume?.imageUrl &&
+                  (stats.favCoinByVolume?.volume ?? 0) > 0 ? (
                     <div className="size-10 shrink-0 overflow-hidden rounded-full border border-cyan-500/30 bg-cyan-500/10 sm:size-11">
                       <img
                         src={proxyImageUrl(stats.favCoinByVolume.imageUrl)}
@@ -148,17 +157,28 @@ export const ShareableTradingCard = React.forwardRef<HTMLDivElement, Props>(
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-emerald-300">
-                      Fav by Trades
+                      Daily Fav by Trades
                     </p>
                     <p className="mb-1 truncate bg-gradient-to-r from-emerald-200 to-cyan-200 bg-clip-text text-lg font-semibold text-transparent sm:text-2xl">
-                      {stats.favCoinByTrades?.symbol ?? "$—"}
+                      {(stats.favCoinByTrades?.trades ?? 0) > 0
+                        ? (stats.favCoinByTrades?.symbol ?? "$—")
+                        : ""}
                     </p>
                     <p className="text-sm text-gray-400 sm:text-base">
-                      {formatTradesCount(stats.favCoinByTrades?.trades ?? 0)} trades
+                      {(stats.favCoinByTrades?.trades ?? 0) > 0 ? (
+                        <>
+                          {formatTradesCount(stats.favCoinByTrades?.trades ?? 0)} trades
+                        </>
+                      ) : (
+                        <span className="block text-[11px] leading-snug text-gray-300 sm:text-sm">
+                          No trades today — trade more to unlock your daily fav.
+                        </span>
+                      )}
                     </p>
                   </div>
 
-                  {stats.favCoinByTrades?.imageUrl ? (
+                  {stats.favCoinByTrades?.imageUrl &&
+                  (stats.favCoinByTrades?.trades ?? 0) > 0 ? (
                     <div className="size-10 shrink-0 overflow-hidden rounded-full border border-emerald-500/30 bg-emerald-500/10 sm:size-11">
                       <img
                         src={proxyImageUrl(stats.favCoinByTrades.imageUrl)}
