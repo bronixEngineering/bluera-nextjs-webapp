@@ -321,26 +321,30 @@ export function ProfileShareableCard({
     };
 
     if (stats.favCoinByVolume) {
+      const dailyVol = Number(stats.favCoinByVolume.volume ?? 0);
       await drawFav(
         favX1,
         favY,
-        "FAV BY VOLUME",
+        "DAILY FAV BY VOLUME",
         "#67E8F9",
         "rgba(34,211,238,0.35)",
         stats.favCoinByVolume.symbol,
-        formatMoney(stats.favCoinByVolume.volume),
+        dailyVol > 0 ? formatMoney(dailyVol) : "No volume today",
         stats.favCoinByVolume.imageUrl
       );
     }
     if (stats.favCoinByTrades) {
+      const dailyTrades = Number(stats.favCoinByTrades.trades ?? 0);
       await drawFav(
         favX2,
         favY,
-        "FAV BY TRADES",
+        "DAILY FAV BY TRADES",
         "#6EE7B7",
         "rgba(16,185,129,0.35)",
         stats.favCoinByTrades.symbol,
-        `${formatTradesCount(stats.favCoinByTrades.trades)} trades`,
+        dailyTrades > 0
+          ? `${formatTradesCount(dailyTrades)} trades`
+          : "No trades today",
         stats.favCoinByTrades.imageUrl
       );
     }
@@ -597,7 +601,7 @@ export function ProfileShareableCard({
                     className="mb-1 text-xs font-semibold uppercase tracking-wider"
                     style={{ color: "#67E8F9" }}
                   >
-                    FAV BY VOLUME
+                    DAILY FAV BY VOLUME
                   </p>
                   <p
                     className="mb-1 text-lg font-semibold bg-clip-text text-transparent sm:text-2xl truncate max-w-[11ch]"
@@ -609,7 +613,13 @@ export function ProfileShareableCard({
                     {stats.favCoinByVolume?.symbol ?? "$—"}
                   </p>
                   <p className="text-xs text-white/60 sm:text-base">
-                    {formatMoney(stats.favCoinByVolume?.volume ?? 0)}
+                    {(stats.favCoinByVolume?.volume ?? 0) > 0 ? (
+                      formatMoney(stats.favCoinByVolume?.volume ?? 0)
+                    ) : (
+                      <span className="block text-[11px] leading-snug text-white/70 sm:text-sm">
+                        No volume today — make a trade to unlock your daily fav.
+                      </span>
+                    )}
                   </p>
                 </div>
 
@@ -648,7 +658,7 @@ export function ProfileShareableCard({
                     className="mb-1 text-xs font-semibold uppercase tracking-wider"
                     style={{ color: "#6EE7B7" }}
                   >
-                    FAV BY TRADES
+                    DAILY FAV BY TRADES
                   </p>
                   <p
                     className="mb-1 text-lg font-semibold bg-clip-text text-transparent sm:text-2xl truncate max-w-[11ch]"
@@ -660,7 +670,13 @@ export function ProfileShareableCard({
                     {stats.favCoinByTrades?.symbol ?? "$—"}
                   </p>
                   <p className="text-xs text-white/60 sm:text-base">
-                    {formatTradesCount(stats.favCoinByTrades?.trades ?? 0)} trades
+                    {(stats.favCoinByTrades?.trades ?? 0) > 0 ? (
+                      <>{formatTradesCount(stats.favCoinByTrades?.trades ?? 0)} trades</>
+                    ) : (
+                      <span className="block text-[11px] leading-snug text-white/70 sm:text-sm">
+                        No trades today — trade more to unlock your daily fav.
+                      </span>
+                    )}
                   </p>
                 </div>
 
