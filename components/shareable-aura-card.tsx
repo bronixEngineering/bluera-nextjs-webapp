@@ -675,7 +675,7 @@ export function ShareableAuraCard({
           value:
             dailyFavTrades > 0
               ? `${formatTradesCount(dailyFavTrades)} trades`
-              : "No trades today — trade more to unlock your daily fav.",
+              : "No trades today, be more active to unlock your daily fav.",
           accentFill: "rgba(16, 185, 129, 0.14)",
           accentStroke: "rgba(16, 185, 129, 0.35)",
           accentText: "rgba(110, 231, 183, 0.95)",

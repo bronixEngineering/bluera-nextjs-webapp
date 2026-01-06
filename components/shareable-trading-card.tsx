@@ -171,7 +171,7 @@ export const ShareableTradingCard = React.forwardRef<HTMLDivElement, Props>(
                         </>
                       ) : (
                         <span className="block text-[11px] leading-snug text-gray-300 sm:text-sm">
-                          No trades today — trade more to unlock your daily fav.
+                          No trades today, be more active to unlock your daily fav.
                         </span>
                       )}
                     </p>
