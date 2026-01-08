@@ -15,13 +15,13 @@ export async function GET() {
     miniapp: {
       version: "1",
       name: "Bluera - Base Analytics",
-      homeUrl: "https://bluera.vercel.app",
+      homeUrl: "https://bluera.app",
       iconUrl:
         "https://sbhcvcgwvbodsrsnufhk.supabase.co/storage/v1/object/public/public-assets/blueara-app-logo.png",
       splashImageUrl:
         "https://sbhcvcgwvbodsrsnufhk.supabase.co/storage/v1/object/public/public-assets/blueara-app-logo.png",
       splashBackgroundColor: "#0f172a",
-      webhookUrl: "https://bluera.vercel.app/api/webhook",
+      webhookUrl: "https://bluera.app/api/webhook",
       subtitle: "Base Analytics",
       description:
         "Track your trading performance, analyze market trends, and compete with other traders in real-time.",
