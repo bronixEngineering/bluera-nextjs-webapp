@@ -1,11 +1,9 @@
 export async function GET() {
   const manifest_json_object = {
     accountAssociation: {
-      header:
-        "eyJmaWQiOjEzNzAzMDUsInR5cGUiOiJjdXN0b2R5Iiwia2V5IjoiMHhkNjM1ODk2MGU3MjUyNGI3NTlEM0Q5RjI1QjI3NjNBOWI1NEE1NjEwIn0",
-      payload: "eyJkb21haW4iOiJibHVlcmEudmVyY2VsLmFwcCJ9",
-      signature:
-        "MHg4YWMwYTI4NGJhODdiMjYwYmVjMjE1NTBlZDZiOGMyYWMyZTNhMTAxMTU0NmUxNmZmMDE5YWRlN2IwYjgyYWViM2U4NTVjM2QwNDcxYmMwYzJiMDA0ZTc2YTdhOTlkNmMzMjMwNDdiOTVkMWU3MzZiN2NhY2QyNTNmYzhjMDUzMzFi",
+      header: "eyJmaWQiOjExNDgwMjAsInR5cGUiOiJhdXRoIiwia2V5IjoiMHg3RTczRTUxNDgxNzMyNzc1MTZjMzQxRTMwZTJCQzAyNUZCNDUzMjI0In0",
+      payload: "eyJkb21haW4iOiJibHVlcmEuYXBwIn0",
+      signature: "CqEhEijp1ogItti83pTSQZevSciqon+S7ElLBXVcH8pO3BpK9k+rr8/M/tabc/cepaDKZmjwCrceo6Ot0qIKUhs="
     },
 
     baseBuilder: {
