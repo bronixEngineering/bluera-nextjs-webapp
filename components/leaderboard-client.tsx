@@ -337,16 +337,16 @@ export function LeaderboardClient({ initialData, error }: LeaderboardClientProps
             <div className="divide-y">
               <div style={{ display: activeTabKey === 'allTimeVolume' ? 'block' : 'none' }}>
                 <LeaderboardRows rows={dailySorted} tab="allTimeVolume" formatValue={formatValue} />
-              </div>
+                      </div>
               <div style={{ display: activeTabKey === 'weeklyVolume' ? 'block' : 'none' }}>
                 <LeaderboardRows rows={weeklySorted} tab="weeklyVolume" formatValue={formatValue} />
-              </div>
+                          </div>
               <div style={{ display: activeTabKey === 'monthlyVolume' ? 'block' : 'none' }}>
                 <LeaderboardRows rows={monthlySorted} tab="monthlyVolume" formatValue={formatValue} />
-              </div>
+                            </div>
               <div style={{ display: activeTabKey === 'netWorth' ? 'block' : 'none' }}>
                 <LeaderboardRows rows={netWorthSorted} tab="netWorth" formatValue={formatValue} />
-              </div>
+                </div>
             </div>
           </ScrollArea>
         </CardContent>

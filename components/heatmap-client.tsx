@@ -5,7 +5,6 @@ import React from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { RefreshCw, AlertCircle } from "lucide-react";
 import { Treemap, ResponsiveContainer, Tooltip } from "recharts";
-import { useRouter } from "next/navigation";
 
 type HeatmapMetric = "volume" | "swaps" | "price";
 
@@ -36,7 +35,6 @@ export function HeatmapClient({
   error,
   compact = false,
 }: HeatmapClientProps) {
-  const router = useRouter();
   const [metric, setMetric] = React.useState<HeatmapMetric>("volume");
   const TOP_N = 15;
 
@@ -44,9 +42,6 @@ export function HeatmapClient({
     window.location.reload();
   };
 
-  const handleTokenClick = (tokenAddress: string) => {
-    router.push(`/app/token/${tokenAddress}`);
-  };
   const topTokens = React.useMemo(
     () => [...initialData].sort((a, b) => b.liquidityUsd - a.liquidityUsd).slice(0, TOP_N),
     [TOP_N, initialData]
@@ -89,7 +84,7 @@ export function HeatmapClient({
   const treemapData = topTokens.map((token) => {
     const changePct = getChangePct(token);
     return {
-      name: token.symbol,
+    name: token.symbol,
       size: toWeight(token.liquidityUsd),
       fill: colorForChangePct(changePct),
       changePct,
@@ -97,8 +92,8 @@ export function HeatmapClient({
       volume24h: token.volume24h,
       swaps24h: token.swaps24h,
       priceUsd: token.priceUsd,
-      token_address: token.token_address,
-      image_url: token.image_url,
+    token_address: token.token_address,
+    image_url: token.image_url,
     };
   });
 
@@ -304,8 +299,6 @@ export function HeatmapClient({
                           stroke="#1e293b"
                           strokeWidth={2}
                           rx={4}
-                          style={{ cursor: "pointer" }}
-                          onClick={() => handleTokenClick(coin.token_address)}
                         />
                         {/* Token image from backend (if provided) */}
                         {(() => {
@@ -336,29 +329,29 @@ export function HeatmapClient({
                           );
                         })()}
                         <g clipPath={`url(#${clipId})`}>
-                          <text
+                        <text
                             x={x + padLeft}
-                            y={y + 16}
-                            fill="#ffffff"
-                            stroke="none"
+                          y={y + 16}
+                          fill="#ffffff"
+                          stroke="none"
                             fontSize={nameFont}
-                            fontWeight="900"
-                          >
+                          fontWeight="900"
+                        >
                             {fitText(String(coin.name || ""), maxTextWidth, nameFont)}
-                          </text>
-                          {width > 40 && height > 30 && (
-                            <>
-                              <text
+                        </text>
+                        {width > 40 && height > 30 && (
+                          <>
+                            <text
                                 x={x + padLeft}
-                                y={y + 32}
-                                fill="#ffffff"
-                                stroke="none"
+                              y={y + 32}
+                              fill="#ffffff"
+                              stroke="none"
                                 fontSize={valueFont}
-                                fontWeight="800"
-                                opacity="0.9"
-                              >
+                              fontWeight="800"
+                              opacity="0.9"
+                            >
                                 {valueText}
-                              </text>
+                            </text>
                               <text
                                 x={x + padLeft}
                                 y={y + 46}
@@ -366,16 +359,16 @@ export function HeatmapClient({
                                 stroke="none"
                                 fontSize={changeFont}
                                 fontWeight="700"
-                                opacity="0.8"
-                              >
+                              opacity="0.8"
+                            >
                                 {fitText(
                                   `${coin.changePct > 0 ? "+" : ""}${Number(coin.changePct || 0).toFixed(2)}%`,
                                   maxTextWidth,
                                   changeFont
                                 )}
-                              </text>
-                            </>
-                          )}
+                            </text>
+                          </>
+                        )}
                         </g>
                       </g>
                     );

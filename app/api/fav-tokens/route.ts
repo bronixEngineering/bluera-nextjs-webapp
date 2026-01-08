@@ -58,10 +58,12 @@ export async function GET(req: NextRequest) {
 
     let tokenMetaMap = new Map<string, WhitelistedTokenRow>();
     if (addresses.length > 0) {
+      // Case-insensitive match (DB may store checksummed/mixed-case addresses)
+      const orFilter = addresses.map((a) => `token_address.ilike.${a}`).join(",");
       const { data: metas } = await supabase
         .from("whitelisted_tokens")
         .select("token_address, token_ticker, image_url")
-        .in("token_address", addresses);
+        .or(orFilter);
 
       tokenMetaMap = new Map(
         (metas as WhitelistedTokenRow[] | null | undefined)?.map((m) => [

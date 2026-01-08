@@ -165,8 +165,8 @@ export default async function Home() {
                 </div>
                 <div className="mt-1 text-2xl font-bold tracking-tight text-blue-400 leading-none">
                   {formatUsdCompact(totalVolume24h)}
-                </div>
-              </div>
+            </div>
+          </div>
               <div className="grid h-11 w-11 place-items-center rounded-2xl bg-blue-500/15 ring-1 ring-white/10 shrink-0">
                 <DollarSign className="h-5 w-5 text-blue-400" />
               </div>
@@ -183,8 +183,8 @@ export default async function Home() {
                 </div>
                 <div className="mt-1 text-2xl font-bold tracking-tight text-purple-400 leading-none">
                   {formatCountCompact(totalSwaps24h)}
-                </div>
-              </div>
+            </div>
+          </div>
               <div className="grid h-11 w-11 place-items-center rounded-2xl bg-purple-500/15 ring-1 ring-white/10 shrink-0">
                 <Repeat2 className="h-5 w-5 text-purple-400" />
               </div>
